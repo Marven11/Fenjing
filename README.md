@@ -16,6 +16,13 @@
 
 `url`是表单所在的URL, `method`是提交表单的HTTP方法, `inputs`是表单的所有字段，以逗号分隔
 
+### 使用pip安装运行
+
+```shell
+pip install fenjing
+python -m fenjing crack --inputs name --method GET --url 'http://xxx/'
+```
+
 ### 下载并运行docker镜像
 
 ```shell
