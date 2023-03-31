@@ -1,0 +1,2 @@
+class NotTested(Exception):
+    pass
