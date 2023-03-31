@@ -26,7 +26,7 @@ docker run marven11/fenjing crack --inputs name --method GET --url 'http://xxx/'
 ### 手动安装
 
 ```shell
-git clone ......
+git clone https://github.com/Marven11/Fenjing
 cd Fenjing
 python -m pip install -r requirements.txt
 python -m fenjing crack --inputs name --method GET --url 'http://xxx/'

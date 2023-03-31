@@ -19,7 +19,7 @@ setuptools.setup(
     description="A Jinja2 SSTI cracker for CTF competitions",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/marven11/fenjing",
+    url="https://github.com/Marven11/Fenjing",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3.9",
