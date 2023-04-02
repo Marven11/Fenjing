@@ -8,7 +8,7 @@
 
 ![CTFShow web365](assets/demo.webp)
 
-`python -m fenjing scan --url 'http://xxx/'`
+`python -m fenjing crack --method GET --inputs name --url 'http://xxx/'`
 
 ## 快速上手
 
