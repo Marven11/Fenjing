@@ -33,7 +33,7 @@ def exec_cmd_payload(waf_func, cmd):
         outer_pattern = "{% set x=PAYLOAD %}"
     else:
         logging.warning("LOTS OF THINGS is being waf, NOTHING FOR YOU!")
-        return None
+        return None, None
 
 
     types = [
@@ -54,4 +54,4 @@ def exec_cmd_payload(waf_func, cmd):
             return payload, will_print
             
     logger.warning("Bypassing WAF Failed.")
-    return None
+    return None, None

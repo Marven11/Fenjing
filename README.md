@@ -8,26 +8,24 @@
 
 ![CTFShow web365](assets/demo.webp)
 
-`python -m fenjing crack --inputs name --method GET --url 'http://xxx/'`
+`python -m fenjing scan --url 'http://xxx/'`
 
 ## 快速上手
 
 在以下方法中选择一种
 
-`url`是表单所在的URL, `method`是提交表单的HTTP方法, `inputs`是表单的所有字段，以逗号分隔
-
 ### 使用pip安装运行
 
 ```shell
 pip install fenjing
-python -m fenjing crack --inputs name --method GET --url 'http://xxx/'
+python -m fenjing scan --url 'http://xxx/'
 ```
 
 ### 下载并运行docker镜像
 
 ```shell
 docker pull marven11/fenjing
-docker run marven11/fenjing crack --inputs name --method GET --url 'http://xxx/'
+docker run marven11/fenjing scan --url 'http://xxx/'
 ```
 
 ### 手动安装
@@ -36,14 +34,14 @@ docker run marven11/fenjing crack --inputs name --method GET --url 'http://xxx/'
 git clone https://github.com/Marven11/Fenjing
 cd Fenjing
 python -m pip install -r requirements.txt
-python -m fenjing crack --inputs name --method GET --url 'http://xxx/'
+python -m fenjing scan --url 'http://xxx/'
 ```
 
 ### 手动构建Docker镜像
 
 ```shell
 docker build -t fenjing .
-docker run -it --net host fenjing crack --inputs name --method GET --url 'http://xxx/'
+docker run -it --net host fenjing scan --url 'http://xxx/'
 ```
 
 ## 特性
