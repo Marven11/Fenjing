@@ -25,7 +25,7 @@ python -m fenjing scan --url 'http://xxx/'
 
 ```shell
 docker pull marven11/fenjing
-docker run marven11/fenjing scan --url 'http://xxx/'
+docker run --net host -it marven11/fenjing scan --url 'http://xxx/'
 ```
 
 ### 手动安装
@@ -109,6 +109,9 @@ docker run -it --net host fenjing scan --url 'http://xxx/'
 ## 详细使用
 
 ### 作为命令行脚本使用
+
+- scan: 扫描整个网站
+- crack: 对某个特定的表单进行攻击
 
 ```
 Usage: python -m fenjing scan [OPTIONS]
