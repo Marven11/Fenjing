@@ -106,7 +106,30 @@ docker run -it --net host fenjing scan --url 'http://xxx/'
     - 其中的字符串也支持上面的任意字符串绕过
 
 
-### 作为库使用
+## 详细使用
+
+### 作为命令行脚本使用
+
+```
+Usage: python -m fenjing scan [OPTIONS]
+
+Options:
+  --url TEXT       需要扫描的URL
+  --exec-cmd TEXT  成功后执行的shell指令，不填则进入交互模式
+  --help           Show this message and exit.
+
+Usage: python -m fenjing crack [OPTIONS]
+
+Options:
+  --url TEXT       form所在的URL
+  --action TEXT    form的action，默认为当前路径
+  --method TEXT    form的提交方式，默认为POST
+  --inputs TEXT    form的参数，以逗号分隔
+  --exec-cmd TEXT  成功后执行的shell指令，不填则进入交互模式
+  --help           Show this message and exit.
+```
+
+### 作为python库使用
 
 参考[example.py](fenjing/example.py)
 
