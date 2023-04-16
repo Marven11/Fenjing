@@ -1,7 +1,7 @@
 
 
-from .utils.request import common_request
-from .utils.form import parse_forms
+from .request import common_request
+from .form import parse_forms
 
 from bs4 import BeautifulSoup
 

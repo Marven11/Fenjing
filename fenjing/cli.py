@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from traceback import print_exc
 
 from .test_form import test_form, Form, submit_form_input
-from .utils.request import common_request
+from .request import common_request
 from .scan_url import yield_form
 import click
 

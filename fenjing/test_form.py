@@ -8,8 +8,8 @@ from typing import Iterable
 from itertools import groupby
 
 from .shell_cmd import exec_cmd_payload
-from .utils.request import common_request
-from .utils.form import Form, fill_form, random_fill
+from .request import common_request
+from .form import Form, fill_form, random_fill
 
 
 logger = logging.getLogger("test_form")
