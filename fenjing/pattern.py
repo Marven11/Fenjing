@@ -5,6 +5,7 @@ import logging
 import sys
 import random
 from functools import lru_cache
+import re
 
 logger = logging.getLogger("[SSTI Pattern]")
 
@@ -761,13 +762,12 @@ class StrPattern08(StrPattern):
 class StrPattern09(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
-        import re
-        if not re.match("^[a-zA-Z_][a-zA-Z0-9_]*$", inner_s):
-            self.require(WillErrorPattern)
-            return
 
         mid = len(inner_s) // 2
         s_a, s_b = inner_s[:mid], inner_s[mid:]
+        if not re.match("^[a-zA-Z_][a-zA-Z0-9_]*$", s_a) or not re.match("^[a-zA-Z_][a-zA-Z0-9_]*$", s_b):
+            self.require(WillErrorPattern)
+            return
 
         self.s = f"dict({s_a}=%s,{s_b}=%s)|join"
         self.require(PlainPattern, self.s.replace("%s", ""))
