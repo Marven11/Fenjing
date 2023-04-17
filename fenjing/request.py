@@ -15,8 +15,8 @@ def retry_status_code(status_codes=(429, )):
         return f1
     return _decorator
 
-
-def base_request(*args, **kwargs):
+@retry_status_code()
+def common_request(*args, **kwargs):
     session = requests.Session()
     session.mount("http://", requests.adapters.HTTPAdapter(max_retries=10))
     session.mount("https://", requests.adapters.HTTPAdapter(max_retries=10))
@@ -26,7 +26,4 @@ def base_request(*args, **kwargs):
             return r
         except requests.exceptions.Timeout:
             continue
-
-
-common_request = retry_status_code([429, ])(base_request)
 
