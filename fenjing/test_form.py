@@ -21,7 +21,7 @@ def get_possible_input(url: str, form):
     """
     fill = random_fill(form)
     kwargs = fill_form(url, form, fill)
-    
+
     resp = common_request(**kwargs)
     return [
         k for k, v in fill.items()
@@ -91,10 +91,9 @@ def test_form(url, form):
 
         waf_hash = test_dangerous_keywords(url, form, possible_input)
 
-        def waf_func(value): return check_waf(
-            url, form, possible_input, value, waf_hash)
-
-        waf_func = lru_cache(200)(waf_func)
+        @lru_cache(200)
+        def waf_func(value):
+            return check_waf(url, form, possible_input, value, waf_hash)
 
         payload, will_print = exec_cmd_payload(waf_func, cmd)
         if payload is None:
