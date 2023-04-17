@@ -34,7 +34,7 @@ def parse_forms(url, html):
     elif isinstance(html, BeautifulSoup):
         bs = html
     else:
-        raise NotImplemented(f"Unsupported Type: {type(html)=}")
+        raise NotImplemented(f"Unsupported Type: type(html)={type(html)}")
 
     details = []
     for form_element in bs.select("form"):

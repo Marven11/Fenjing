@@ -11,7 +11,7 @@ def parse_urls(html):
     elif isinstance(html, BeautifulSoup):
         bs = html
     else:
-        raise NotImplemented(f"Unsupported Type: {type(html)=}")
+        raise NotImplemented(f"Unsupported Type: type(html)={type(html)}")
 
     return [element.attrs["href"] for element in bs.select("a") if "href" in element]
 
