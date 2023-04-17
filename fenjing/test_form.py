@@ -33,7 +33,7 @@ def submit_form_input(url: str, form: dict, inputs: dict):
     """
     submit the form inside the url with the inputs
     """
-    logger.info(f"submit {inputs=}")
+    logger.info(f"submit inputs={inputs}")
     if any(len(v) > 2048 for v in inputs.values()) and form["method"] == "GET":
         logger.warning(
             "some inputs are extremely long that the request might fail")
@@ -81,7 +81,7 @@ def test_form(url, form):
     """
     cmd = "echo y a  y;"
 
-    logger.info(f"Start testing form, {form=}")
+    logger.info(f"Start testing form, form={form}")
     possible_inputs = get_possible_input(url, form)
     logger.info(f"These inputs might be vulunable: {possible_inputs}")
 
