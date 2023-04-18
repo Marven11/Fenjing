@@ -34,11 +34,11 @@ def main():
 
 
 @main.command()
-@click.option("--url", help="form所在的URL")
-@click.option("--action", default=None, help="form的action，默认为当前路径")
-@click.option("--method", default="POST", help="form的提交方式，默认为POST")
-@click.option("--inputs", help="form的参数，以逗号分隔")
-@click.option("--exec-cmd", default="", help="成功后执行的shell指令，不填则进入交互模式")
+@click.option("--url", "-u", help="form所在的URL")
+@click.option("--action", "-a", default=None, help="form的action，默认为当前路径")
+@click.option("--method", "-m", default="POST", help="form的提交方式，默认为POST")
+@click.option("--inputs", "-i", help="form的参数，以逗号分隔")
+@click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式")
 def crack(url, action, method, inputs, exec_cmd):
     assert all(param is not None for param in [
                url, inputs]), "Please check your param"
@@ -69,8 +69,8 @@ def crack(url, action, method, inputs, exec_cmd):
 
 
 @main.command()
-@click.option("--url", help="需要扫描的URL")
-@click.option("--exec-cmd", default="", help="成功后执行的shell指令，不填则进入交互模式")
+@click.option("--url", "-u", help="需要扫描的URL")
+@click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则进入交互模式")
 def scan(url, exec_cmd):
     requester = Requester()
     for page_url, forms in yield_form(requester, url):
