@@ -5,6 +5,7 @@ import logging
 import sys
 import random
 from functools import lru_cache
+import re
 
 logger = logging.getLogger("[SSTI Pattern]")
 
@@ -641,7 +642,7 @@ class StrPattern(BasePattern):
     pass
 
 
-class StrPattern1(StrPattern):
+class StrPattern01(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
         self.inner_s = inner_s.replace("'", "\\'")
@@ -652,7 +653,7 @@ class StrPattern1(StrPattern):
         return "'" + self.inner_s + "'"
 
 
-class StrPattern2(StrPattern):
+class StrPattern02(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
         self.inner_s = inner_s.replace('"', '\\"')
@@ -663,7 +664,7 @@ class StrPattern2(StrPattern):
         return '"' + self.inner_s + '"'
 
 
-class StrPattern3(StrPattern):
+class StrPattern03(StrPattern):
     def __init__(self, inner_s):
         from urllib.parse import quote
         super().__init__()
@@ -675,7 +676,7 @@ class StrPattern3(StrPattern):
         return '"' + self.inner_s + '"'
 
 
-class StrPattern4(StrPattern):
+class StrPattern04(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
         self.require(PlainPattern, "'")
@@ -689,7 +690,7 @@ class StrPattern4(StrPattern):
         return "(%s)" % "+".join(l)
 
 
-class StrPattern5(StrPattern):
+class StrPattern05(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
         self.require(PlainPattern, "\"")
@@ -703,7 +704,7 @@ class StrPattern5(StrPattern):
         return "(%s)" % "+".join(l)
 
 
-class StrPattern6(StrPattern):
+class StrPattern06(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
         self.pattern = "('%c'*{})%({})"
@@ -720,7 +721,7 @@ class StrPattern6(StrPattern):
         )
 
 
-class StrPattern7(StrPattern):
+class StrPattern07(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
         self.pattern = "(\"%c\"*{})%({})"
@@ -737,7 +738,7 @@ class StrPattern7(StrPattern):
         )
 
 
-class StrPattern8(StrPattern):
+class StrPattern08(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
         import re
@@ -758,16 +759,15 @@ class StrPattern8(StrPattern):
             self.use(IntPattern, 1)
         )
 
-class StrPattern9(StrPattern):
+class StrPattern09(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
-        import re
-        if not re.match("^[a-zA-Z_][a-zA-Z0-9_]*$", inner_s):
-            self.require(WillErrorPattern)
-            return
 
         mid = len(inner_s) // 2
         s_a, s_b = inner_s[:mid], inner_s[mid:]
+        if not re.match("^[a-zA-Z_][a-zA-Z0-9_]*$", s_a) or not re.match("^[a-zA-Z_][a-zA-Z0-9_]*$", s_b):
+            self.require(WillErrorPattern)
+            return
 
         self.s = f"dict({s_a}=%s,{s_b}=%s)|join"
         self.require(PlainPattern, self.s.replace("%s", ""))
@@ -827,7 +827,7 @@ class StrPattern12(StrPattern):
     def _generate(self):
         return "'" + self.inner_s + "'"
 
-class StrPattern101(StrPattern):
+class StrPattern13(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
 
@@ -861,7 +861,7 @@ class StrPattern101(StrPattern):
             numbers
         )
 
-class StrPattern102(StrPattern):
+class StrPattern14(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
 

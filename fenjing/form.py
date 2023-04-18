@@ -2,6 +2,7 @@ from urllib.parse import urlparse, urlunparse
 from typing import Iterable
 import random
 import logging
+import string
 
 from bs4 import BeautifulSoup
 
@@ -56,8 +57,7 @@ def random_fill(form):
     randomli fill the form
     """
     return {
-        k: "".join(random.choices([chr(i)
-                   for i in range(96 + 1, 96 + 27)], k=8))
+        k: "".join(random.choices(string.ascii_lowercase, k=8))
         for k in form["inputs"]
     }
 
