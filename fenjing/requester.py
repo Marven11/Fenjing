@@ -28,7 +28,7 @@ class Requester:
     def request_once(self, **kwargs):
         duration = time.perf_counter() - self.last_request_time
         if duration < self.interval:
-            time.sleep(sef.interval - duration)
+            time.sleep(self.interval - duration)
 
         if "timeout" not in kwargs:
             kwargs["timeout"] = self.timeout
