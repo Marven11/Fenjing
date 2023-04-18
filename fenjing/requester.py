@@ -4,7 +4,7 @@ import traceback
 import time
 
 logger = logging.getLogger("requester")
-
+DEFAULT_USER_AGENT = "Fenjing/0.1"
 
 class Requester:
     def __init__(
@@ -14,7 +14,7 @@ class Requester:
         retry_times=5,
         retry_interval=1,
         retry_status=(429, ),
-        user_agent="Fenjing/0.1"
+        user_agent=DEFAULT_USER_AGENT
     ):
         self.interval = interval
         self.timeout = timeout

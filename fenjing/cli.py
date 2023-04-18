@@ -5,7 +5,7 @@ from traceback import print_exc
 from .form import Form
 from .form_cracker import FormCracker
 from .scan_url import yield_form
-from .requester import Requester
+from .requester import Requester, DEFAULT_USER_AGENT
 import click
 
 logging.basicConfig(level=logging.INFO)
@@ -39,7 +39,9 @@ def main():
 @click.option("--method", "-m", default="POST", help="form的提交方式，默认为POST")
 @click.option("--inputs", "-i", help="form的参数，以逗号分隔")
 @click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式")
-def crack(url, action, method, inputs, exec_cmd):
+@click.option("--interval", default=0.0, help="每次请求的间隔")
+@click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
+def crack(url, action, method, inputs, exec_cmd, interval, user_agent):
     assert all(param is not None for param in [
                url, inputs]), "Please check your param"
     form = Form(
@@ -47,20 +49,17 @@ def crack(url, action, method, inputs, exec_cmd):
         method=method,
         inputs=inputs.split(",")
     )
-    cracker = FormCracker(url=url, form=form)
+    requester = Requester(interval=interval, user_agent=user_agent)
+    cracker = FormCracker(url=url, form=form, requester=requester)
     result = cracker.crack()
     if result is None:
         logger.warning("Test form failed...")
         return
     payload_gen, field = result
 
-    # payload_gen, field = test_form(url, form)
-    # if payload_gen is None:
-    #     logger.warning("Test form failed...")
-    #     return
-
-    def cmd_exec_func(cmd): return cracker.submit(
-        {field: payload_gen(cmd)}).text
+    def cmd_exec_func(cmd):
+        return cracker.submit(
+            {field: payload_gen(cmd)}).text
     if exec_cmd == "":
         interact(cmd_exec_func)
     else:
@@ -71,8 +70,10 @@ def crack(url, action, method, inputs, exec_cmd):
 @main.command()
 @click.option("--url", "-u", help="需要扫描的URL")
 @click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则进入交互模式")
-def scan(url, exec_cmd):
-    requester = Requester()
+@click.option("--interval", default=0.0, help="每次请求的间隔")
+@click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
+def scan(url, exec_cmd, interval, user_agent):
+    requester = Requester(interval=interval, user_agent=user_agent)
     for page_url, forms in yield_form(requester, url):
         for form in forms:
             cracker = FormCracker(url=url, form=form, requester=requester)
