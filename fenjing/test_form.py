@@ -3,7 +3,7 @@ import time
 import logging
 
 from functools import wraps, partial, lru_cache
-from collections import Counter
+from collections import Counter, namedtuple
 from typing import Iterable
 from itertools import groupby
 
@@ -52,7 +52,6 @@ def test_dangerous_keywords(url, form, input_field):
         "attr", "open", "system",
         "[", '"', "'", "_", ".", "+", "{{", "|",
         "0", "1", "2",
-        "０", "１", "２",
     ]
     resps = {
         keyword: submit_form_input(url, form, {input_field: keyword * 10})
@@ -80,8 +79,9 @@ def test_form(url, form):
     if it is, return a function that generate shell command payload.
     """
     cmd = "echo y a  y;"
+    Result = namedtuple("Result", "payload_generate_func input_field")
 
-    logger.info(f"Start testing form, form={form}")
+    logger.info(f"Start testing form {form}")
     possible_inputs = get_possible_input(url, form)
     logger.info(f"These inputs might be vulunable: {possible_inputs}")
 
@@ -102,19 +102,30 @@ def test_form(url, form):
 
         if will_print:
             logger.warning(
-                f"Input {repr(possible_input)} looks great, testing generated payload.")
+                f"Input {possible_input} looks great, testing generated payload.")
             resp = submit_form_input(url, form, {possible_input: payload})
             if "y a y" in resp.text:
                 logger.warning(f"Success! return a payload generator.")
             else:
                 logger.warning(
                     f"Test Payload Failed! return a payload generator anyway.")
-            return (lambda cmd: exec_cmd_payload(waf_func, cmd)[0]), possible_input
+            return Result(
+                payload_generate_func=(
+                    lambda cmd: exec_cmd_payload(waf_func, cmd)[0]),
+                input_field=possible_input
+            )
         else:
             logger.warning(
                 f"Input {possible_input} looks great, but we WON'T SEE the execution result! " +
                 "You can try using the payload generator anyway.")
-            return (lambda cmd: exec_cmd_payload(waf_func, cmd)[0]), possible_input
+            return Result(
+                payload_generate_func=(
+                    lambda cmd: exec_cmd_payload(waf_func, cmd)[0]),
+                input_field=possible_input
+            )
 
     logger.warning(f"Failed...")
-    return None, None
+    return Result(
+        payload_generate_func=None,
+        input_field=None
+    )
