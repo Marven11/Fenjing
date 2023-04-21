@@ -5,7 +5,7 @@ import logging
 
 from . import form
 from .requester import Requester
-from .shell_cmd import exec_cmd_payload
+from .shell_payload import exec_cmd_payload
 
 
 logger = logging.getLogger("form_cracker")
