@@ -807,7 +807,6 @@ class StrPattern10(StrPattern):
 
 class StrPattern11(StrPattern):
     def __init__(self, inner_s):
-        from urllib.parse import quote
         super().__init__()
         self.inner_s = "".join("\\u00" + hex(ord(c))[2:] for c in inner_s)
         self.require(PlainPattern, self.inner_s)
@@ -818,7 +817,6 @@ class StrPattern11(StrPattern):
 
 class StrPattern12(StrPattern):
     def __init__(self, inner_s):
-        from urllib.parse import quote
         super().__init__()
         self.inner_s = "".join("\\u00" + hex(ord(c))[2:] for c in inner_s)
         self.require(PlainPattern, self.inner_s)
