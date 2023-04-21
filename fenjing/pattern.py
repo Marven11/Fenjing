@@ -438,7 +438,7 @@ class AddIntPattern1(AddIntPattern):
 
 
 class AddIntPattern2(AddIntPattern):
-    def __init__(self):
+    def __init__(self, num):
         super().__init__()
         self.num = num
         self.pattern = ".__add__(%s)"
@@ -465,7 +465,7 @@ class SubIntPattern1(SubIntPattern):
 
 
 class SubIntPattern2(SubIntPattern):
-    def __init__(self):
+    def __init__(self, num):
         super().__init__()
         self.num = num
         self.pattern = ".__sub__(%s)"
@@ -1020,7 +1020,8 @@ class ConcatedAttrItemPattern1(ConcatedAttrItemPattern):
             inside = self.use(PlainPattern, self.inside)
         elif isinstance(self.inside, tuple):
             inside = self.use(self.inside[0], *self.inside[1:])
-
+        else:
+            raise Exception("Unknown Error")
         s = inside
         c = ""
         for PatternType, *args in self.tp:
