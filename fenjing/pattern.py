@@ -2,26 +2,10 @@ from .exceptions import *
 
 import abc
 import logging
-import sys
-import random
 from functools import lru_cache
 import re
 
-logger = logging.getLogger("[SSTI Pattern]")
-
-'''
-pattern可以根据输入参数生成一个字符串
-pattern可以依赖其他pattern类型，pattern之间的依赖关系组成一棵树
-在确定了输入参数之后，pattern可以生成测试样例以供测试，测试样例是一个字符串
-pattern可以根据依赖关系生成一个列表，内容为所依赖pattern的类型，以及输入的参数
-'''
-
-'''
-
-> Bypassing the WAF without knowing WAF
->   --- Sun Tsu The art of WAF
-
-'''
+logger = logging.getLogger("pattern")
 
 vars_dict = {
     "zols": "{%set zols=lipsum|escape|urlencode|list|escape|urlencode|count%}",
