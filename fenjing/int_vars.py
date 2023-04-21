@@ -85,8 +85,9 @@ int_vars_list = [
 def get_useable_int_vars(waf_func):
     ints, var_names, payload = [], [], ""
     for int_vars in int_vars_list:
-        if waf_func(int_vars.payload):
-            ints += int_vars.ints
-            var_names += int_vars.var_names
-            payload += int_vars.payload
+        if not waf_func(int_vars.payload):
+            continue
+        ints += int_vars.ints
+        var_names += int_vars.var_names
+        payload += int_vars.payload
     return ints, var_names, payload
