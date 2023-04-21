@@ -49,6 +49,7 @@ class FormCracker:
                 self.url,
                 self.form,
                 form_inputs=fill_dict))
+        assert r is not None
         return [
             k for k, v in fill_dict.items()
             if v in r.text
@@ -69,7 +70,7 @@ class FormCracker:
         }
         hashes = [
             hash(r.text) for r in resps.values()
-            if r.status_code != 500
+            if r is not None and r.status_code != 500
         ]
         return [pair[0] for pair in Counter(hashes).most_common(2)]
 
@@ -81,6 +82,7 @@ class FormCracker:
         @lru_cache(100)
         def waf_func(value):
             r = self.submit({input_field: value})
+            assert r is not None
             return hash(r.text) not in waf_hashes
 
         payload, will_echo = exec_cmd_payload(waf_func, self.test_cmd)
@@ -90,6 +92,7 @@ class FormCracker:
             logger.warning(
                 f"Input {input_field} looks great, testing generated payload.")
             r = self.submit({input_field: payload})
+            assert r is not None
             if self.test_result in r.text:
                 logger.warning(f"Success! return a payload generator.")
             else:
