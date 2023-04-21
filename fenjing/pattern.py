@@ -804,8 +804,31 @@ class StrPattern10(StrPattern):
             .join(self.l)\
             .replace("{TWENTYTWO}", self.use(IntPattern, 22))
 
-
 class StrPattern11(StrPattern):
+    def __init__(self, inner_s):
+        super().__init__()
+        if not re.match("^[a-zA-Z_][a-zA-Z0-9_]*$", inner_s):
+            self.require(WillErrorPattern)
+            return
+
+        l = [
+            "(()|select|string|batch({TWENTYFIVE})|first|last)" if not word else f"dict({word}=cycler)|join"
+            for word in inner_s.split("_")
+        ]
+
+        self.l = l
+
+        self.require(StrConcatPattern)
+        self.require(IntPattern, 25)
+
+    def _generate(self):
+        return self\
+            .use(StrConcatPattern)\
+            .join(self.l)\
+            .replace("{TWENTYFIVE}", self.use(IntPattern, 25))
+
+
+class StrPattern12(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
         self.inner_s = "".join("\\u00" + hex(ord(c))[2:] for c in inner_s)
@@ -815,7 +838,7 @@ class StrPattern11(StrPattern):
     def _generate(self):
         return '"' + self.inner_s + '"'
 
-class StrPattern12(StrPattern):
+class StrPattern13(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
         self.inner_s = "".join("\\u00" + hex(ord(c))[2:] for c in inner_s)
@@ -825,7 +848,7 @@ class StrPattern12(StrPattern):
     def _generate(self):
         return "'" + self.inner_s + "'"
 
-class StrPattern13(StrPattern):
+class StrPattern14(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
 
@@ -859,7 +882,7 @@ class StrPattern13(StrPattern):
             numbers
         )
 
-class StrPattern14(StrPattern):
+class StrPattern15(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
 
