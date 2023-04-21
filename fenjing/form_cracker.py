@@ -1,4 +1,3 @@
-import random
 from urllib.parse import urlparse
 from collections import Counter, namedtuple
 from functools import lru_cache
@@ -57,9 +56,10 @@ class FormCracker:
 
     def submit(self, inputs: dict):
         logger.info(f"submit {inputs}")
-        if any(len(v) > 2048 for v in inputs.values()) and self.form["method"] == "GET":
+        all_length = sum(len(v) for v in inputs.values())
+        if all_length > 2048 and self.form["method"] == "GET":
             logger.warning(
-                "some inputs are extremely long that the request might fail")
+                f"inputs are extremely long (len={all_length}) that the request might fail")
         return self.req.request(
             **form.fill_form(self.url, self.form, inputs))
 
