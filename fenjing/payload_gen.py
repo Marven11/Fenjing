@@ -304,11 +304,12 @@ def gen_integer_subtract(context: dict, value: int):
         ]
 
     ints.sort(key=lambda pair: pair[1], reverse=True)
-    biggest_name, biggest_value = ints[0]
+    biggest_name, biggest_value = min(ints, key = lambda pair: pair[1])
     if biggest_value < value:
         return [
             (UNSATISFIED, )
         ]
+    ints = [pair for pair in ints if pair[1] <= biggest_value]
     value_left = biggest_value - value
 
     sub_vars = []
