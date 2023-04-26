@@ -117,19 +117,21 @@ docker run -it --net host fenjing scan --url 'http://xxx/'
 Usage: python -m fenjing scan [OPTIONS]
 
 Options:
-  --url TEXT       需要扫描的URL
-  --exec-cmd TEXT  成功后执行的shell指令，不填则进入交互模式
-  --help           Show this message and exit.
-
-Usage: python -m fenjing crack [OPTIONS]
+  -u, --url TEXT       需要扫描的URL
+  -e, --exec-cmd TEXT  成功后执行的shell指令，不填则进入交互模式
+  --interval FLOAT     每次请求的间隔
+  --user-agent TEXT    请求时使用的User Agent
+  --help               Show this message and exit.
 
 Options:
-  --url TEXT       form所在的URL
-  --action TEXT    form的action，默认为当前路径
-  --method TEXT    form的提交方式，默认为POST
-  --inputs TEXT    form的参数，以逗号分隔
-  --exec-cmd TEXT  成功后执行的shell指令，不填则进入交互模式
-  --help           Show this message and exit.
+  -u, --url TEXT       form所在的URL
+  -a, --action TEXT    form的action，默认为当前路径
+  -m, --method TEXT    form的提交方式，默认为POST
+  -i, --inputs TEXT    form的参数，以逗号分隔
+  -e, --exec-cmd TEXT  成功后执行的shell指令，不填则成功后进入交互模式
+  --interval FLOAT     每次请求的间隔
+  --user-agent TEXT    请求时使用的User Agent
+  --help               Show this message and exit.
 ```
 
 ### 作为python库使用
