@@ -144,7 +144,7 @@ def gen_formular_sum_tuplesum(context, num_list):
             (LITERAL, str(num_list[0]))
         ]
     payload = "(({})|sum)".format(
-        ",".join(num_list) + ","
+        ",".join(num_list)
     )
     return [
         (LITERAL, payload)
@@ -322,7 +322,7 @@ def gen_integer_subtract(context: dict, value: int):
         value_left -= ints[0][1]
         sub_vars.append(ints[0][0])
     return [
-        (LITERAL, "-".join([biggest_name, ] + sub_vars))
+        (LITERAL, "({})".format("-".join([biggest_name, ] + sub_vars)))
     ]
 
 
