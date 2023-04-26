@@ -78,6 +78,7 @@ int_vars_list = [
     int_var("{%set zb={}|escape|list|escape|count%}", 26, "zb"),
     int_var("{%set t=joiner|urlencode|wordcount%}", 7, "t"),
     int_var("{%set b={}|escape|urlencode|count%}", 6, "b"),
+    int_var("{%set e=(dict(a=x,b=x,c=x)|count)%}", 3, "e"),
     int_var("{%set l={}|escape|first|count%}", 1, "l"),
 ]
 
