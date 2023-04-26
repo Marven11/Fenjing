@@ -709,8 +709,29 @@ def gen_string_splitdictjoin2(context: dict, value: str):
         value[i:i+3] for i in range(0, len(value), 3)
     ]
 
+    if len(set(parts)) != len(parts):
+        return [
+            (UNSATISFIED, )
+        ]
+
     return [
         (LITERAL, "(dict({})|join)".format(",".join(f"{part}=x" for part in parts)))
+    ]
+
+@req_gen
+def gen_string_splitdictjoin3(context: dict, value: str):
+    if not re.match("^[a-zA-Z_]+$", value):
+        return [
+            (UNSATISFIED, )
+        ]
+
+    if len(set(value)) != len(value):
+        return [
+            (UNSATISFIED, )
+        ]
+
+    return [
+        (LITERAL, "(dict({})|join)".format(",".join(f"{part}=x" for part in value)))
     ]
 
 
