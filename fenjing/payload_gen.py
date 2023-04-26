@@ -697,6 +697,20 @@ def gen_string_splitdictjoin(context: dict, value: str):
         req.append((LITERAL, "(dict({}=x)|join)".format(part)))
     return req
 
+@req_gen
+def gen_string_splitdictjoin2(context: dict, value: str):
+    if not re.match("^[a-zA-Z_]+$", value):
+        return [
+            (UNSATISFIED, )
+        ]
+    parts = [
+        value[i:i+3] for i in range(0, len(value), 3)
+    ]
+
+    return [
+        (LITERAL, "(dict({})|join)".format(",".join(f"{part}=x" for part in parts)))
+    ]
+
 
 @req_gen
 def gen_string_formatpercent(context: dict, value: str):
