@@ -64,7 +64,7 @@ int_vars_list = [
             "llllb",
             "bb",
             "sbb",
-            "sbbb",
+            "ssbb",
             "zzeb"
         ]
     ),
@@ -78,6 +78,7 @@ int_vars_list = [
     int_var("{%set zb={}|escape|list|escape|count%}", 26, "zb"),
     int_var("{%set t=joiner|urlencode|wordcount%}", 7, "t"),
     int_var("{%set b={}|escape|urlencode|count%}", 6, "b"),
+    int_var("{%set e=(dict(a=x,b=x,c=x)|count)%}", 3, "e"),
     int_var("{%set l={}|escape|first|count%}", 1, "l"),
 ]
 
@@ -85,8 +86,9 @@ int_vars_list = [
 def get_useable_int_vars(waf_func):
     ints, var_names, payload = [], [], ""
     for int_vars in int_vars_list:
-        if waf_func(int_vars.payload):
-            ints += int_vars.ints
-            var_names += int_vars.var_names
-            payload += int_vars.payload
+        if not waf_func(int_vars.payload):
+            continue
+        ints += int_vars.ints
+        var_names += int_vars.var_names
+        payload += int_vars.payload
     return ints, var_names, payload

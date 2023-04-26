@@ -58,8 +58,10 @@ def crack(url, action, method, inputs, exec_cmd, interval, user_agent):
     payload_gen, field = result
 
     def cmd_exec_func(cmd):
-        return cracker.submit(
-            {field: payload_gen(cmd)}).text
+        r = cracker.submit(
+            {field: payload_gen(cmd)})
+        assert r is not None
+        return r.text
     if exec_cmd == "":
         interact(cmd_exec_func)
     else:
@@ -83,8 +85,10 @@ def scan(url, exec_cmd, interval, user_agent):
             payload_gen, field = result
 
             def cmd_exec_func(cmd):
-                return cracker.submit(
-                    {field: payload_gen(cmd)}).text
+                r = cracker.submit(
+                    {field: payload_gen(cmd)})
+                assert r is not None
+                return r.text
             if exec_cmd == "":
                 interact(cmd_exec_func)
             else:

