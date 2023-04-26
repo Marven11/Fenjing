@@ -79,7 +79,7 @@ class FormCracker:
 
         waf_hashes = self.waf_page_hash(input_field)
 
-        @lru_cache(100)
+        @lru_cache(1000)
         def waf_func(value):
             r = self.submit({input_field: value})
             assert r is not None
