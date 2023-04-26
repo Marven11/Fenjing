@@ -64,7 +64,7 @@ int_vars_list = [
             "llllb",
             "bb",
             "sbb",
-            "sbbb",
+            "ssbb",
             "zzeb"
         ]
     ),
