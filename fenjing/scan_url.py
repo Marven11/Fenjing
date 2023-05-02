@@ -1,9 +1,11 @@
-
+import logging
 
 from .requester import Requester
 from .form import parse_forms
 
 from bs4 import BeautifulSoup
+
+logger = logging.getLogger("scan_url")
 
 
 def parse_urls(html):
@@ -18,6 +20,7 @@ def parse_urls(html):
 
 
 def yield_form(requester, start_url):
+    found = False
     targets = [start_url, ]
     visited = set()
     while targets:
@@ -30,3 +33,6 @@ def yield_form(requester, start_url):
         forms = parse_forms(target_url, html)
         yield target_url, forms
         targets += parse_urls(html)
+        found = True
+    if not found:
+        logger.warning("Exit without finding form element")
