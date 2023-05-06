@@ -2,7 +2,7 @@ import logging
 from urllib.parse import urlparse
 from traceback import print_exc
 
-from .form import Form
+from .utils.form import Form
 from .form_cracker import FormCracker
 from .scan_url import yield_form
 from .utils.requester import Requester, DEFAULT_USER_AGENT

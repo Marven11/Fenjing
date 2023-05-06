@@ -3,7 +3,7 @@ from collections import Counter, namedtuple
 from functools import lru_cache
 import logging
 
-from . import form
+from .utils import form
 from .utils.requester import Requester
 from .shell_payload import exec_cmd_payload
 
