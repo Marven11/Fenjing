@@ -4,7 +4,7 @@ from functools import lru_cache
 import logging
 
 from . import form
-from .requester import Requester
+from .utils.requester import Requester
 from .shell_payload import exec_cmd_payload
 
 
@@ -55,7 +55,7 @@ class FormCracker:
         ]
 
     def submit(self, inputs: dict):
-        logger.info(f"submit {inputs}")
+        # logger.info(f"submit {inputs}")
         all_length = sum(len(v) for v in inputs.values())
         if all_length > 2048 and self.form["method"] == "GET":
             logger.warning(

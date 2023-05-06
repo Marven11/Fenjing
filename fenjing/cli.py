@@ -5,7 +5,7 @@ from traceback import print_exc
 from .form import Form
 from .form_cracker import FormCracker
 from .scan_url import yield_form
-from .requester import Requester, DEFAULT_USER_AGENT
+from .utils.requester import Requester, DEFAULT_USER_AGENT
 import click
 
 logging.basicConfig(level=logging.INFO)
