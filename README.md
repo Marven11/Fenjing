@@ -8,8 +8,6 @@
 
 ![CTFShow web365](assets/demo.webp)
 
-`python -m fenjing crack --method GET --inputs name --url 'http://xxx/'`
-
 ## 快速上手
 
 在以下方法中选择一种
@@ -122,6 +120,8 @@ Options:
   --interval FLOAT     每次请求的间隔
   --user-agent TEXT    请求时使用的User Agent
   --help               Show this message and exit.
+
+Usage: python -m fenjing crack [OPTIONS]
 
 Options:
   -u, --url TEXT       form所在的URL
