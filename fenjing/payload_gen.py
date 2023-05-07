@@ -3,7 +3,7 @@ from typing import Callable
 import re
 import time
 import logging
-from .utils.colorize import colored
+from .colorize import colored
 
 
 LITERAL = "literal"

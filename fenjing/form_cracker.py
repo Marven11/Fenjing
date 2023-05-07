@@ -3,9 +3,9 @@ from collections import Counter, namedtuple
 from functools import lru_cache
 import logging
 
-from .utils import form
-from .utils.requester import Requester
-from .utils.colorize import colored
+from . import form
+from .requester import Requester
+from .colorize import colored
 from .shell_payload import exec_cmd_payload
 
 

@@ -2,7 +2,7 @@ from . import payload_gen
 from .int_vars import get_useable_int_vars
 
 import logging
-from .utils.colorize import colored
+from .colorize import colored
 
 logger = logging.getLogger("shell_payload")
 

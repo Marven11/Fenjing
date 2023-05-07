@@ -1,7 +1,7 @@
 import logging
 
-from .utils.requester import Requester
-from .utils.form import parse_forms
+from .requester import Requester
+from .form import parse_forms
 
 from bs4 import BeautifulSoup
 
