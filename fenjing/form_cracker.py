@@ -5,6 +5,7 @@ import logging
 
 from .utils import form
 from .utils.requester import Requester
+from .utils.colorize import colored
 from .shell_payload import exec_cmd_payload
 
 
@@ -64,10 +65,14 @@ class FormCracker:
             **form.fill_form(self.url, self.form, inputs))
 
     def waf_page_hash(self, input_field: str):
-        resps = {
-            keyword: self.submit({input_field: keyword * 3})
-            for keyword in self.dangerous_keywords
-        }
+        resps = {}
+        for keyword in self.dangerous_keywords:
+            logger.info(f"Testing dangerous keyword {colored('yellow', repr(keyword * 3))}")
+            resps[keyword] = self.submit({input_field: keyword * 3})
+        # resps = {
+        #     keyword: self.submit({input_field: keyword * 3})
+        #     for keyword in self.dangerous_keywords
+        # }
         hashes = [
             hash(r.text) for r in resps.values()
             if r is not None and r.status_code != 500
@@ -75,7 +80,7 @@ class FormCracker:
         return [pair[0] for pair in Counter(hashes).most_common(2)]
 
     def crack_inputs(self, input_field):
-        logger.info(f"Testing {input_field}")
+        logger.info(f"Testing {colored('yellow', input_field)}")
 
         waf_hashes = self.waf_page_hash(input_field)
 
@@ -89,24 +94,24 @@ class FormCracker:
         if payload is None:
             return None
         if will_echo:
-            logger.warning(
-                f"Input {input_field} looks great, testing generated payload.")
+            logger.info(
+                f"Input {colored('yellow', repr(input_field))} looks great, testing generated payload.")
             r = self.submit({input_field: payload})
             assert r is not None
             if self.test_result in r.text:
-                logger.warning(f"Success! return a payload generator.")
+                logger.info(f"{colored('green', 'Success!')} Now we can generate payloads.")
             else:
-                logger.warning(
-                    f"Test Payload Failed! return a payload generator anyway.")
+                logger.info(
+                    f"{colored('yellow', 'Test Payload Failed', bold=True)}! Generated payloads might be useless.")
             return Result(
                 payload_generate_func=(
                     lambda cmd: exec_cmd_payload(waf_func, cmd)[0]),
                 input_field=input_field
             )
         else:
-            logger.warning(
+            logger.info(
                 f"Input {input_field} looks great, but we WON'T SEE the execution result! " +
-                "You can try using the payload generator anyway.")
+                "You can try generating payloads anyway.")
             return Result(
                 payload_generate_func=(
                     lambda cmd: exec_cmd_payload(waf_func, cmd)[0]),
@@ -116,7 +121,7 @@ class FormCracker:
     def crack(self):
         logger.info(f"Start cracking {self.form}")
         vulunables = self.vulunable_inputs()
-        logger.info(f"These inputs might be vulunable: {vulunables}")
+        logger.info(f"These inputs might be vulunable: {colored('yellow', repr(vulunables))}")
 
         for input_field in vulunables:
             result = self.crack_inputs(input_field)

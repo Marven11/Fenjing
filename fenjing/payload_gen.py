@@ -2,6 +2,9 @@ from collections import defaultdict
 from typing import Callable
 import re
 import time
+import logging
+from .utils.colorize import colored
+
 
 LITERAL = "literal"
 UNSATISFIED = "unsatisfied"
@@ -29,7 +32,7 @@ OS_POPEN_READ = "os_popen_read"
 
 req_gens = defaultdict(list)
 used_count = defaultdict(int)
-
+logger = logging.getLogger("payload_gen")
 
 def req_gen(f):
     gen_type = re.match("gen_([a-z_]+)_([a-z0-9]+)", f.__name__)
@@ -103,11 +106,31 @@ class PayloadGenerator:
                        args in son_req), f"Wrong son_req {son_req} from {req_gen_func.__name__}"
 
             payload = self.generate_by_req_list(son_req)
-            if payload:
-                self.count_success(gen_type, req_gen_func.__name__)
-                self.add_cache(gen_type, *args, result=payload)
-                return payload
+            if not payload:
+                continue
+            self.count_success(gen_type, req_gen_func.__name__)
+            self.add_cache(gen_type, *args, result=payload)
+            if gen_type in (INTEGER, STRING) and payload != str(args[0]):
+                logger.info("{great}, {gen_type}({args_repl}) can be {payload}".format(
+                    great = colored("green", "Great"),
+                    gen_type = colored("yellow", gen_type, bold = True),
+                    args_repl = colored("yellow", ", ".join(repr(arg) for arg in args)),
+                    payload = colored("blue", payload)
+                ))
 
+            elif gen_type in (EVAL_FUNC, EVAL, CONFIG, MODULE_OS, OS_POPEN_OBJ, OS_POPEN_READ):
+                logger.info("{great}, we generate {gen_type}({args_repl})".format(
+                    great = colored("green", "Great"),
+                    gen_type = colored("yellow", gen_type, bold = True),
+                    args_repl = colored("yellow", ", ".join(repr(arg) for arg in args)),
+                ))
+            # logger.warning(f"{log.colored('green', gen_type.upper())} {args_repl} should be {log.colored('blue', payload)}")
+            return payload
+        logger.warning("{failed} generating {gen_type}({args_repl})".format(
+            failed = colored("red", "failed"),
+            gen_type = gen_type,
+            args_repl = ", ".join(repr(arg) for arg in args),
+        ))
         self.add_cache(gen_type, *args, result=None)
         return None
 

