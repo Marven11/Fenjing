@@ -17,6 +17,8 @@
 ```shell
 pip install fenjing
 python -m fenjing scan --url 'http://xxx/'
+# 也可以使用crack功能手动指定form
+# 
 ```
 
 ### 下载并运行docker镜像
@@ -109,7 +111,13 @@ docker run -it --net host fenjing scan --url 'http://xxx/'
 ### 作为命令行脚本使用
 
 - scan: 扫描整个网站
+  - 从网站中根据form元素提取出所有的表单并攻击
+  - 扫描成功后会提供一个模拟终端或执行给定的命令
+  - 示例：`python -m fenjing scan --url 'http://xxx/'`
 - crack: 对某个特定的表单进行攻击
+  - 需要指定表单的url, action(GET或POST)以及所有字段(比如'name')
+  - 攻击成功后也会提供一个模拟终端或执行给定的命令
+  - 示例：`python -m fenjing crack --url 'http://xxx/' --method GET --inputs name`
 
 ```
 Usage: python -m fenjing scan [OPTIONS]
@@ -141,11 +149,9 @@ Options:
 ```python
 from fenjing import exec_cmd_payload
 
-import functools
-import time
 import logging
 
-logging.basicConfig(level = logging.WARNING)
+logging.basicConfig(level = logging.INFO)
 
 def waf(s: str):
     blacklist = [

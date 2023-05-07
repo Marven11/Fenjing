@@ -1,10 +1,8 @@
 from fenjing import exec_cmd_payload
 
-import functools
-import time
 import logging
 
-logging.basicConfig(level = logging.WARNING)
+logging.basicConfig(level = logging.INFO)
 
 def waf(s: str):
     blacklist = [
