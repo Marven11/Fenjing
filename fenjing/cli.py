@@ -11,7 +11,7 @@ import click
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(levelname)s[%(name)s]: %(message)s"
+    format="%(levelname)s:[%(name)s] | %(message)s"
 )
 logger = logging.getLogger("cli")
 
