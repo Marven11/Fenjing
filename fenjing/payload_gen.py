@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable
+from typing import Callable, DefaultDict, List, Dict
 import re
 import time
 import logging
@@ -30,7 +30,7 @@ MODULE_OS = "module_os"
 OS_POPEN_OBJ = "os_popen_obj"
 OS_POPEN_READ = "os_popen_read"
 
-req_gens = defaultdict(list)
+req_gens: DefaultDict[str, List[Callable]] = defaultdict(list)
 used_count = defaultdict(int)
 logger = logging.getLogger("payload_gen")
 
@@ -43,7 +43,7 @@ def req_gen(f):
 
 
 class PayloadGenerator:
-    def __init__(self, waf_func, context):
+    def __init__(self, waf_func: Callable, context: Dict | None):
         self.waf_func = waf_func
         self.context = context
         self.cache = {}
@@ -89,7 +89,7 @@ class PayloadGenerator:
         except Exception:
             return None
 
-    def default_generate(self, gen_type, *args):
+    def default_generate(self, gen_type: str, *args):
 
         if self.cached_generate(gen_type, *args):
             return self.cached_generate(gen_type, *args)
@@ -138,7 +138,7 @@ class PayloadGenerator:
         generate_func = self.generate_funcs[gen_type] if gen_type in self.generate_funcs else self.default_generate
         return generate_func(gen_type, *args)
 
-def generate(gen_type, *args, waf_func: Callable | None = None, context: dict | None = None) -> str | None:
+def generate(gen_type, *args, waf_func: Callable, context: dict | None = None) -> str | None:
     payload_generator = PayloadGenerator(waf_func, context)
     return payload_generator.generate(gen_type, *args)
 

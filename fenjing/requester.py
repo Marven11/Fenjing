@@ -9,7 +9,7 @@ DEFAULT_USER_AGENT = "Fenjing/0.1"
 class Requester:
     def __init__(
         self,
-        interval=0,
+        interval=0.0,
         timeout=10,
         retry_times=5,
         retry_interval=1,

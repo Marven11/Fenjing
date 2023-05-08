@@ -1,7 +1,8 @@
+from typing import Callable, List, Tuple
+import logging
+
 from . import payload_gen
 from .int_vars import get_useable_int_vars
-
-import logging
 from .colorize import colored
 
 logger = logging.getLogger("shell_payload")
@@ -26,8 +27,16 @@ def get_str_context(waf_func):
 
 
 
-def exec_cmd_payload(waf_func, cmd):
+def exec_cmd_payload(waf_func: Callable[[str, ], bool], cmd: str) -> Tuple[str|None, bool|None]:
+    """根据提供的waf函数为一个shell命令生成对应的payload
 
+    Args:
+        waf_func (Callable[[str, ], bool]): waf函数，判断提供的payload能否通过waf, 能则返回True
+        cmd (str): 需要执行的shell命令
+
+    Returns:
+        Tuple[str|None, bool|None]: 对应的payload, 以及payload是否能生成回显
+    """
     int_payload, int_context = get_int_context(waf_func)
     str_payload, str_context = get_str_context(waf_func)
     before_payload, context = int_payload + str_payload, {**int_context, **str_context}

@@ -8,13 +8,19 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger("scan_url")
 
 
-def parse_urls(html):
+def parse_urls(html: str | BeautifulSoup) -> list:
+    """从html中解析出所有的链接
+
+    Args:
+        html (str|BeautifulSoup): HTML
+
+    Returns:
+        List[str]: 所有链接
+    """
     if isinstance(html, str):
         bs = BeautifulSoup(html, "html.parser")
     elif isinstance(html, BeautifulSoup):
         bs = html
-    else:
-        raise NotImplemented(f"Unsupported Type: type(html)={type(html)}")
 
     return [element.attrs["href"] for element in bs.select("a") if "href" in element]
 

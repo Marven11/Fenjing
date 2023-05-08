@@ -4,6 +4,16 @@ SHOULD_COLOR = platform.system() != "Windows"
 
 
 def colored(color, text, bold=False):
+    """使用ANSI转义字符对文本上色，在windows下不会上色
+
+    Args:
+        color (str): 使用的颜色
+        text (str): 要上色的字符串
+        bold (bool, optional): 是否加粗. Defaults to False.
+
+    Returns:
+        str: 上色后的字符串
+    """
     if not SHOULD_COLOR:
         return text
     colors = {

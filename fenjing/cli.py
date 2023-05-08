@@ -1,6 +1,7 @@
 import logging
 from urllib.parse import urlparse
 from traceback import print_exc
+from typing import Callable, List
 
 from .form import Form
 from .form_cracker import FormCracker
@@ -25,7 +26,12 @@ logging.basicConfig(
 logger = logging.getLogger("cli")
 
 
-def interact(cmd_exec):
+def interact(cmd_exec: Callable):
+    """根据提供的payload生成方法向用户提供一个交互终端
+
+    Args:
+        cmd_exec (Callable): 根据输入的shell命令生成对应的payload
+    """
     logger.info(f"Use {colored('cran', 'Ctrl+D', bold=True)} to exit.")
     while True:
         try:
@@ -54,7 +60,17 @@ def main():
 @click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
-def crack(url, action, method, inputs, exec_cmd, interval, user_agent):
+def crack(
+        url: str,
+        action: str,
+        method: str,
+        inputs: str,
+        exec_cmd: str,
+        interval: float,
+        user_agent: str):
+    """
+    攻击指定的表单
+    """
     print(TITLE)
     assert all(param is not None for param in [
                url, inputs]), "Please check your param"
@@ -89,6 +105,9 @@ def crack(url, action, method, inputs, exec_cmd, interval, user_agent):
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 def scan(url, exec_cmd, interval, user_agent):
+    """
+    扫描指定的网站
+    """
     print(TITLE)
     requester = Requester(interval=interval, user_agent=user_agent)
     for page_url, forms in yield_form(requester, url):
