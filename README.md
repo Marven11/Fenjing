@@ -17,8 +17,6 @@
 ```shell
 pip install fenjing
 python -m fenjing scan --url 'http://xxx/'
-# 也可以使用crack功能手动指定form
-# 
 ```
 
 ### 下载并运行docker镜像
