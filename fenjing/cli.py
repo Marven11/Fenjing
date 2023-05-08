@@ -9,6 +9,15 @@ from .requester import Requester, DEFAULT_USER_AGENT
 from .colorize import colored
 import click
 
+TITLE = colored("yellow", r"""
+    ____             _ _            
+   / __/__  ____    (_|_)___  ____ _
+  / /_/ _ \/ __ \  / / / __ \/ __ `/
+ / __/  __/ / / / / / / / / / /_/ / 
+/_/  \___/_/ /_/_/ /_/_/ /_/\__, /  
+              /___/        /____/   
+""".strip("\n"), bold=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(levelname)s:[%(name)s] | %(message)s"
@@ -46,6 +55,7 @@ def main():
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 def crack(url, action, method, inputs, exec_cmd, interval, user_agent):
+    print(TITLE)
     assert all(param is not None for param in [
                url, inputs]), "Please check your param"
     form = Form(
@@ -79,6 +89,7 @@ def crack(url, action, method, inputs, exec_cmd, interval, user_agent):
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 def scan(url, exec_cmd, interval, user_agent):
+    print(TITLE)
     requester = Requester(interval=interval, user_agent=user_agent)
     for page_url, forms in yield_form(requester, url):
         for form in forms:
