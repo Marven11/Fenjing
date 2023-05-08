@@ -144,7 +144,7 @@ Options:
 
 ### 作为python库使用
 
-参考[example.py](fenjing/example.py)
+参考[example.py](example.py)
 
 ```python
 from fenjing import exec_cmd_payload
