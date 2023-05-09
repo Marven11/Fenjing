@@ -57,7 +57,7 @@ class FormCracker:
             self.form = Form(
                 method=method,
                 inputs=inputs,
-                action=action or urlparse(url)[2]
+                action=action or urlparse(url).path
             )
         if requester:
             self.req = requester

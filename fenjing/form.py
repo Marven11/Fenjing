@@ -42,7 +42,7 @@ def parse_forms(url, html: str | BeautifulSoup) -> List[dict]:
         List[dict]: 所有表单
     """
     parsed_url = urlparse(url)
-    uri = parsed_url[3]
+    uri = parsed_url.path
 
     if isinstance(html, str):
         bs = BeautifulSoup(html, "html.parser")

@@ -75,7 +75,7 @@ def crack(
     assert all(param is not None for param in [
                url, inputs]), "Please check your param"
     form = Form(
-        action=action or urlparse(url)[3],
+        action=action or urlparse(url).path,
         method=method,
         inputs=inputs.split(",")
     )
