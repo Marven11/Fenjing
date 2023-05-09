@@ -2,6 +2,7 @@ import logging
 from urllib.parse import urlparse
 from traceback import print_exc
 from typing import Callable, List
+from functools import partial
 
 from .form import Form
 from .form_cracker import FormCracker
@@ -24,6 +25,15 @@ logging.basicConfig(
     format="%(levelname)s:[%(name)s] | %(message)s"
 )
 logger = logging.getLogger("cli")
+
+
+def cmd_exec(cmd, cracker: FormCracker, field: str, payload_gen: Callable):
+    payload = payload_gen(cmd)
+    logger.info(f"Submit payload {colored('blue', payload)}")
+    r = cracker.submit(
+        {field: payload})
+    assert r is not None
+    return r.text
 
 
 def interact(cmd_exec: Callable):
@@ -86,12 +96,13 @@ def crack(
         logger.warning("Test form failed...")
         return
     payload_gen, field = result
-
-    def cmd_exec_func(cmd):
-        r = cracker.submit(
-            {field: payload_gen(cmd)})
-        assert r is not None
-        return r.text
+    cmd_exec_func = partial(cmd_exec, cracker=cracker,
+                            field=field, payload_gen=payload_gen)
+    # def cmd_exec_func(cmd):
+    #     r = cracker.submit(
+    #         {field: payload_gen(cmd)})
+    #     assert r is not None
+    #     return r.text
     if exec_cmd == "":
         interact(cmd_exec_func)
     else:
@@ -112,17 +123,18 @@ def scan(url, exec_cmd, interval, user_agent):
     requester = Requester(interval=interval, user_agent=user_agent)
     for page_url, forms in yield_form(requester, url):
         for form in forms:
-            cracker = FormCracker(url=url, form=form, requester=requester)
+            cracker = FormCracker(url=page_url, form=form, requester=requester)
             result = cracker.crack()
             if result is None:
                 continue
             payload_gen, field = result
-
-            def cmd_exec_func(cmd):
-                r = cracker.submit(
-                    {field: payload_gen(cmd)})
-                assert r is not None
-                return r.text
+            cmd_exec_func = partial(cmd_exec, cracker=cracker,
+                                    field=field, payload_gen=payload_gen)
+            # def cmd_exec_func(cmd):
+            #     r = cracker.submit(
+            #         {field: payload_gen(cmd)})
+            #     assert r is not None
+            #     return r.text
             if exec_cmd == "":
                 interact(cmd_exec_func)
             else:
