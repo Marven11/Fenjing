@@ -19,10 +19,11 @@ TITLE = colored("yellow", r"""
 /_/  \___/_/ /_/_/ /_/_/ /_/\__, /  
               /___/        /____/   
 """.strip("\n"), bold=True)
+LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(levelname)s:[%(name)s] | %(message)s"
+    format=LOGGING_FORMAT
 )
 logger = logging.getLogger("cli")
 
