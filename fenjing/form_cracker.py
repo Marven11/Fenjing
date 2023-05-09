@@ -119,8 +119,8 @@ class FormCracker:
         #     for keyword in self.dangerous_keywords
         # }
         hashes = [
-            hash(r.text) for r in resps.values()
-            if r is not None and r.status_code != 500
+            hash(r.text) for keyword, r in resps.items()
+            if r is not None and r.status_code != 500 and keyword not in r.text
         ]
         return [pair[0] for pair in Counter(hashes).most_common(2)]
 
