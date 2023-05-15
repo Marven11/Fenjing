@@ -2,12 +2,14 @@ from collections import namedtuple
 
 IntVars = namedtuple("IntVars", "payload ints var_names")
 
+
 def int_var(payload, i, var_name):
     return IntVars(
-        payload = payload,
-        ints = [i, ],
-        var_names = [var_name, ]
+        payload=payload,
+        ints=[i, ],
+        var_names=[var_name, ]
     )
+
 
 int_vars_list = [
     IntVars(
@@ -68,8 +70,10 @@ int_vars_list = [
             "zzeb"
         ]
     ),
-    int_var("{%set zols=lipsum|escape|urlencode|list|escape|urlencode|count%}", 2015, "zols"),
-    int_var("{%set ltr={}|escape|urlencode|list|escape|urlencode|count%}", 178, "ltr"),
+    int_var(
+        "{%set zols=lipsum|escape|urlencode|list|escape|urlencode|count%}", 2015, "zols"),
+    int_var(
+        "{%set ltr={}|escape|urlencode|list|escape|urlencode|count%}", 178, "ltr"),
     int_var("{%set lea=namespace|escape|urlencode|escape|urlencode|urlencode|urlencode|count%}", 134, "lea"),
     int_var("{%set lel=cycler|escape|urlencode|escape|urlencode|escape|urlencode|escape|urlencode|count%}", 131, "lel"),
     int_var("{%set qo=namespace|escape|urlencode|escape|urlencode|count%}", 90, "qo"),
