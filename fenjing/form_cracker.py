@@ -7,11 +7,13 @@ from typing import List, Dict, Tuple, Callable, Any
 from .form import Form, random_fill, fill_form
 from .requester import Requester
 from .colorize import colored
+from .const import OS_POPEN_READ
 from .shell_payload import exec_cmd_payload
 from .waf_func_gen import WafFuncGen
+from .full_payload_gen import FullPayloadGen
 
 logger = logging.getLogger("form_cracker")
-Result = namedtuple("Result", "payload_generate_func input_field")
+Result = namedtuple("Result", "full_payload_gen input_field")
 
 
 class FormCracker:
@@ -95,8 +97,9 @@ class FormCracker:
         logger.info(f"Testing {colored('yellow', input_field)}")
 
         waf_func = self.waf_func_gen.generate(input_field)
-
-        payload, will_echo = exec_cmd_payload(waf_func, self.test_cmd)
+        full_payload_gen = FullPayloadGen(waf_func)
+        payload, will_echo = full_payload_gen.generate(OS_POPEN_READ, self.test_cmd)
+        # payload, will_echo = exec_cmd_payload(waf_func, self.test_cmd)
         if payload is None:
             return None
         if will_echo:
@@ -111,8 +114,7 @@ class FormCracker:
                 logger.info(
                     f"{colored('yellow', 'Test Payload Failed', bold=True)}! Generated payloads might be useless.")
             return Result(
-                payload_generate_func=(
-                    lambda cmd: exec_cmd_payload(waf_func, cmd)[0]),
+                full_payload_gen=full_payload_gen,
                 input_field=input_field
             )
         else:
@@ -120,8 +122,7 @@ class FormCracker:
                 f"Input {input_field} looks great, but we WON'T SEE the execution result! " +
                 "You can try generating payloads anyway.")
             return Result(
-                payload_generate_func=(
-                    lambda cmd: exec_cmd_payload(waf_func, cmd)[0]),
+                full_payload_gen=full_payload_gen,
                 input_field=input_field
             )
 
