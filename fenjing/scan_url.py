@@ -30,15 +30,18 @@ def yield_form(requester, start_url):
     targets = [start_url, ]
     visited = set()
     while targets:
-        target_url, *targets = targets
+        target_url = targets.pop(0)
         if target_url in visited:
             continue
         visited.add(target_url)
+
         resp = requester.request(method="GET", url=target_url)
         html = BeautifulSoup(resp.text, "html.parser")
         forms = parse_forms(target_url, html)
-        yield target_url, forms
+
+        if forms:
+            yield target_url, forms
+            found = True
         targets += parse_urls(html)
-        found = True
     if not found:
-        logger.warning("Exit without finding form element")
+        logger.warning("Exit without finding <form> element")
