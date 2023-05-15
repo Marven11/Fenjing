@@ -66,6 +66,9 @@ class FullPayloadGen:
         else:
             logger.warning(
                 f"use {colored('blue', self.outer_pattern)}, which {colored('red', 'will not print')} your result!")
+
+        self.payload_gen = payload_gen.PayloadGenerator(self.waf_func, self.context)
+
         self.prepared = True
         return True
 
@@ -74,12 +77,14 @@ class FullPayloadGen:
         if not self.prepared and not self.do_prepare():
             return None, None
 
-        inner_payload = payload_gen.generate(
-            gen_type,
-            *args,
-            waf_func=self.waf_func,
-            context=self.context
-        )
+        # inner_payload = payload_gen.generate(
+        #     gen_type,
+        #     *args,
+        #     waf_func=self.waf_func,
+        #     context=self.context
+        # )
+
+        inner_payload = self.payload_gen.generate(gen_type, *args)
 
         if inner_payload is None:
             logger.warning("Bypassing WAF Failed.")
