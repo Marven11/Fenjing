@@ -6,7 +6,7 @@
 
 ## 演示
 
-![CTFShow web365](assets/demo.webp)
+![demo](assets/demo.webp)
 
 ## 快速上手
 
@@ -138,6 +138,19 @@ Options:
   --interval FLOAT     每次请求的间隔
   --user-agent TEXT    请求时使用的User Agent
   --help               Show this message and exit.
+
+Usage: python -m fenjing get-config [OPTIONS]
+
+  攻击指定的表单，并获得目标服务器的flask config
+
+Options:
+  -u, --url TEXT     form所在的URL
+  -a, --action TEXT  form的action，默认为当前路径
+  -m, --method TEXT  form的提交方式，默认为POST
+  -i, --inputs TEXT  form的参数，以逗号分隔
+  --interval FLOAT   每次请求的间隔
+  --user-agent TEXT  请求时使用的User Agent
+  --help             Show this message and exit.
 ```
 
 ### 作为python库使用
