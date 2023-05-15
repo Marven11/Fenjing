@@ -31,8 +31,12 @@ logger = logging.getLogger("cli")
 
 
 def cmd_exec(cmd, cracker: FormCracker, field: str, full_payload_gen: FullPayloadGen):
-    payload = full_payload_gen.generate(OS_POPEN_READ, cmd)
+    payload, will_print = full_payload_gen.generate(OS_POPEN_READ, cmd)
     logger.info(f"Submit payload {colored('blue', payload)}")
+    if not will_print:
+        logger.warning("Payload generator says that this payload {wont_print} command execution result.".format(
+            wont_print = colored('red', "won't print")
+        ))
     r = cracker.submit(
         {field: payload})
     assert r is not None
