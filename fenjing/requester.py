@@ -6,6 +6,7 @@ import time
 logger = logging.getLogger("requester")
 DEFAULT_USER_AGENT = "Fenjing/0.1"
 
+
 class Requester:
     def __init__(
         self,

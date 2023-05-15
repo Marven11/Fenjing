@@ -53,7 +53,7 @@ class FormCracker:
             self.form = form
         else:
             assert method is not None and inputs is not None and url is not None, \
-                "[method, inputs, url] should not be None!" # for typing
+                "[method, inputs, url] should not be None!"  # for typing
             self.form = Form(
                 method=method,
                 inputs=inputs,

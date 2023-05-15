@@ -34,6 +34,7 @@ req_gens: DefaultDict[str, List[Callable]] = defaultdict(list)
 used_count = defaultdict(int)
 logger = logging.getLogger("payload_gen")
 
+
 def req_gen(f):
     gen_type = re.match("gen_([a-z_]+)_([a-z0-9]+)", f.__name__)
     if not gen_type:
@@ -63,7 +64,8 @@ class PayloadGenerator:
 
     def count_success(self, gen_type, req_gen_func_name):
         used_count[req_gen_func_name] += 1
-        req_gens[gen_type].sort(key = (lambda gen_func: used_count[gen_func.__name__]), reverse=True)
+        req_gens[gen_type].sort(
+            key=(lambda gen_func: used_count[gen_func.__name__]), reverse=True)
 
     def generate_by_req_list(self, req_list):
         payload = ""
@@ -112,24 +114,26 @@ class PayloadGenerator:
             self.add_cache(gen_type, *args, result=payload)
             if gen_type in (INTEGER, STRING) and payload != str(args[0]):
                 logger.info("{great}, {gen_type}({args_repl}) can be {payload}".format(
-                    great = colored("green", "Great"),
-                    gen_type = colored("yellow", gen_type, bold = True),
-                    args_repl = colored("yellow", ", ".join(repr(arg) for arg in args)),
-                    payload = colored("blue", payload)
+                    great=colored("green", "Great"),
+                    gen_type=colored("yellow", gen_type, bold=True),
+                    args_repl=colored("yellow", ", ".join(repr(arg)
+                                      for arg in args)),
+                    payload=colored("blue", payload)
                 ))
 
             elif gen_type in (EVAL_FUNC, EVAL, CONFIG, MODULE_OS, OS_POPEN_OBJ, OS_POPEN_READ):
                 logger.info("{great}, we generate {gen_type}({args_repl})".format(
-                    great = colored("green", "Great"),
-                    gen_type = colored("yellow", gen_type, bold = True),
-                    args_repl = colored("yellow", ", ".join(repr(arg) for arg in args)),
+                    great=colored("green", "Great"),
+                    gen_type=colored("yellow", gen_type, bold=True),
+                    args_repl=colored("yellow", ", ".join(repr(arg)
+                                      for arg in args)),
                 ))
             # logger.warning(f"{log.colored('green', gen_type.upper())} {args_repl} should be {log.colored('blue', payload)}")
             return payload
         logger.warning("{failed} generating {gen_type}({args_repl})".format(
-            failed = colored("red", "failed"),
-            gen_type = gen_type,
-            args_repl = ", ".join(repr(arg) for arg in args),
+            failed=colored("red", "failed"),
+            gen_type=gen_type,
+            args_repl=", ".join(repr(arg) for arg in args),
         ))
         self.add_cache(gen_type, *args, result=None)
         return None
@@ -137,6 +141,7 @@ class PayloadGenerator:
     def generate(self, gen_type, *args):
         generate_func = self.generate_funcs[gen_type] if gen_type in self.generate_funcs else self.default_generate
         return generate_func(gen_type, *args)
+
 
 def generate(gen_type, *args, waf_func: Callable, context: dict | None = None) -> str | None:
     payload_generator = PayloadGenerator(waf_func, context)
