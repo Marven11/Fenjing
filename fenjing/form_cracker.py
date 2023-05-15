@@ -1,6 +1,6 @@
 from collections import namedtuple
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 
 from .form import random_fill, fill_form
 from .requester import Requester
@@ -82,14 +82,14 @@ class FormCracker:
         return self.req.request(
             **fill_form(self.url, self.form, inputs))
 
-    def crack_inputs(self, input_field: str) -> Result | None:
+    def crack_inputs(self, input_field: str) -> Union[Result, None]:
         """攻击对应的input
 
         Args:
             input_field (str): 需要攻击的input
 
         Returns:
-            Result | None: 对应的payload生成函数，以及对应的input
+            Union[Result, None]: 对应的payload生成函数，以及对应的input
         """
         logger.info(f"Testing {colored('yellow', input_field)}")
 
@@ -123,11 +123,11 @@ class FormCracker:
                 input_field=input_field
             )
 
-    def crack(self) -> Result | None:
+    def crack(self) -> Union[Result, None]:
         """攻击表单
 
         Returns:
-            Result | None: 对应的payload生成函数，以及对应的input
+            Union[Result, None]: 对应的payload生成函数，以及对应的input
         """
         logger.info(f"Start cracking {self.form}")
         vulunables = self.vulunable_inputs()
@@ -159,9 +159,9 @@ class FormCracker:
 #             form: Dict[str, Any],
 #             method: str = "POST",
 #             inputs: List[str] | None = None,
-#             url: str | None = None,
-#             action: str | None = None,
-#             requester: Requester | None = None,
+#             url: Union[str, None] = None,
+#             action: Union[str, None] = None,
+#             requester: Union[Requester, None] = None,
 #             request_interval: float = 0.0
 #     ):
 #         """生成用于攻击form的类
@@ -251,14 +251,14 @@ class FormCracker:
 #         ]
 #         return [pair[0] for pair in Counter(hashes).most_common(2)]
 
-#     def crack_inputs(self, input_field: str) -> Result | None:
+#     def crack_inputs(self, input_field: str) -> Union[Result, None]:
 #         """攻击对应的input
 
 #         Args:
 #             input_field (str): 需要攻击的input
 
 #         Returns:
-#             Result | None: 对应的payload生成函数，以及对应的input
+#             Union[Result, None]: 对应的payload生成函数，以及对应的input
 #         """
 #         logger.info(f"Testing {colored('yellow', input_field)}")
 
@@ -299,11 +299,11 @@ class FormCracker:
 #                 input_field=input_field
 #             )
 
-#     def crack(self) -> Result | None:
+#     def crack(self) -> Union[Result, None]:
 #         """攻击表单
 
 #         Returns:
-#             Result | None: 对应的payload生成函数，以及对应的input
+#             Union[Result, None]: 对应的payload生成函数，以及对应的input
 #         """
 #         logger.info(f"Start cracking {self.form}")
 #         vulunables = self.vulunable_inputs()

@@ -3,7 +3,7 @@ from typing import Iterable
 import random
 import logging
 import string
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 
 from bs4 import BeautifulSoup
 
@@ -32,12 +32,12 @@ def Form(*, action: str, inputs: Iterable, method: str = "POST") -> Dict[str, An
     }
 
 
-def parse_forms(url, html: str | BeautifulSoup) -> List[dict]:
+def parse_forms(url, html: Union[str, BeautifulSoup]) -> List[dict]:
     """从html中解析出对应的表单
 
     Args:
         url (str): HTML对应的URL
-        html (str | BeautifulSoup): HTML
+        html (Union[str, BeautifulSoup]): HTML
 
     Returns:
         List[dict]: 所有表单

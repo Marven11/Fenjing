@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable, DefaultDict, List, Dict
+from typing import Callable, DefaultDict, List, Dict, Union
 import re
 import time
 import logging
@@ -20,7 +20,7 @@ def req_gen(f):
 
 
 class PayloadGenerator:
-    def __init__(self, waf_func: Callable, context: Dict | None):
+    def __init__(self, waf_func: Callable, context: Union[Dict, None]):
         self.waf_func = waf_func
         self.context = context
         self.cache = {}
@@ -126,11 +126,11 @@ class PayloadGenerator:
         return generate_func(gen_type, *args)
 
 
-def generate(gen_type, *args, waf_func: Callable, context: dict | None = None) -> str | None:
+def generate(gen_type, *args, waf_func: Callable, context: Union[dict, None] = None) -> Union[str, None]:
     payload_generator = PayloadGenerator(waf_func, context)
     return payload_generator.generate(gen_type, *args)
 
-# def generate(gen_type, *args, waf_func: Callable | None = None, context: dict | None = None, cache: dict | None = None) -> str | None:
+# def generate(gen_type, *args, waf_func: Union[Callable, None] = None, context: Union[dict, None] = None, cache: Union[dict, None] = None) -> Union[str, None]:
 
 #     if waf_func is None:
 #         raise Exception("waf_func cannot be None")

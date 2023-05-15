@@ -1,5 +1,5 @@
 import logging
-
+from typing import Union
 from .requester import Requester
 from .form import parse_forms
 
@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 logger = logging.getLogger("scan_url")
 
 
-def parse_urls(html: str | BeautifulSoup) -> list:
+def parse_urls(html: Union[str, BeautifulSoup]) -> list:
     """从html中解析出所有的链接
 
     Args:

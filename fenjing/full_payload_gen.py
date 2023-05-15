@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple
+from typing import Callable, List, Tuple, Union
 import logging
 
 from . import payload_gen
@@ -72,7 +72,7 @@ class FullPayloadGen:
         self.prepared = True
         return True
 
-    def generate(self, gen_type, *args) -> Tuple[str | None, bool | None]:
+    def generate(self, gen_type, *args) -> Tuple[Union[str, None], Union[bool, None]]:
 
         if not self.prepared and not self.do_prepare():
             return None, None
