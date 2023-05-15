@@ -1,14 +1,11 @@
-from urllib.parse import urlparse
-from collections import Counter, namedtuple
-from functools import lru_cache
+from collections import namedtuple
 import logging
-from typing import List, Dict, Tuple, Callable, Any
+from typing import List, Dict, Any
 
-from .form import Form, random_fill, fill_form
+from .form import random_fill, fill_form
 from .requester import Requester
 from .colorize import colored
 from .const import OS_POPEN_READ
-from .shell_payload import exec_cmd_payload
 from .waf_func_gen import WafFuncGen
 from .full_payload_gen import FullPayloadGen
 
