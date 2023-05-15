@@ -7,7 +7,8 @@ from functools import partial
 from .form import Form
 from .form_cracker import FormCracker
 from .scan_url import yield_form
-from .requester import Requester, DEFAULT_USER_AGENT
+from .requester import Requester
+from .const import DEFAULT_USER_AGENT
 from .colorize import colored
 import click
 
@@ -90,8 +91,15 @@ def crack(
         method=method,
         inputs=inputs.split(",")
     )
-    requester = Requester(interval=interval, user_agent=user_agent)
-    cracker = FormCracker(url=url, form=form, requester=requester)
+    requester = Requester(
+        interval=interval,
+        user_agent=user_agent
+    )
+    cracker = FormCracker(
+        url=url,
+        form=form,
+        requester=requester
+    )
     result = cracker.crack()
     if result is None:
         logger.warning("Test form failed...")
@@ -99,11 +107,6 @@ def crack(
     payload_gen, field = result
     cmd_exec_func = partial(cmd_exec, cracker=cracker,
                             field=field, payload_gen=payload_gen)
-    # def cmd_exec_func(cmd):
-    #     r = cracker.submit(
-    #         {field: payload_gen(cmd)})
-    #     assert r is not None
-    #     return r.text
     if exec_cmd == "":
         interact(cmd_exec_func)
     else:

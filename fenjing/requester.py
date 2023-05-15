@@ -2,9 +2,9 @@ import requests
 import logging
 import traceback
 import time
+from .const import DEFAULT_USER_AGENT
 
 logger = logging.getLogger("requester")
-DEFAULT_USER_AGENT = "Fenjing/0.1"
 
 
 class Requester:

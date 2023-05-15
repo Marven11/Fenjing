@@ -4,31 +4,7 @@ import re
 import time
 import logging
 from .colorize import colored
-
-
-LITERAL = "literal"
-UNSATISFIED = "unsatisfied"
-ZERO = "zero"
-POSITIVE_INTEGER = "positive_integer"
-INTEGER = "integer"
-STRING_STRING_CONCNAT = "string_string_concat"
-STRING_PERCENT = "string_percent"
-STRING_PERCENT_LOWER_C = "string_percent_lower_c"
-STRING_UNDERLINE = "string_underline"
-STRING_LOWERC = "string_lower_c"
-STRING_MANY_PERCENT_LOWER_C = "string_many_percent_lower_c"
-STRING = "string"
-FORMULAR_SUM = "formular_sum"
-ATTRIBUTE = "attribute"
-ITEM = "item"
-CLASS_ATTRIBUTE = "class_attribute"
-CHAINED_ATTRIBUTE_ITEM = "chained_attribute_item"
-EVAL_FUNC = "eval_func"
-EVAL = "eval"
-CONFIG = "config"
-MODULE_OS = "module_os"
-OS_POPEN_OBJ = "os_popen_obj"
-OS_POPEN_READ = "os_popen_read"
+from .const import *
 
 req_gens: DefaultDict[str, List[Callable]] = defaultdict(list)
 used_count = defaultdict(int)
