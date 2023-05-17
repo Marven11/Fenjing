@@ -45,7 +45,8 @@ class FormCracker:
         self.form = form
         self.req = requester
         self.waf_func_gen = WafFuncGen(self.url, self.form, self.req)
-        self.callback: Callable[[str, Dict], None] = callback if callback else (lambda x, y: None)
+        self.callback: Callable[[str, Dict], None] = callback if callback else (
+            lambda x, y: None)
         logger.warning(f"{self.callback=}")
 
     def vulunable_inputs(self) -> List[str]:
@@ -90,6 +91,14 @@ class FormCracker:
         })
 
         return r
+
+    def test_input(self, input_field, payload):
+        logger.info(
+            f"Input {colored('yellow', repr(input_field))} looks great, testing generated payload.")
+        r = self.submit({input_field: payload})
+        assert r is not None
+        return self.test_result in r.text
+
     def crack_inputs(self, input_field: str) -> Union[Result, None]:
         """攻击对应的input
 
@@ -103,21 +112,17 @@ class FormCracker:
 
         waf_func = self.waf_func_gen.generate(input_field)
         full_payload_gen = FullPayloadGen(waf_func, callback=self.callback)
-        payload, will_print = full_payload_gen.generate(OS_POPEN_READ, self.test_cmd)
+        payload, will_print = full_payload_gen.generate(
+            OS_POPEN_READ, self.test_cmd)
         if payload is None:
             self.callback(CALLBACK_TEST_FORM_INPUT, {
                 "ok": False,
             })
             return None
 
-        is_test_success = None # payload测试成功时为True, 失败时为False, 无法测试为None
-        if will_print: # TODO: 抽离这里的payload测试方法
-            logger.info(
-                f"Input {colored('yellow', repr(input_field))} looks great, testing generated payload.")
-            r = self.submit({input_field: payload})
-            assert r is not None
-            is_test_success = self.test_result in r.text
-            if is_test_success:
+        is_test_success = None  # payload测试成功时为True, 失败时为False, 无法测试为None
+        if will_print:
+            if self.test_input(input_field, payload):
                 logger.info(
                     f"{colored('green', 'Success!')} Now we can generate payloads.")
             else:
