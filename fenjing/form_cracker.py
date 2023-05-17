@@ -124,6 +124,7 @@ class FormCracker:
             if self.test_input(input_field, payload):
                 logger.info(
                     f"{colored('green', 'Success!')} Now we can generate payloads.")
+                is_test_success = True
             else:
                 logger.info(
                     f"{colored('yellow', 'Test Payload Failed', bold=True)}! Generated payloads might be useless.")
