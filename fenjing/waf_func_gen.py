@@ -2,8 +2,9 @@ from urllib.parse import urlparse
 from collections import Counter, namedtuple
 from functools import lru_cache
 import logging
-from typing import List, Dict, Tuple, Callable, Any
+from typing import List, Dict, Tuple, Callable, Any, Union
 
+from .const import *
 from .form import Form, random_fill, fill_form
 from .requester import Requester
 from .colorize import colored
@@ -29,6 +30,7 @@ class WafFuncGen:
             url: str,
             form: Dict[str, Any],
             requester: Requester,
+            callback: Union[Callable[[str, Dict], None], None] = None
     ):
         """根据指定的表单生成对应的WAF函数
 
@@ -40,7 +42,8 @@ class WafFuncGen:
         self.url = url
         self.form = form
         self.req = requester
-
+        self.callback: Callable[[str, Dict], None] = callback if callback else (
+            lambda x, y: None)
 
     def submit(self, inputs: dict):
         """根据inputs提交form
@@ -55,9 +58,16 @@ class WafFuncGen:
         if all_length > 2048 and self.form["method"] == "GET":
             logger.warning(
                 f"inputs are extremely long (len={all_length}) that the request might fail")
-        # TODO: 增加callback
-        return self.req.request(
+        r = self.req.request(
             **fill_form(self.url, self.form, inputs))
+
+        self.callback(CALLBACK_SUBMIT, {
+            "form": self.form,
+            "inputs": inputs,
+            "response": r,
+        })
+
+        return r
 
     def waf_page_hash(self, input_field: str):
         """使用危险的payload测试对应的input，得到一系列响应后，求出响应中最常见的几个hash

@@ -44,10 +44,9 @@ class FormCracker:
         self.url = url
         self.form = form
         self.req = requester
-        self.waf_func_gen = WafFuncGen(self.url, self.form, self.req)
         self.callback: Callable[[str, Dict], None] = callback if callback else (
             lambda x, y: None)
-        logger.warning(f"{self.callback=}")
+        self.waf_func_gen = WafFuncGen(self.url, self.form, self.req, self.callback)
 
     def vulunable_inputs(self) -> List[str]:
         """解析出form中有回显的input
