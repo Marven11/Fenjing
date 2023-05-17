@@ -16,14 +16,14 @@
 
 ```shell
 pip install fenjing
-python -m fenjing scan --url 'http://xxx/'
+python -m fenjing webui
 ```
 
 ### 下载并运行docker镜像
 
 ```shell
 docker pull marven11/fenjing
-docker run --net host -it marven11/fenjing scan --url 'http://xxx/'
+docker run --net host -it marven11/fenjing webui
 ```
 
 ### 手动安装
@@ -32,14 +32,14 @@ docker run --net host -it marven11/fenjing scan --url 'http://xxx/'
 git clone https://github.com/Marven11/Fenjing
 cd Fenjing
 python -m pip install -r requirements.txt
-python -m fenjing scan --url 'http://xxx/'
+python -m fenjing webui
 ```
 
 ### 手动构建Docker镜像
 
 ```shell
 docker build -t fenjing .
-docker run -it --net host fenjing scan --url 'http://xxx/'
+docker run -it --net host fenjing webui
 ```
 
 ## 特性
@@ -108,6 +108,9 @@ docker run -it --net host fenjing scan --url 'http://xxx/'
 
 ### 作为命令行脚本使用
 
+- webui: 网页UI
+  - 顾名思义，网页UI
+  - 默认端口11451
 - scan: 扫描整个网站
   - 从网站中根据form元素提取出所有的表单并攻击
   - 扫描成功后会提供一个模拟终端或执行给定的命令
@@ -116,7 +119,8 @@ docker run -it --net host fenjing scan --url 'http://xxx/'
   - 需要指定表单的url, action(GET或POST)以及所有字段(比如'name')
   - 攻击成功后也会提供一个模拟终端或执行给定的命令
   - 示例：`python -m fenjing crack --url 'http://xxx/' --method GET --inputs name`
-
+- get-config: 对某个特定的表单进行攻击，但是只获取flask config
+  - 参数大致上和crack相同
 ```
 Usage: python -m fenjing scan [OPTIONS]
 
