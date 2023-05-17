@@ -50,3 +50,8 @@ GEN_TYPES = [
     "os_popen_read",
 ]
 
+CALLBACK_PREPARE_FULLPAYLOADGEN = "prepare_fullpayloadgen"
+CALLBACK_GENERATE_FULLPAYLOAD = "generate_full_payload"
+CALLBACK_GENERATE_PAYLOAD = "payload_gen"
+CALLBACK_SUBMIT = "submit"
+CALLBACK_TEST_FORM_INPUT = "test_form_input"

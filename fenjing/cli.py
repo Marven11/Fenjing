@@ -9,7 +9,7 @@ from .form_cracker import FormCracker
 from .full_payload_gen import FullPayloadGen
 from .scan_url import yield_form
 from .requester import Requester
-from .const import DEFAULT_USER_AGENT, OS_POPEN_READ, CONFIG
+from .const import *
 from .colorize import colored
 import click
 

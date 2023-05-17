@@ -1,9 +1,10 @@
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Tuple, Union, Dict
 import logging
 
 from . import payload_gen
 from .int_vars import get_useable_int_vars
 from .colorize import colored
+from .const import *
 
 logger = logging.getLogger("shell_payload")
 
@@ -44,9 +45,10 @@ def get_outer_pattern(waf_func):
 
 
 class FullPayloadGen:
-    def __init__(self, waf_func):
+    def __init__(self, waf_func, callback: Union[Callable[[str, Dict], None], None] = None):
         self.waf_func = waf_func
         self.prepared = False
+        self.callback: Callable[[str, Dict], None] = callback if callback else (lambda x, y: None)
 
     def do_prepare(self) -> bool:
 
@@ -67,9 +69,14 @@ class FullPayloadGen:
             logger.warning(
                 f"use {colored('blue', self.outer_pattern)}, which {colored('red', 'will not print')} your result!")
 
-        self.payload_gen = payload_gen.PayloadGenerator(self.waf_func, self.context)
-
+        self.payload_gen = payload_gen.PayloadGenerator(self.waf_func, self.context, self.callback)
         self.prepared = True
+        self.callback(CALLBACK_PREPARE_FULLPAYLOADGEN, {
+            "context_payload": self.context_payload,
+            "context": self.context,
+            "outer_pattern": self.outer_pattern,
+            "will_print": self.will_print,
+        })
         return True
 
     def generate(self, gen_type, *args) -> Tuple[Union[str, None], Union[bool, None]]:
@@ -92,8 +99,17 @@ class FullPayloadGen:
 
         assert isinstance(self.outer_pattern, str)
 
+        payload = self.context_payload + self.outer_pattern.replace("PAYLOAD", inner_payload)
+
+        self.callback(CALLBACK_GENERATE_FULLPAYLOAD, {
+            "gen_type": gen_type,
+            "args": args,
+            "payload": payload,
+            "will_print": self.will_print,
+        })
+
         return (
-            self.context_payload + self.outer_pattern.replace("PAYLOAD", inner_payload), 
+            payload, 
             self.will_print
         )
 

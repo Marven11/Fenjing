@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable, DefaultDict, List, Dict, Union
+from typing import Callable, DefaultDict, List, Dict, Union, Any
 import re
 import time
 import logging
@@ -20,7 +20,12 @@ def req_gen(f):
 
 
 class PayloadGenerator:
-    def __init__(self, waf_func: Callable, context: Union[Dict, None]):
+    def __init__(
+        self,
+        waf_func: Callable,
+        context: Union[Dict, None],
+        callback: Union[Callable[[str, Dict], None], None] = None
+    ):
         self.waf_func = waf_func
         self.context = context
         self.cache = {}
@@ -28,6 +33,7 @@ class PayloadGenerator:
             LITERAL: self.literal_generate,
             UNSATISFIED: self.unsatisfied_generate
         }
+        self.callback: Callable[[str, Dict], None] = callback if callback else (lambda x, y: None)
 
     def cache_add(self, gen_type, *args, result=None):
         try:
@@ -82,6 +88,7 @@ class PayloadGenerator:
         if gen_type not in req_gens:
             raise Exception(f"Required type '{gen_type}' not supported.")
 
+        # 遍历当前类型每一个payload生成函数
         for req_gen_func in req_gens[gen_type].copy():
             son_req = req_gen_func(self.context, *args)
 
@@ -93,8 +100,17 @@ class PayloadGenerator:
             payload = self.generate_by_req_list(son_req)
             if not payload:
                 continue
+
+            # 生成成功后执行的操作
             self.count_success(gen_type, req_gen_func.__name__)
             self.cache_add(gen_type, *args, result=payload)
+            self.callback(CALLBACK_GENERATE_PAYLOAD, {
+                "gen_type": gen_type,
+                "args": args,
+                "payload": payload
+            })
+
+            # 为了日志的简洁，仅打印一部分日志
             if gen_type in (INTEGER, STRING) and payload != str(args[0]):
                 logger.info("{great}, {gen_type}({args_repl}) can be {payload}".format(
                     great=colored("green", "Great"),
@@ -111,7 +127,6 @@ class PayloadGenerator:
                     args_repl=colored("yellow", ", ".join(repr(arg)
                                       for arg in args)),
                 ))
-            # logger.warning(f"{log.colored('green', gen_type.upper())} {args_repl} should be {log.colored('blue', payload)}")
             return payload
         logger.warning("{failed} generating {gen_type}({args_repl})".format(
             failed=colored("red", "failed"),
@@ -774,6 +789,7 @@ def gen_string_concat3(context: dict, value: str):
         ))
     ]
 
+
 @req_gen
 def gen_string_dictjoin(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
@@ -884,6 +900,7 @@ def gen_string_formatfunc(context: dict, value: str):
     )
     return req
 
+
 @req_gen
 def gen_string_formatfunc2(context: dict, value: str):
     # (FORMAT(97,98,99))
@@ -895,8 +912,8 @@ def gen_string_formatfunc2(context: dict, value: str):
         ]
     k = [k for k, v in context.values() if v == "{:c}"][0]
     cs = "({c}*{l})".format(
-        c = k,
-        l = len(value)
+        c=k,
+        l=len(value)
     )
     format_func = (ATTRIBUTE, (LITERAL, cs), "format")
     req = [
@@ -908,14 +925,15 @@ def gen_string_formatfunc2(context: dict, value: str):
     ]
     return req
 
+
 @req_gen
 def gen_string_formatfunc3(context: dict, value: str):
     # (FORMAT(97,98,99))
     # FORMAT = (CS.format)
     # CS = (C*L)
     cs = "(({c})*{l})".format(
-        c = "{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,dict(c=1)|join)",
-        l = len(value)
+        c="{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,dict(c=1)|join)",
+        l=len(value)
     )
     format_func = (ATTRIBUTE, (LITERAL, cs), "format")
     req = [
