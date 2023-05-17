@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Fenjing</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css' )}}">
+</head>
+
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="#">首 页</a></li>
+                <!-- <li><a href="#">关于我们</a></li> -->
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <h1>手动指定表单</h1>
+        <p>在下方手动指定表单进行SSTI测试</p>
+        <form id="createCrackTask">
+            <label for="url">URL:</label>
+            <input type="text" id="url" name="url" placeholder="http://127.0.0.1:1234" />
+            <br /><br />
+
+            <label for="method">请求方式:</label>
+            <select id="method" name="method">
+                <option value="POST">POST</option>
+                <option value="GET">GET</option>
+            </select>
+            <br /><br />
+
+            <label for="inputs">表单的所有输入:</label>
+            <input type="text" id="inputs" name="inputs" placeholder="id,name" />
+            <br /><br />
+
+            <label for="action">提交 URL:</label>
+            <input type="text" id="action" name="action" placeholder="默认和URL相同" />
+            <br /><br />
+            <input type="hidden" name="type" value="crack" />
+            <input type="submit" value="提交">
+        </form>
+            <textarea name="taskFlashMessage" id="taskFlashMessage" cols="100" rows="1" readonly></textarea>
+            <textarea name="taskMessage" id="taskMessage" cols="100" rows="20" readonly></textarea>
+        <form id="createInteractiveTaskForm">
+            <input type="text" id="cmd" name="cmd" placeholder="uname -a" />
+            <input type="hidden" name="type" value="interactive" />
+            <input type="hidden" name="last_task_id" value="no" />
+            <input type="submit" value="提交">
+        </form>
+    </main>
+
+    <script>
+        let createCrackTaskForm = document.querySelector("#createCrackTask")
+        let createInteractiveTaskForm = document.querySelector("#createInteractiveTaskForm")
+
+        function createCrackTask(event) {
+            event.preventDefault();
+
+            // 从表单中获取数据
+            const formData = new FormData(createCrackTaskForm);
+
+            // 使用fetch向服务器发送POST请求
+            fetch("/createTask", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: new URLSearchParams(formData).toString()
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // 获取响应并展示结果
+                    console.log(data);
+                    watchTask(data.taskid, (data) => {
+                        const input = createInteractiveTaskForm.querySelector('input[name="last_task_id"]');
+                        input.value = data.taskid;
+                    })
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        }
+        function createInteractiveTask(event) {
+            event.preventDefault();
+            // 从表单中获取数据
+            const formData = new FormData(createInteractiveTaskForm);
+
+            // 使用fetch向服务器发送POST请求
+            fetch("/createTask", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: new URLSearchParams(formData).toString()
+            })
+                .then(response => response.json())
+                .then(data => {
+                    // 获取响应并展示结果
+                    console.log(data);
+                    watchTask(data.taskid)
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+        }
+        function watchTask(taskid, callback = undefined) {
+            let taskFlashMessage = document.getElementById("taskFlashMessage")
+            let taskMessage = document.getElementById("taskMessage")
+            function fillData(data) {
+                taskFlashMessage.textContent = data["flash_messages"][data["flash_messages"].length - 1]
+                taskMessage.textContent = data["messages"].join("\n")
+                taskMessage.scrollTop = taskMessage.scrollHeight - taskMessage.clientHeight;
+            }
+            function update() {
+                fetch("/watchTask", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: new URLSearchParams({ taskid: taskid }).toString()
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log(data)
+                        fillData(data)
+                        if (data.done) {
+                            console.log(`Done! clear id: ${timerId}`)
+                            clearInterval(timerId)
+                            if(callback) {
+                                callback(data)
+                            }
+                        }
+                    })
+
+            }
+            let timerId = setInterval(update, 200)
+        }
+
+        createCrackTaskForm.addEventListener("submit", createCrackTask);
+        createInteractiveTaskForm.addEventListener("submit", createInteractiveTask);
+
+    </script>
+</body>
+
+</html>

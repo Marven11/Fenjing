@@ -1,2 +1,4 @@
 include VERSION
 include requirements.txt
+include fenjing/static
+include fenjing/templates

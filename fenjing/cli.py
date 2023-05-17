@@ -11,6 +11,7 @@ from .scan_url import yield_form
 from .requester import Requester
 from .const import *
 from .colorize import colored
+from .webui import main as webui_main
 import click
 
 TITLE = colored("yellow", r"""
@@ -197,6 +198,10 @@ def scan(url, exec_cmd, interval, user_agent):
             return
     logger.warning("Scan failed...")
 
+
+@main.command()
+def webui():
+    webui_main()
 
 if __name__ == '__main__':
     main()

@@ -55,6 +55,7 @@ class WafFuncGen:
         if all_length > 2048 and self.form["method"] == "GET":
             logger.warning(
                 f"inputs are extremely long (len={all_length}) that the request might fail")
+        # TODO: 增加callback
         return self.req.request(
             **fill_form(self.url, self.form, inputs))
 
