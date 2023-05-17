@@ -1,4 +1,5 @@
 import setuptools
+import os
 
 with open("README.md", "r") as f:
     long_description = f.read()
@@ -26,5 +27,8 @@ setuptools.setup(
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Operating System :: OS Independent",
     ],
-    install_requires=requirements
+    install_requires=requirements,
+    package_data={
+        "fenjing": ["templates/*", "static/*"],
+    },
 )
