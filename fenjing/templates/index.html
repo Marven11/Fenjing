@@ -18,7 +18,7 @@
     </header>
     <main>
         <h1>手动指定表单</h1>
-        <p>在下方手动指定表单进行SSTI测试</p>
+        <p>在下方手动指定表单进行自动SSTI</p>
         <form id="createCrackTask">
             <label for="url">URL:</label>
             <input type="text" id="url" name="url" placeholder="http://127.0.0.1:1234" />
@@ -36,25 +36,26 @@
             <br /><br />
 
             <label for="action">提交 URL:</label>
-            <input type="text" id="action" name="action" placeholder="默认和URL相同" />
+            <input type="text" id="action" name="action" placeholder="可不填，默认和URL相同" />
             <br /><br />
             <input type="hidden" name="type" value="crack" />
-            <input type="submit" value="提交">
+            <input type="submit" value="开始分析">
         </form>
-            <textarea name="taskFlashMessage" id="taskFlashMessage" cols="100" rows="1" readonly></textarea>
+            <textarea name="taskFlashMessage" id="taskFlashMessage" cols="100" rows="3" readonly></textarea>
             <textarea name="taskMessage" id="taskMessage" cols="100" rows="20" readonly></textarea>
         <form id="createInteractiveTaskForm">
             <input type="text" id="cmd" name="cmd" placeholder="uname -a" />
             <input type="hidden" name="type" value="interactive" />
-            <input type="hidden" name="last_task_id" value="no" />
-            <input type="submit" value="提交">
+            <input type="hidden" name="last_task_id" value="" />
+            <input type="submit" value="执行Shell指令">
         </form>
     </main>
 
     <script>
         let createCrackTaskForm = document.querySelector("#createCrackTask")
         let createInteractiveTaskForm = document.querySelector("#createInteractiveTaskForm")
-
+        let taskFlashMessage = document.getElementById("taskFlashMessage")
+        let taskMessage = document.getElementById("taskMessage")
         function createCrackTask(event) {
             event.preventDefault();
 
@@ -86,7 +87,7 @@
             event.preventDefault();
             // 从表单中获取数据
             const formData = new FormData(createInteractiveTaskForm);
-
+            console.log(formData.get("last_task_id"))
             // 使用fetch向服务器发送POST请求
             fetch("/createTask", {
                 method: "POST",
@@ -99,15 +100,17 @@
                 .then(data => {
                     // 获取响应并展示结果
                     console.log(data);
-                    watchTask(data.taskid)
+                    if(data.taskid) {
+                        watchTask(data.taskid)
+                    }else{
+                        taskFlashMessage.textContent = "找不到之前的分析记录，也许你需要先分析一下？"
+                    }
                 })
                 .catch(error => {
                     console.error(error);
                 });
         }
         function watchTask(taskid, callback = undefined) {
-            let taskFlashMessage = document.getElementById("taskFlashMessage")
-            let taskMessage = document.getElementById("taskMessage")
             function fillData(data) {
                 taskFlashMessage.textContent = data["flash_messages"][data["flash_messages"].length - 1]
                 taskMessage.textContent = data["messages"].join("\n")
