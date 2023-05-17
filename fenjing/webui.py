@@ -63,7 +63,7 @@ class CallBackLogger:
 
     def callback_submit(self, data):
         self.flash_messages.append(
-            f"提交表单{data['form']}的返回值为{data['response'].status_code}"
+            f"提交表单完成，返回值为{data['response'].status_code}，输入为{data['inputs']}，表单为{data['form']}"
         )
 
     def callback_test_form_input(self, data):
