@@ -87,7 +87,7 @@ class CallBackLogger:
 
 
 class CrackTaskThread(threading.Thread):
-    def __init__(self, taskid, url, form):
+    def __init__(self, taskid, url, form, interval):
         super().__init__()
         self.result = None
         self.taskid = taskid
@@ -101,7 +101,7 @@ class CrackTaskThread(threading.Thread):
             url=url,
             form=form,
             requester=Requester(
-                interval=0.1,
+                interval=interval,
                 user_agent=DEFAULT_USER_AGENT
             ),
             callback=self.callback
@@ -161,11 +161,13 @@ def create_task():
         })
     task_type = request.form.get("type", None)
     if task_type == "crack":
-        url, method, inputs, action = (
+        url, method, inputs, action, interval = (
             request.form["url"],
             request.form["method"],
             request.form["inputs"],
             request.form["action"],
+            request.form["interval"],
+
         )
         form = Form(
             action=action or urlparse(url).path,
@@ -173,7 +175,7 @@ def create_task():
             inputs=inputs.split(",")
         )
         taskid = uuid.uuid4().hex
-        task = CrackTaskThread(taskid, url, form)
+        task = CrackTaskThread(taskid, url, form, float(interval))
         task.daemon = True
         task.start()
         tasks[taskid] = task
