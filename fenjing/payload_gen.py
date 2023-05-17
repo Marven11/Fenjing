@@ -109,7 +109,6 @@ class PayloadGenerator:
                 "args": args,
                 "payload": payload
             })
-
             # 为了日志的简洁，仅打印一部分日志
             if gen_type in (INTEGER, STRING) and payload != str(args[0]):
                 logger.info("{great}, {gen_type}({args_repl}) can be {payload}".format(
@@ -144,53 +143,6 @@ class PayloadGenerator:
 def generate(gen_type, *args, waf_func: Callable, context: Union[dict, None] = None) -> Union[str, None]:
     payload_generator = PayloadGenerator(waf_func, context)
     return payload_generator.generate(gen_type, *args)
-
-# def generate(gen_type, *args, waf_func: Union[Callable, None] = None, context: Union[dict, None] = None, cache: Union[dict, None] = None) -> Union[str, None]:
-
-#     if waf_func is None:
-#         raise Exception("waf_func cannot be None")
-#     if context is None:
-#         context = {}
-#     if cache is None:
-#         cache = {}
-
-#     if (gen_type, *args) in cache:
-#         return cache[(gen_type, *args)]
-
-#     if gen_type == LITERAL:
-#         value = args[0]
-#         if not waf_func(value):
-#             return None
-#         return value
-#     if gen_type == UNSATISFIED:
-#         return None
-
-#     if gen_type not in req_gens:
-#         raise Exception(f"gen_type {gen_type} not found")
-
-#     for gen_func in req_gens[gen_type].copy():
-#         generated_payload = ""
-#         son_req = gen_func(context, *args)
-#         assert isinstance(
-#             son_req, list), f"Wrong son_req {son_req} from {gen_func.__name__}"
-#         assert all(isinstance(req_type, str) for req_type, *
-#                    others in son_req), f"Wrong son_req {son_req} from {gen_func.__name__}"
-#         for son_type, *son_args in son_req:
-#             payload = generate(son_type, *son_args,
-#                                waf_func=waf_func, context=context, cache=cache)
-#             if payload is None:
-#                 generated_payload = None
-#                 break
-#             generated_payload += payload
-#         if generated_payload is not None and waf_func(generated_payload):
-#             used_count[gen_func.__name__] += 1
-#             req_gens[gen_type].sort(
-#                 key=lambda f: used_count[f.__name__], reverse=True)
-#             cache[(gen_type, *args)] = generated_payload
-#             return generated_payload
-#     cache[(gen_type, *args)] = None
-#     return None
-
 
 # ---
 
@@ -906,6 +858,10 @@ def gen_string_formatfunc2(context: dict, value: str):
     # (FORMAT(97,98,99))
     # FORMAT = (CS.format)
     # CS = (C*L)
+    if re.match("^[a-z]+$", value): # avoid infinite recursion
+        return [
+            (UNSATISFIED, )
+        ]
     if "{:c}" not in context.values():
         return [
             (UNSATISFIED, )
@@ -931,6 +887,10 @@ def gen_string_formatfunc3(context: dict, value: str):
     # (FORMAT(97,98,99))
     # FORMAT = (CS.format)
     # CS = (C*L)
+    if re.match("^[a-z]+$", value): # avoid infinite recursion
+        return [
+            (UNSATISFIED, )
+        ]
     cs = "(({c})*{l})".format(
         c="{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,dict(c=1)|join)",
         l=len(value)
