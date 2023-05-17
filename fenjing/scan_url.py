@@ -1,6 +1,5 @@
 import logging
 from typing import Union
-from .requester import Requester
 from .form import parse_forms
 
 from bs4 import BeautifulSoup

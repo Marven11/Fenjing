@@ -1,11 +1,10 @@
-from urllib.parse import urlparse
 from collections import Counter, namedtuple
 from functools import lru_cache
 import logging
 from typing import List, Dict, Tuple, Callable, Any, Union
 
 from .const import *
-from .form import Form, random_fill, fill_form
+from .form import fill_form
 from .requester import Requester
 from .colorize import colored
 

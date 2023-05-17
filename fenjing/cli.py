@@ -186,11 +186,6 @@ def scan(url, exec_cmd, interval, user_agent):
             full_payload_gen, field = result
             cmd_exec_func = partial(cmd_exec, cracker=cracker,
                                     field=field, full_payload_gen=full_payload_gen)
-            # def cmd_exec_func(cmd):
-            #     r = cracker.submit(
-            #         {field: payload_gen(cmd)})
-            #     assert r is not None
-            #     return r.text
             if exec_cmd == "":
                 interact(cmd_exec_func)
             else:

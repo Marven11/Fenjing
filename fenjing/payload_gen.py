@@ -1199,7 +1199,6 @@ if __name__ == "__main__":
     @functools.lru_cache(100)
     def waf_func(payload: str):
         time.sleep(0.2)
-        # print(payload)
         return all(word not in payload for word in ['\'', '"', '.', '_', 'import', 'request', 'url', '\\x', 'os', 'system', '\\u', '22'])
 
     payload = generate(

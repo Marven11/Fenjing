@@ -4,17 +4,11 @@ import logging
 import threading
 import uuid
 from urllib.parse import urlparse
-from traceback import print_exc
-from typing import Callable, List
-from functools import partial
 
 from .form import Form
 from .form_cracker import FormCracker
-from .full_payload_gen import FullPayloadGen
-from .scan_url import yield_form
 from .requester import Requester
 from .const import *
-from .colorize import colored
 
 logger = logging.getLogger("webui")
 app = Flask(__name__)

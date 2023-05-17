@@ -84,13 +84,6 @@ class FullPayloadGen:
         if not self.prepared and not self.do_prepare():
             return None, None
 
-        # inner_payload = payload_gen.generate(
-        #     gen_type,
-        #     *args,
-        #     waf_func=self.waf_func,
-        #     context=self.context
-        # )
-
         inner_payload = self.payload_gen.generate(gen_type, *args)
 
         if inner_payload is None:
