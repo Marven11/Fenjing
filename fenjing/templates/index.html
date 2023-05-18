@@ -3,11 +3,146 @@
 
 <head>
     <title>Fenjing</title>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css' )}}">
+    <style>
+        body {
+            background-color: #f2f2f2;
+            color: #444;
+            font-family: 'Helvetica Neue', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            padding: 2em;
+        }
+
+        header {
+            background-color: #8B0000;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav li {
+            display: inline-block;
+            margin: 0 10px;
+        }
+
+        nav li a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 18px;
+        }
+
+        nav li a:hover {
+            color: #FFFACD;
+        }
+
+        main {
+            display: flex;
+            flex-direction: row;
+            margin-top: 2em;
+        }
+
+        textarea,
+        input {
+            font-family: 'Helvetica Neue', sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .left-part {
+            padding-right: 2%;
+
+            display: flex;
+            flex-direction: column;
+            width: 70%
+        }
+
+        .left-part textarea,
+        .left-part input {
+            font-family: monospace;
+        }
+
+        #taskFlashMessage {
+            flex: 1;
+            resize: none;
+        }
+
+        #taskMessage {
+            flex: 5;
+            resize: none;
+
+        }
+
+        #createInteractiveTaskForm {
+            width: 100%;
+            display: flex;
+
+        }
+
+        #createInteractiveTaskForm input[type='text'] {
+            display: inline-block;
+            flex: 1;
+            /* width: 70%; */
+        }
+
+        #createInteractiveTaskForm input[type='submit'] {
+            display: inline-block;
+            /* margin-left: 20px; */
+        }
+
+
+
+        #createInteractiveTaskForm input {
+            font-size: 16px;
+            letter-spacing: 1px;
+            /* margin: 6px 10px; */
+        }
+
+        .right-part {
+            flex-grow: 3;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 2%;
+            box-sizing: border-box;
+            line-height: 1.5em;
+        }
+
+        .right-part input[type="text"] {
+            width: 100%;
+        }
+
+        .right-part label {
+            display: block;
+        }
+
+        .right-part input[type=checkbox] {
+            display: inline-block;
+            /* margin-right: 0.5em; */
+        }
+
+        .submit-button {
+            border: none;
+            padding: 0.5em 1em;
+            background-color: #2ecc71;
+            color: #fff;
+            font-size: 1.2em;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
 </head>
 
 <body>
+    <!-- <header>
+        <h1>Header Here</h1>
+    </header> -->
     <header>
         <nav>
             <ul>
@@ -17,45 +152,47 @@
         </nav>
     </header>
     <main>
-        <h1>手动指定表单</h1>
-        <p>在下方手动指定表单进行自动SSTI</p>
-        <form id="createCrackTask">
-            <label for="url">URL:</label>
-            <input type="text" id="url" name="url" placeholder="http://127.0.0.1:1234" />
-            <br /><br />
+        <div class="left-part">
+            <textarea name="taskMessage" id="taskMessage" cols="100" rows="20" readonly></textarea>
+            <textarea name="taskFlashMessage" id="taskFlashMessage" cols="100" rows="3" readonly></textarea>
 
-            <label for="method">请求方式:</label>
-            <select id="method" name="method">
-                <option value="POST">POST</option>
-                <option value="GET">GET</option>
-            </select>
-            <br /><br />
+            <form id="createInteractiveTaskForm">
+                <input type="text" id="cmd" name="cmd" placeholder="uname -a" />
+                <input type="hidden" name="type" value="interactive" />
+                <input type="hidden" name="last_task_id" value="" />
+                <input type="submit" value="执行Shell指令">
+            </form>
+        </div>
+        <div class="right-part">
+            <form id="createCrackTask">
+                <label for="url">URL:</label>
+                <input type="text" id="url" name="url" placeholder="http://127.0.0.1:1234" />
+                <br /><br />
 
-            <label for="inputs">表单的所有输入:</label>
-            <input type="text" id="inputs" name="inputs" placeholder="id,name" />
-            <br /><br />
+                <label for="method">请求方式:</label>
+                <select id="method" name="method">
+                    <option value="POST">POST</option>
+                    <option value="GET">GET</option>
+                </select>
+                <br /><br />
 
-            <label for="action">提交 URL:</label>
-            <input type="text" id="action" name="action" placeholder="可不填，默认和URL相同" />
-            <br /><br />
+                <label for="inputs">表单的所有输入:</label>
+                <input type="text" id="inputs" name="inputs" placeholder="id,name" />
+                <br /><br />
 
-            <label for="action">请求间隔:</label>
-            <input type="text" id="interval" name="interval" value="0.1" />
-            <br /><br />
+                <label for="action">提交 URL:</label>
+                <input type="text" id="action" name="action" placeholder="可不填，默认和URL相同" />
+                <br /><br />
 
-            <input type="hidden" name="type" value="crack" />
-            <input type="submit" value="开始分析">
-        </form>
-        <textarea name="taskFlashMessage" id="taskFlashMessage" cols="100" rows="3" readonly></textarea>
-        <textarea name="taskMessage" id="taskMessage" cols="100" rows="20" readonly></textarea>
-        <form id="createInteractiveTaskForm">
-            <input type="text" id="cmd" name="cmd" placeholder="uname -a" />
-            <input type="hidden" name="type" value="interactive" />
-            <input type="hidden" name="last_task_id" value="" />
-            <input type="submit" value="执行Shell指令">
-        </form>
+                <label for="action">请求间隔:</label>
+                <input type="text" id="interval" name="interval" value="0.1" />
+                <br /><br />
+
+                <input type="hidden" name="type" value="crack" />
+                <input type="submit" value="开始分析">
+            </form>
+        </div>
     </main>
-
     <script>
 
         const taskFlashMessage = document.getElementById("taskFlashMessage")
