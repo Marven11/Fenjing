@@ -196,7 +196,7 @@ def scan(url, exec_cmd, interval, user_agent):
 
 @main.command()
 @click.option("--host", "-h", default = "127.0.0.1", help="需要监听的host, 默认为127.0.0.1")
-@click.option("--port", "-p", default = 14514, help="需要监听的端口, 默认为14514")
+@click.option("--port", "-p", default = 11451, help="需要监听的端口, 默认为11451")
 def webui(host, port):
     """
     启动webui
