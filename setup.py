@@ -17,7 +17,7 @@ setuptools.setup(
     version=version,
     author="Marven11",
     author_email="marven11@example.com",
-    description="A Jinja2 SSTI cracker for CTF competitions",
+    description="A Jinja SSTI cracker for CTF competitions",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Marven11/Fenjing",

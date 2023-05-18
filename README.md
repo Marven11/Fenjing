@@ -2,7 +2,7 @@
 
 > Bypass the WAF without knowing WAF
 
-焚靖是一个针对Jinja2 SSTI的命令行脚本，具有强大的自动绕过WAF功能
+焚靖是一个针对Jinja SSTI的命令行脚本，具有强大的自动绕过WAF功能
 
 ## 演示
 
