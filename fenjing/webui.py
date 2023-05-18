@@ -22,11 +22,11 @@ class CallBackLogger:
 
     def callback_prepare_fullpayloadgen(self, data):
         self.messages.append(
-            f"已经分析完毕所有上下文payload。"
+            f"上下文payload测试完毕。"
         )
         if data["context"]:
-            context_repr = ', '.join(repr(value)
-                                     for value in data['context'].values())
+            context_repr = ', '.join(f"{k}={repr(v)}"
+                                     for k, v in data['context'].items())
             self.messages.append(
                 f"以下是在上下文中的值：{context_repr}"
             )
@@ -107,12 +107,18 @@ class CrackTaskThread(threading.Thread):
         )
 
     def run(self):
+        self.messages.append(
+            f"开始分析WAF"
+        )
         self.result = self.cracker.crack()
         if self.result:
             self.messages.append(
-                f"WAF已绕过"
+                f"WAF已绕过，现在可以执行Shell指令了"
             )
-
+        else:
+            self.messages.append(
+                f"WAF绕过失败"
+            )
 
 class InteractiveTaskThread(threading.Thread):
     def __init__(self, taskid, cracker, field, full_payload_gen, cmd):
@@ -130,6 +136,9 @@ class InteractiveTaskThread(threading.Thread):
         self.cracker.callback = self.callback
 
     def run(self):
+        self.messages.append(
+            f"开始生成payload"
+        )
         payload, will_print = self.full_payload_gen.generate(
             OS_POPEN_READ,
             self.cmd
