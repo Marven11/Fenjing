@@ -46,8 +46,8 @@
             <input type="hidden" name="type" value="crack" />
             <input type="submit" value="开始分析">
         </form>
-            <textarea name="taskFlashMessage" id="taskFlashMessage" cols="100" rows="3" readonly></textarea>
-            <textarea name="taskMessage" id="taskMessage" cols="100" rows="20" readonly></textarea>
+        <textarea name="taskFlashMessage" id="taskFlashMessage" cols="100" rows="3" readonly></textarea>
+        <textarea name="taskMessage" id="taskMessage" cols="100" rows="20" readonly></textarea>
         <form id="createInteractiveTaskForm">
             <input type="text" id="cmd" name="cmd" placeholder="uname -a" />
             <input type="hidden" name="type" value="interactive" />
@@ -57,69 +57,57 @@
     </main>
 
     <script>
-        let createCrackTaskForm = document.querySelector("#createCrackTask")
-        let createInteractiveTaskForm = document.querySelector("#createInteractiveTaskForm")
-        let taskFlashMessage = document.getElementById("taskFlashMessage")
-        let taskMessage = document.getElementById("taskMessage")
-        function createCrackTask(event) {
-            event.preventDefault();
 
-            // 从表单中获取数据
-            const formData = new FormData(createCrackTaskForm);
+        const taskFlashMessage = document.getElementById("taskFlashMessage")
+        const taskMessage = document.getElementById("taskMessage")
 
-            // 使用fetch向服务器发送POST请求
-            fetch("/createTask", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: new URLSearchParams(formData).toString()
-            })
-                .then(response => response.json())
-                .then(data => {
-                    // 获取响应并展示结果
-                    console.log(data);
-                    watchTask(data.taskid, (data) => {
-                        const input = createInteractiveTaskForm.querySelector('input[name="last_task_id"]');
-                        input.value = data.taskid;
-                    })
+        function Task(form, afterFetch) {
+            let taskObj = {
+                form: form,
+                running: false,
+            }
+            function onSubmit(event) {
+                if (taskObj.running) {
+                    console.log("task " + uri + " is running");
+                    return
+                }
+                taskObj.running = true;
+                event.preventDefault();
+                // 从表单中获取数据
+                const formData = new FormData(form);
+                // 使用fetch向服务器发送POST请求
+                fetch("/createTask", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: new URLSearchParams(formData).toString()
                 })
-                .catch(error => {
-                    console.error(error);
-                });
+                    .then(response => response.json())
+                    .then(afterFetch)
+                    .catch(error => { console.error(error); });
+                taskObj.running = false;
+            }
+            form.addEventListener("submit", onSubmit);
+            return taskObj
         }
-        function createInteractiveTask(event) {
-            event.preventDefault();
-            // 从表单中获取数据
-            const formData = new FormData(createInteractiveTaskForm);
-            console.log(formData.get("last_task_id"))
-            // 使用fetch向服务器发送POST请求
-            fetch("/createTask", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: new URLSearchParams(formData).toString()
-            })
-                .then(response => response.json())
-                .then(data => {
-                    // 获取响应并展示结果
-                    console.log(data);
-                    if(data.taskid) {
-                        watchTask(data.taskid)
-                    }else{
-                        taskFlashMessage.textContent = "找不到之前的分析记录，也许你需要先分析一下？"
-                    }
-                })
-                .catch(error => {
-                    console.error(error);
-                });
-        }
+
         function watchTask(taskid, callback = undefined) {
             function fillData(data) {
                 taskFlashMessage.textContent = data["flash_messages"][data["flash_messages"].length - 1]
                 taskMessage.textContent = data["messages"].join("\n")
                 taskMessage.scrollTop = taskMessage.scrollHeight - taskMessage.clientHeight;
+            }
+            function handleData(data) {
+                console.log(data)
+                fillData(data)
+                if (data.done) {
+                    console.log(`Done! clear id: ${timerId}`)
+                    clearInterval(timerId)
+                    if (callback) {
+                        callback(data)
+                    }
+                }
             }
             function update() {
                 fetch("/watchTask", {
@@ -130,24 +118,33 @@
                     body: new URLSearchParams({ taskid: taskid }).toString()
                 })
                     .then(response => response.json())
-                    .then(data => {
-                        console.log(data)
-                        fillData(data)
-                        if (data.done) {
-                            console.log(`Done! clear id: ${timerId}`)
-                            clearInterval(timerId)
-                            if(callback) {
-                                callback(data)
-                            }
-                        }
-                    })
-
+                    .then(handleData)
             }
             let timerId = setInterval(update, 200)
         }
+        function afterCrackTaskDone(data) {
+            const input = createInteractiveTaskForm.querySelector('input[name="last_task_id"]');
+            input.value = data.taskid;
+        }
 
-        createCrackTaskForm.addEventListener("submit", createCrackTask);
-        createInteractiveTaskForm.addEventListener("submit", createInteractiveTask);
+        const crackTask = Task(
+            document.querySelector("#createCrackTask"),
+            data => {
+                console.log(data);
+                watchTask(data.taskid, afterCrackTaskDone);
+            }
+        )
+        const interactiveTask = Task(
+            document.querySelector("#createInteractiveTaskForm"),
+            data => {
+                console.log(data);
+                if (data.taskid) {
+                    watchTask(data.taskid)
+                } else {
+                    taskFlashMessage.textContent = "找不到之前的分析记录，也许你需要先分析一下？"
+                }
+            }
+        )
 
     </script>
 </body>
