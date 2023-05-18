@@ -2,11 +2,18 @@
 
 > Bypass the WAF without knowing WAF
 
-焚靖是一个针对Jinja SSTI的命令行脚本，具有强大的自动绕过WAF功能
+焚靖是一个针对CTF比赛中Jinja SSTI绕过WAF的全自动脚本，可以自动攻击给定的网站或接口。
 
 ## 演示
 
 ![demo](assets/demo.webp)
+
+## 主要特性
+
+- 集成了大部分CTF中的SSTI WAF绕过技巧
+- 全自动扫描HTML页面中的form元素并进行攻击
+- 全自动分析网站的WAF并生成相应的payload
+- 方便的网页界面/命令行界面
 
 ## 快速上手
 
