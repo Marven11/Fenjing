@@ -14,6 +14,7 @@ logger = logging.getLogger("webui")
 app = Flask(__name__)
 tasks = {}
 
+
 class CallBackLogger:
     def __init__(self, flash_messages, messages):
         self.flash_messages = flash_messages
@@ -24,7 +25,8 @@ class CallBackLogger:
             f"已经分析完毕所有上下文payload。"
         )
         if data["context"]:
-            context_repr = ', '.join(repr(value) for value in data['context'].values())
+            context_repr = ', '.join(repr(value)
+                                     for value in data['context'].values())
             self.messages.append(
                 f"以下是在上下文中的值：{context_repr}"
             )
@@ -36,6 +38,7 @@ class CallBackLogger:
             self.messages.append(
                 f"生成的payload将不会具有回显。"
             )
+
     def callback_generate_fullpayload(self, data):
         self.messages.append(
             f"分析完毕，已为类型{data['gen_type']}生成payload {data['payload']}"
@@ -51,8 +54,8 @@ class CallBackLogger:
             payload_repr = payload_repr[:30] + "..."
         self.flash_messages.append(
             "请求{req}对应的payload可以是{payload}".format(
-                req = f"{data['gen_type']}({', '.join(repr(arg) for arg in data['args'])})",
-                payload = payload_repr
+                req=f"{data['gen_type']}({', '.join(repr(arg) for arg in data['args'])})",
+                payload=payload_repr
             )
         )
 
@@ -71,7 +74,8 @@ class CallBackLogger:
         )
 
     def __call__(self, callback_type, data):
-        default_handler = lambda data: logger.warning(f"{callback_type=} not found")
+        def default_handler(data): return logger.warning(
+            f"{callback_type=} not found")
         return {
             CALLBACK_PREPARE_FULLPAYLOADGEN: self.callback_prepare_fullpayloadgen,
             CALLBACK_GENERATE_FULLPAYLOAD: self.callback_generate_fullpayload,
@@ -91,7 +95,7 @@ class CrackTaskThread(threading.Thread):
         self.flash_messages = []
         self.messages = []
         self.callback = CallBackLogger(self.flash_messages, self.messages)
-        
+
         self.cracker = FormCracker(
             url=url,
             form=form,
@@ -109,6 +113,7 @@ class CrackTaskThread(threading.Thread):
                 f"WAF已绕过"
             )
 
+
 class InteractiveTaskThread(threading.Thread):
     def __init__(self, taskid, cracker, field, full_payload_gen, cmd):
         super().__init__()
@@ -121,12 +126,12 @@ class InteractiveTaskThread(threading.Thread):
         self.flash_messages = []
         self.messages = []
         self.callback = CallBackLogger(self.flash_messages, self.messages)
-        
+
         self.cracker.callback = self.callback
 
     def run(self):
         payload, will_print = self.full_payload_gen.generate(
-            OS_POPEN_READ, 
+            OS_POPEN_READ,
             self.cmd
         )
         if not will_print:
@@ -141,12 +146,12 @@ class InteractiveTaskThread(threading.Thread):
         self.messages.append(r.text)
 
 
-
 @app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route("/createTask", methods = ["POST", ]) # type: ignore
+
+@app.route("/createTask", methods=["POST", ])  # type: ignore
 def create_task():
     if request.form.get("type", None) not in ["crack", "interactive"]:
         logging.info(request.form)
@@ -206,10 +211,10 @@ def create_task():
         )
         taskid = uuid.uuid4().hex
         task = InteractiveTaskThread(
-            taskid, 
-            cracker, 
-            field, 
-            full_payload_gen, 
+            taskid,
+            cracker,
+            field,
+            full_payload_gen,
             cmd
         )
         task.daemon = True
@@ -220,7 +225,8 @@ def create_task():
             "taskid": taskid
         })
 
-@app.route("/watchTask", methods = ["POST", ]) # type: ignore
+
+@app.route("/watchTask", methods=["POST", ])  # type: ignore
 def watchTask():
     if "taskid" not in request.form:
         return jsonify({
@@ -251,8 +257,10 @@ def watchTask():
             "flash_messages": task.flash_messages,
         })
 
+
 def main():
     app.run(host="127.0.0.1", port=11451)
+
 
 if __name__ == "__main__":
     main()
