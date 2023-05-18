@@ -74,8 +74,8 @@ class CallBackLogger:
         )
 
     def __call__(self, callback_type, data):
-        def default_handler(data): return logger.warning(
-            f"{callback_type=} not found")
+        def default_handler(data): 
+            return logger.warning(f"{callback_type=} not found")
         return {
             CALLBACK_PREPARE_FULLPAYLOADGEN: self.callback_prepare_fullpayloadgen,
             CALLBACK_GENERATE_FULLPAYLOAD: self.callback_generate_fullpayload,
@@ -150,6 +150,38 @@ class InteractiveTaskThread(threading.Thread):
 def index():
     return render_template("index.html")
 
+def create_crack_task(url, method, inputs, action, interval):
+    form = Form(
+        action=action or urlparse(url).path,
+        method=method,
+        inputs=inputs.split(",")
+    )
+    taskid = uuid.uuid4().hex
+    task = CrackTaskThread(taskid, url, form, float(interval))
+    task.daemon = True
+    task.start()
+    tasks[taskid] = task
+    return taskid
+
+def create_interactive_id(cmd, last_task):
+    cracker, field, full_payload_gen = (
+        last_task.cracker,
+        last_task.result.input_field,
+        last_task.result.full_payload_gen
+    )
+    taskid = uuid.uuid4().hex
+    task = InteractiveTaskThread(
+        taskid,
+        cracker,
+        field,
+        full_payload_gen,
+        cmd
+    )
+    task.daemon = True
+    task.start()
+    tasks[taskid] = task
+    return taskid
+
 
 @app.route("/createTask", methods=["POST", ])  # type: ignore
 def create_task():
@@ -161,24 +193,13 @@ def create_task():
         })
     task_type = request.form.get("type", None)
     if task_type == "crack":
-        url, method, inputs, action, interval = (
+        taskid = create_crack_task(
             request.form["url"],
             request.form["method"],
             request.form["inputs"],
             request.form["action"],
             request.form["interval"],
-
         )
-        form = Form(
-            action=action or urlparse(url).path,
-            method=method,
-            inputs=inputs.split(",")
-        )
-        taskid = uuid.uuid4().hex
-        task = CrackTaskThread(taskid, url, form, float(interval))
-        task.daemon = True
-        task.start()
-        tasks[taskid] = task
         return jsonify({
             "code": APICODE_OK,
             "taskid": taskid
@@ -204,22 +225,7 @@ def create_task():
                 "code": APICODE_WRONG_INPUT,
                 "message": f"specified last_task failed: {last_task_id}"
             })
-        cracker, field, full_payload_gen = (
-            last_task.cracker,
-            last_task.result.input_field,
-            last_task.result.full_payload_gen
-        )
-        taskid = uuid.uuid4().hex
-        task = InteractiveTaskThread(
-            taskid,
-            cracker,
-            field,
-            full_payload_gen,
-            cmd
-        )
-        task.daemon = True
-        task.start()
-        tasks[taskid] = task
+        taskid = create_interactive_id(cmd, last_task)
         return jsonify({
             "code": APICODE_OK,
             "taskid": taskid
