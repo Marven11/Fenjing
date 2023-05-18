@@ -134,6 +134,7 @@ class InteractiveTaskThread(threading.Thread):
         self.callback = CallBackLogger(self.flash_messages, self.messages)
 
         self.cracker.callback = self.callback
+        self.full_payload_gen.callback = self.callback
 
     def run(self):
         self.messages.append(

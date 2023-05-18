@@ -48,7 +48,17 @@ class FullPayloadGen:
     def __init__(self, waf_func, callback: Union[Callable[[str, Dict], None], None] = None):
         self.waf_func = waf_func
         self.prepared = False
-        self.callback: Callable[[str, Dict], None] = callback if callback else (lambda x, y: None)
+        self._callback: Callable[[str, Dict], None] = callback if callback else (lambda x, y: None)
+
+    @property
+    def callback(self):
+        return self._callback
+    
+    @callback.setter
+    def callback(self, callback):
+        self._callback = callback
+        if self.payload_gen:
+            self.payload_gen.callback = callback
 
     def do_prepare(self) -> bool:
 
