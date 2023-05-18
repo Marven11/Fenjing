@@ -74,7 +74,7 @@ class CallBackLogger:
         )
 
     def __call__(self, callback_type, data):
-        def default_handler(data): 
+        def default_handler(data):
             return logger.warning(f"{callback_type=} not found")
         return {
             CALLBACK_PREPARE_FULLPAYLOADGEN: self.callback_prepare_fullpayloadgen,
@@ -150,6 +150,7 @@ class InteractiveTaskThread(threading.Thread):
 def index():
     return render_template("index.html")
 
+
 def create_crack_task(url, method, inputs, action, interval):
     form = Form(
         action=action or urlparse(url).path,
@@ -162,6 +163,7 @@ def create_crack_task(url, method, inputs, action, interval):
     task.start()
     tasks[taskid] = task
     return taskid
+
 
 def create_interactive_id(cmd, last_task):
     cracker, field, full_payload_gen = (
@@ -264,8 +266,8 @@ def watchTask():
         })
 
 
-def main():
-    app.run(host="127.0.0.1", port=11451)
+def main(host="127.0.0.1", port=11451):
+    app.run(host=host, port=port)
 
 
 if __name__ == "__main__":
