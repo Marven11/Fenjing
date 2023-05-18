@@ -34,9 +34,10 @@ class WafFuncGen:
         """根据指定的表单生成对应的WAF函数
 
         Args:
-            url (str, optional): form所在的url. Defaults to None.
+            url (str): form所在的url.
             form (dict): 解析后的form元素
-            requester (Requester, optional): 用于发出请求的requester，为None时自动构造. Defaults to None.
+            requester (Requester): 用于发出请求的requester，为None时自动构造.
+            callback (Union[Callable[[str, Dict], None], None], optional): callback函数，默认为None
         """
         self.url = url
         self.form = form
