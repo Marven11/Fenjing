@@ -40,8 +40,9 @@ class CallBackLogger:
             )
 
     def callback_generate_fullpayload(self, data):
+        payload = data['payload'] if len(data['payload']) < 30 else data['payload'][:30] + "..."
         self.messages.append(
-            f"分析完毕，已为类型{data['gen_type']}生成payload {data['payload']}"
+            f"分析完毕，已为类型{data['gen_type']}生成payload {payload}"
         )
         if not data["will_print"]:
             self.messages.append(
