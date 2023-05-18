@@ -50,8 +50,8 @@ class CallBackLogger:
 
     def callback_generate_payload(self, data):
         payload_repr = data['payload']
-        if len(payload_repr) > 30:
-            payload_repr = payload_repr[:30] + "..."
+        if len(payload_repr) > 100:
+            payload_repr = payload_repr[:100] + "..."
         self.flash_messages.append(
             "请求{req}对应的payload可以是{payload}".format(
                 req=f"{data['gen_type']}({', '.join(repr(arg) for arg in data['args'])})",
@@ -161,7 +161,7 @@ def index():
 
 
 def create_crack_task(url, method, inputs, action, interval):
-    assert url != "" and inputs != "" and isinstance(interval, int), "wrong param"
+    assert url != "" and inputs != "", "wrong param"
     form = Form(
         action=action or urlparse(url).path,
         method=method,

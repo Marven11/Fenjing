@@ -272,7 +272,11 @@
         }
         const crackTask = Task(
             document.querySelector("#createCrackTask"),
-            formData => isValidUrl(formData.url) && formData.inputs != "" && Number(formData.interval) > 0,
+            formData => {
+                console.log(formData);
+                console.log(formData.get("inputs"));
+                return isValidUrl(formData.get("url")) && formData.get("inputs") != "" && Number(formData.get("interval")) >= 0
+            },
             data => {
                 console.log(data);
                 watchTask(data.taskid, afterCrackTaskDone);
@@ -280,7 +284,7 @@
         )
         const interactiveTask = Task(
             document.querySelector("#createInteractiveTaskForm"),
-            formData => formData.cmd,
+            formData => formData.get("cmd") != "",
             data => {
                 console.log(data);
                 if (data.taskid) {
