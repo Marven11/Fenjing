@@ -24,8 +24,9 @@ class CallBackLogger:
             f"已经分析完毕所有上下文payload。"
         )
         if data["context"]:
+            context_repr = ', '.join(repr(value) for value in data['context'].values())
             self.messages.append(
-                f"以下是在上下文中的值：{', '.join(data['context'].values())}"
+                f"以下是在上下文中的值：{context_repr}"
             )
         else:
             self.messages.append(
