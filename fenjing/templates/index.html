@@ -198,21 +198,24 @@
         const taskFlashMessage = document.getElementById("taskFlashMessage")
         const taskMessage = document.getElementById("taskMessage")
 
-        function Task(form, afterFetch) {
+        function Task(form, checkFormData, afterFetch) {
             let taskObj = {
                 form: form,
                 running: false,
             }
             function onSubmit(event) {
+                event.preventDefault();
                 if (taskObj.running) {
                     console.log("task " + uri + " is running");
                     return
                 }
-                taskObj.running = true;
-                event.preventDefault();
                 // 从表单中获取数据
                 const formData = new FormData(form);
+                if (!checkFormData(formData)) {
+                    return
+                }
                 // 使用fetch向服务器发送POST请求
+                taskObj.running = true;
                 fetch("/createTask", {
                     method: "POST",
                     headers: {
@@ -263,9 +266,13 @@
             const input = createInteractiveTaskForm.querySelector('input[name="last_task_id"]');
             input.value = data.taskid;
         }
-
+        function isValidUrl(string) {
+            const pattern = /^(?:\w+:)?\/\/([^\s\.]+\.\S{2}|localhost[\:?\d]*)\S*$/;
+            return pattern.test(string);
+        }
         const crackTask = Task(
             document.querySelector("#createCrackTask"),
+            formData => isValidUrl(formData.url) && formData.inputs != "" && Number(formData.interval) > 0,
             data => {
                 console.log(data);
                 watchTask(data.taskid, afterCrackTaskDone);
@@ -273,6 +280,7 @@
         )
         const interactiveTask = Task(
             document.querySelector("#createInteractiveTaskForm"),
+            formData => formData.cmd,
             data => {
                 console.log(data);
                 if (data.taskid) {

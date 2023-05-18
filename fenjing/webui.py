@@ -161,6 +161,7 @@ def index():
 
 
 def create_crack_task(url, method, inputs, action, interval):
+    assert url != "" and inputs != "" and isinstance(interval, int), "wrong param"
     form = Form(
         action=action or urlparse(url).path,
         method=method,
@@ -175,6 +176,7 @@ def create_crack_task(url, method, inputs, action, interval):
 
 
 def create_interactive_id(cmd, last_task):
+    assert cmd != "", "wrong param"
     cracker, field, full_payload_gen = (
         last_task.cracker,
         last_task.result.input_field,
