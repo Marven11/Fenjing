@@ -251,6 +251,16 @@ def gen_positive_integer_simple(context: dict, value: int):
         (LITERAL, str(value))
     ]
 
+@req_gen
+def gen_positive_integer_hex(context: dict, value: int):
+    if value < 0:
+        return [
+            (UNSATISFIED, )
+        ]
+    return [
+        (LITERAL, hex(value))
+    ]
+
 
 @req_gen
 def gen_positive_integer_sum(context: dict, value: int):
@@ -463,6 +473,21 @@ def gen_string_percent_lipsumcomplex(context):
         (LITERAL, "))"),
     ]
 
+@req_gen
+def gen_string_percent_urlencodelong(context):
+    return [
+        (LITERAL, "((lipsum,)|map(((lipsum|string|list|batch(3)|first|last)" + 
+            "~(lipsum|string|list|batch(15)|first|last)" + 
+            "~(lipsum|string|list|batch(20)|first|last)" + 
+            "~(x|pprint|list|batch(4)|first|last)" + 
+            "~(x|pprint|list|batch(2)|first|last)" + 
+            "~(lipsum|string|list|batch(5)|first|last)" + 
+            "~(lipsum|string|list|batch(8)|first|last)" + 
+            "~(x|pprint|list|batch(3)|first|last)" + 
+            "~(x|pprint|list|batch(4)|first|last)))|list|first|first)")
+    ]
+
+
 # ---
 
 
@@ -615,6 +640,18 @@ def gen_string_underline_tupleselect(context):
         (LITERAL, "(()|select|string|batch("),
         (INTEGER, 25),
         (LITERAL, ")|first|last)")
+    ]
+
+@req_gen
+def gen_string_many_format_c_complex(context, num):
+    parts = "(({c})*{l})".format(
+        c="{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,LOWERC)",
+        l=num
+    ).partition("LOWERC")
+    return [
+        (LITERAL, parts[0]),
+        (STRING_LOWERC, ),
+        (LITERAL, parts[2])
     ]
 
 
@@ -891,11 +928,11 @@ def gen_string_formatfunc3(context: dict, value: str):
         return [
             (UNSATISFIED, )
         ]
-    cs = "(({c})*{l})".format(
-        c="{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,dict(c=1)|join)",
-        l=len(value)
-    )
-    format_func = (ATTRIBUTE, (LITERAL, cs), "format")
+    # cs = "(({c})*{l})".format(
+    #     c="{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,dict(c=x)|join)",
+    #     l=len(value)
+    # )
+    format_func = (ATTRIBUTE, (STRING_MANY_FORMAT_C, len(value)), "format")
     req = [
         (LITERAL, "("),
         format_func,
