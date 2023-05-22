@@ -1,7 +1,7 @@
 import logging
 from urllib.parse import urlparse
 from traceback import print_exc
-from typing import Callable, List
+from typing import Callable, List, Dict
 from functools import partial
 
 from .form import Form
@@ -65,6 +65,23 @@ def interact(cmd_exec: Callable):
             print_exc()
 
 
+def parse_headers_cookies(headers_list: List[str], cookies: str) -> Dict[str, str]:
+    headers = {}
+    if headers_list:
+        for header in headers_list:
+            k, _, v = header.partition(": ")
+            if not k or not v:
+                logger.warning(f"Failed parsing {repr(header)}, ignored.")
+                continue
+            if k.capitalize() != k:
+                logger.warning(f"Header {k} is not capitalized, fixed.")
+                k = k.capitalize()
+            headers[k] = v
+    if cookies:
+        headers["Cookie"] = cookies
+    return headers
+    
+
 @click.group()
 def main():
     pass
@@ -77,13 +94,17 @@ def main():
 @click.option("--inputs", "-i", help="form的参数，以逗号分隔")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
+@click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
+@click.option("--cookies", default="", help="请求时使用的Cookie")
 def get_config(
         url: str,
         action: str,
         method: str,
         inputs: str,
         interval: float,
-        user_agent: str):
+        user_agent: str,
+        header: tuple,
+        cookies: str):
     """
     攻击指定的表单，并获得目标服务器的flask config
     """
@@ -97,7 +118,8 @@ def get_config(
     )
     requester = Requester(
         interval=interval,
-        user_agent=user_agent
+        user_agent=user_agent,
+        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies)
     )
     cracker = FormCracker(
         url=url,
@@ -124,6 +146,8 @@ def get_config(
 @click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
+@click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
+@click.option("--cookies", default="", help="请求时使用的Cookie")
 def crack(
         url: str,
         action: str,
@@ -131,7 +155,9 @@ def crack(
         inputs: str,
         exec_cmd: str,
         interval: float,
-        user_agent: str):
+        user_agent: str,
+        header: tuple,
+        cookies: str):
     """
     攻击指定的表单
     """
@@ -145,7 +171,8 @@ def crack(
     )
     requester = Requester(
         interval=interval,
-        user_agent=user_agent
+        user_agent=user_agent,
+        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies)
     )
     cracker = FormCracker(
         url=url,
@@ -171,12 +198,18 @@ def crack(
 @click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则进入交互模式")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
-def scan(url, exec_cmd, interval, user_agent):
+@click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
+@click.option("--cookies", default="", help="请求时使用的Cookie")
+def scan(url, exec_cmd, interval, user_agent, header, cookies):
     """
     扫描指定的网站
     """
     print(TITLE)
-    requester = Requester(interval=interval, user_agent=user_agent)
+    requester = Requester(
+        interval=interval, 
+        user_agent=user_agent, 
+        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies)
+    )
     for page_url, forms in yield_form(requester, url):
         for form in forms:
             cracker = FormCracker(url=page_url, form=form, requester=requester)
