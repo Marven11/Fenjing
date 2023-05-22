@@ -15,7 +15,8 @@ class Requester:
         retry_times=5,
         retry_interval=1,
         retry_status=(429, ),
-        user_agent=DEFAULT_USER_AGENT
+        user_agent=DEFAULT_USER_AGENT,
+        headers={},
     ):
         self.interval = interval
         self.timeout = timeout
@@ -25,6 +26,9 @@ class Requester:
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": user_agent})
         self.last_request_time = 0
+
+        if headers:
+            self.session.headers.update(headers)
 
     def request_once(self, **kwargs):
         duration = time.perf_counter() - self.last_request_time
