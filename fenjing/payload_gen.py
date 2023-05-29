@@ -127,7 +127,7 @@ class PayloadGenerator:
                                       for arg in args)),
                 ))
             return payload
-        logger.warning("{failed} generating {gen_type}({args_repl})".format(
+        logger.warning("{failed} generating {gen_type}({args_repl}), it might not be an issue.".format(
             failed=colored("red", "failed"),
             gen_type=gen_type,
             args_repl=", ".join(repr(arg) for arg in args),
