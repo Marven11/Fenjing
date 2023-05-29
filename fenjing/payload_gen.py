@@ -654,6 +654,59 @@ def gen_string_many_format_c_complex(context, num):
         (LITERAL, parts[2])
     ]
 
+# ---
+
+@req_gen
+def gen_char_literal1(context, c):
+    return [
+        (LITERAL, f"'{c}'" if c != "'" else "'\\''")
+    ]
+
+@req_gen
+def gen_char_literal2(context, c):
+    return [
+        (LITERAL, f'"{c}"' if c != '"' else '"\\""')
+    ]
+
+@req_gen
+def gen_char_select(context, c):
+    char_patterns = {
+        "((dict|trim|list)[INDEX])": {
+            1: "c", 2: "l", 3: "a", 4: "s", 5: "s", 6: " ", 8: "d", 9: "i", 10: "c", 11: "t"
+        },
+        "(({}|select()|trim|list)[INDEX])": {
+            1: "g", 2: "e", 3: "n", 4: "e", 5: "r", 6: "a", 7: "t", 8: "o", 9: "r", 10: " ", 
+            11: "o", 12: "b", 13: "j", 14: "e", 15: "c", 16: "t", 17: " ", 18: "s", 19: "e", 20: 
+            "l", 21: "e", 22: "c", 23: "t", 24: "_", 25: "o", 26: "r", 27: "_", 28: "r", 29: "e", 30: "j", 
+            31: "e", 32: "c", 33: "t", 34: " ", 35: "a", 36: "t"
+        },
+        "((lipsum|trim|list)[INDEX])": {
+            1: "f", 2: "u", 3: "n", 4: "c", 5: "t", 6: "i", 7: "o", 8: "n", 9: " ", 10: "g", 
+            11: "e", 12: "n", 13: "e", 14: "r", 15: "a", 16: "t", 17: "e", 18: "_", 19: "l", 20: "o", 
+            21: "r", 22: "e", 23: "m", 24: "_", 25: "i", 26: "p", 27: "s", 28: "u", 29: "m", 30: " ", 
+            31: "a", 32: "t", 33: " ", 34: "0", 35: "x", 36: "7"
+        },
+        "((()|trim|list)[INDEX])": {0: '(', 1: ')'},
+    }
+    for pattern, d in char_patterns.items():
+        for index, value in d.items():
+            if value == c:
+                return [
+                    (LITERAL, pattern.replace("INDEX", str(index)))
+                ]
+    return [
+        (UNSATISFIED, )
+    ]
+
+@req_gen
+def gen_char_dict(context, c):
+    if not re.match("[0-9A-Za-z]", c):
+        return [
+            (UNSATISFIED, )
+        ]
+    return [
+        (LITERAL, f"(dict({c}=x)|join)")
+    ]
 
 # ---
 # 以下的gen_string会互相依赖，但是产生互相依赖时传入的字符串长度会减少所以不会发生无限调用
@@ -842,6 +895,24 @@ def gen_string_splitdictjoin3(context: dict, value: str):
     return [
         (LITERAL, "(dict({})|join)".format(",".join(f"{part}=x" for part in value)))
     ]
+
+@req_gen
+def gen_string_chars(context: dict, value: str):
+    ans: List[Any] = [
+        (LITERAL, "("),
+        (CHAR, value[0])
+    ]
+    for c in value[1:]:
+        ans.append(
+            (STRING_STRING_CONCNAT, )
+        )
+        ans.append(
+            (CHAR, c)
+        )
+    ans.append(
+        (LITERAL, ")"),
+    )
+    return ans
 
 
 @req_gen
