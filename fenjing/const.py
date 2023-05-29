@@ -12,6 +12,7 @@ STRING_UNDERLINE = "string_underline"
 STRING_LOWERC = "string_lower_c"
 STRING_MANY_PERCENT_LOWER_C = "string_many_percent_lower_c"
 STRING_MANY_FORMAT_C = "string_many_format_c"
+CHAR = "char"
 STRING = "string"
 FORMULAR_SUM = "formular_sum"
 ATTRIBUTE = "attribute"
@@ -37,6 +38,8 @@ GEN_TYPES = [
     "string_underline",
     "string_lower_c",
     "string_many_percent_lower_c",
+    "string_many_format_c",
+    "char",
     "string",
     "formular_sum",
     "attribute",
