@@ -45,7 +45,13 @@ def get_outer_pattern(waf_func):
 
 
 class FullPayloadGen:
-    def __init__(self, waf_func, callback: Union[Callable[[str, Dict], None], None] = None):
+    """接受一个waf函数并负责生成payload
+    waf函数接受一个字符串并返回这个字符串是否可以通过WAF
+    payload由两部分组成：
+        - 前方提供变量等上下文的上下文payload（一般为{%set xxx=xxx%}的形式）
+        - 以及后方实际发挥作用的作用payload（一般被双花括号{{}}包裹）
+    """
+    def __init__(self, waf_func: Callable[[str, ], bool], callback: Union[Callable[[str, Dict], None], None] = None):
         self.waf_func = waf_func
         self.prepared = False
         self._callback: Callable[[str, Dict], None] = callback if callback else (lambda x, y: None)
@@ -61,7 +67,11 @@ class FullPayloadGen:
             self.payload_gen.callback = callback
 
     def do_prepare(self) -> bool:
+        """生成上下文payload，并准备作用payload的最外层（一般为双花括号{{}}）
 
+        Returns:
+            bool: 是否生成成功，失败则无法生成payload。有时生成的
+        """
         if self.prepared:
             return True
 
@@ -90,7 +100,14 @@ class FullPayloadGen:
         return True
 
     def generate(self, gen_type, *args) -> Tuple[Union[str, None], Union[bool, None]]:
+        """根据要求生成payload
 
+        Args:
+            gen_type (str): 生成payload的类型，应传入如OS_POPEN_READ等在const.py中定义的类型
+
+        Returns:
+            Tuple[Union[str, None], Union[bool, None]]: payload, 以及payload是否会有回显
+        """
         if not self.prepared and not self.do_prepare():
             return None, None
 

@@ -14,8 +14,9 @@ Result = namedtuple("Result", "full_payload_gen input_field")
 
 
 class FormCracker:
-    """
-    对指定的文档进行攻击
+    """对指定的文档进行攻击
+    其接受一个表格及其对应的URL，还有一个用于发送请求的requester。
+    其会根据一系列危险的关键字获取被WAF时页面的hash, 据此生成一个waf函数用于生成payload
     """
     dangerous_keywords = [
         "config", "self", "os", "class", "mro", "base", "request",
