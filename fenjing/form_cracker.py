@@ -18,14 +18,9 @@ class FormCracker:
     其接受一个表格及其对应的URL，还有一个用于发送请求的requester。
     其会根据一系列危险的关键字获取被WAF时页面的hash, 据此生成一个waf函数用于生成payload
     """
-    dangerous_keywords = [
-        "config", "self", "os", "class", "mro", "base", "request",
-        "attr", "open", "system",
-        "[", '"', "'", "_", ".", "+", "{{", "|",
-        "0", "1", "2",
-    ]
     test_cmd = "echo f3n  j1ng;"
     test_result = "f3n j1ng"
+    test_vulunable_inputs_times = 5
 
     def __init__(
             self,
@@ -63,17 +58,20 @@ class FormCracker:
         Returns:
             List[str]: 所有有回显的input name
         """
-        fill_dict = random_fill(self.form)
-        r = self.req.request(
-            **fill_form(
-                self.url,
-                self.form,
-                form_inputs=fill_dict))
-        assert r is not None
-        return [
-            k for k, v in fill_dict.items()
-            if v in r.text
-        ]
+        answers = []
+        for _ in range(self.test_vulunable_inputs_times):
+            fill_dict = random_fill(self.form)
+            r = self.req.request(
+                **fill_form(
+                    self.url,
+                    self.form,
+                    form_inputs=fill_dict))
+            assert r is not None
+            answers += [
+                k for k, v in fill_dict.items()
+                if v in r.text
+            ]
+        return list(set(answers))
 
     def submit(self, inputs: dict):
         """根据inputs提交form
