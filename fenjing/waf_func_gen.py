@@ -2,6 +2,8 @@ from collections import Counter, namedtuple
 from functools import lru_cache
 import logging
 from typing import List, Dict, Tuple, Callable, Any, Union
+import random
+import string
 
 from .const import *
 from .form import fill_form
@@ -18,10 +20,13 @@ class WafFuncGen:
     根据指定的表单生成对应的WAF函数
     """
     dangerous_keywords = [
-        "config", "self", "os", "class", "mro", "base", "request",
-        "attr", "open", "system",
-        "[", '"', "'", "_", ".", "+", "{{", "|",
-        "0", "1", "2",
+        '"', "'", "+", ".", "0", "1", "2", "=", "[", "_", "%",
+        "attr", "builtins", "chr", "class", "config", 
+        "eval", "global", "include", 
+        "lipsum", "mro", "namespace", "open",
+        "pop", "popen", "read", "request", "self", 
+        "subprocess", "system", "url_for", "value", 
+        "{{", "|", "}}", "~"
     ]
 
     def __init__(
@@ -87,14 +92,19 @@ class WafFuncGen:
             hash(r.text) for keyword, r in resps.items()
             if r is not None and r.status_code != 500 and keyword not in r.text
         ]
-        return [pair[0] for pair in Counter(hashes).most_common(2)]
+        return [k for k, v in Counter(hashes).items() if v >= 3]
 
     def generate(self, input_field):
         waf_hashes = self.waf_page_hash(input_field)
 
         @lru_cache(1000)
         def waf_func(value):
-            r = self.submit({input_field: value})
+            extra_content = "".join(random.choices(string.ascii_lowercase, k=6))
+            r = self.submit({input_field: extra_content + value})
             assert r is not None
-            return hash(r.text) not in waf_hashes
+            if hash(r.text) in waf_hashes: # 页面的hash和waf页面的hash相同
+                return False
+            if r.status_code == 500: # Jinja渲染错误
+                return True
+            return extra_content in r.text # 产生回显
         return waf_func
