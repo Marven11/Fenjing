@@ -3,120 +3,128 @@ from typing import Callable, DefaultDict, List, Dict, Union, Any
 import re
 import time
 import logging
+import typing
+from typing import Callable, Any, Dict, Tuple
 from .colorize import colored
 from .const import *
 
-req_gens: DefaultDict[str, List[Callable]] = defaultdict(list)
+ContextVariable = Dict[str, Any]
+ReqGenRequirement = Tuple
+
+ReqGenRequirements = List[ReqGenRequirement]
+ReqGenReturn = ReqGenRequirements
+ReqGen = Callable[..., ReqGenReturn]
+ReqGenResult = Tuple[str, ContextVariable]
+
+req_gens: DefaultDict[str, List[ReqGen]] = defaultdict(list)
 used_count = defaultdict(int)
 logger = logging.getLogger("payload_gen")
 
-
-def req_gen(f):
+def req_gen(f: ReqGen):
     gen_type = re.match("gen_([a-z_]+)_([a-z0-9]+)", f.__name__)
     if not gen_type:
         raise Exception(
             f"Error found when register payload generator {f.__name__}")
     req_gens[gen_type.group(1)].append(f)
 
+def hashable(o):
+    try:
+        _ = hash(o)
+        return True
+    except Exception:
+        return False
+
 
 class PayloadGenerator:
     def __init__(
         self,
-        waf_func: Callable,
+        waf_func: Callable[[str], bool],
         context: Union[Dict, None],
         callback: Union[Callable[[str, Dict], None], None] = None
     ):
         self.waf_func = waf_func
-        self.context = context
+        self.context = context if context else {}
         self.cache = {}
-        self.generate_funcs = {
-            LITERAL: self.literal_generate,
-            UNSATISFIED: self.unsatisfied_generate
-        }
-        self.callback: Callable[[str, Dict], None] = callback if callback else (lambda x, y: None)
+        self.generate_funcs: List[Tuple[
+            Callable[[ReqGenRequirement], bool],
+            Callable[[ReqGenRequirement], ReqGenResult | None]
+        ]]
+        self.generate_funcs = [
+            (
+                (lambda gen_req: gen_req[0] == LITERAL),
+                (lambda gen_req: (gen_req[1], {}))
+            ),
+            (
+                (lambda gen_req: gen_req[0] == UNSATISFIED),
+                (lambda gen_req: None)
+            ),
+            (
+                (lambda gen_req: gen_req[0] == WITH_CONTEXT_VAR),
+                (lambda gen_req: ("", {gen_req[1]: self.context[gen_req[1]]}))
+            ),
+            (
+                (lambda gen_req: hashable(gen_req) and gen_req in self.cache),
+                (lambda gen_req: self.cache[gen_req])
+            ),
+            (
+                (lambda gen_req: True),
+                self.common_generate
+            )
+        ]
+            # LITERAL: self.literal_generate,
+            # UNSATISFIED: self.unsatisfied_generate
+        
+        self.callback = callback if callback else (lambda x, y: None)
 
-    def cache_add(self, gen_type, *args, result=None):
-        try:
-            # hash() might fail
-            if (gen_type, *args) in self.cache:
-                return
-            self.cache[(gen_type, *args)] = result
-        except Exception:
-            return
+    def generate_by_list(self, req_list: List[ReqGenRequirement]) -> ReqGenResult | None:
+        str_result, used_context = "", {}
+        for req in req_list:
+            for checker, runner in self.generate_funcs:
+                if not checker(req):
+                    continue
+                result = runner(req)
+                if result is None:
+                    return None
+                s, c = result
+                # if not self.waf_func(s):
+                    # return None
+                str_result += s
+                used_context.update(c)
+                break
+            else:
+                raise Exception("it shouldn't runs this line")
+        if not self.waf_func(str_result):
+            return None
+        return str_result, used_context
 
-    def cache_has(self, gen_type, *args, result=None):
-        try:
-            # hash() might fail
-            return (gen_type, *args) in self.cache
-        except Exception:
-            return False
+    def common_generate(self, gen_req: ReqGenRequirement) -> ReqGenResult | None:
 
-    def count_success(self, gen_type, req_gen_func_name):
-        used_count[req_gen_func_name] += 1
-        req_gens[gen_type].sort(
-            key=(lambda gen_func: used_count[gen_func.__name__]), reverse=True)
-
-    def generate_by_req_list(self, req_list):
-        payload = ""
-        for gen_type, *args in req_list:
-            result = self.generate(gen_type, *args)
-            if not result:
-                return None
-            payload += result
-        return payload
-
-    def literal_generate(self, gen_type, *args):
-        return args[0] if self.waf_func(args[0]) else None
-
-    def unsatisfied_generate(self, gen_type, *args):
-        return None
-
-    def cached_generate(self, gen_type, *args):
-        try:
-            # hash() might fail
-            if (gen_type, *args) not in self.cache:
-                return None
-            return self.cache[(gen_type, *args)]
-        except Exception:
+        gen_type: str
+        gen_type, *args = gen_req
+        if gen_type not in req_gens or len(req_gens[gen_type]) == 0:
+            logger.error("Unknown type: %s", gen_type)
             return None
 
-    def default_generate(self, gen_type: str, *args):
-
-        if self.cache_has(gen_type, *args):
-            return self.cached_generate(gen_type, *args)
-
-        if gen_type not in req_gens:
-            raise Exception(f"Required type '{gen_type}' not supported.")
-
-        # 遍历当前类型每一个payload生成函数
-        for req_gen_func in req_gens[gen_type].copy():
-            son_req = req_gen_func(self.context, *args)
-
-            assert isinstance(
-                son_req, list), f"Wrong son_req {son_req} from {req_gen_func.__name__}"
-            assert all(isinstance(gen_type, str) for gen_type, *
-                       args in son_req), f"Wrong son_req {son_req} from {req_gen_func.__name__}"
-
-            payload = self.generate_by_req_list(son_req)
-            if not payload:
+        gens = req_gens[gen_type].copy()
+        gens.sort(key = lambda gen: used_count[gen.__name__], reverse=True)
+        for gen in gens:
+            ret = self.generate_by_list(gen(self.context, *args))
+            if ret is None:
                 continue
-
-            # 生成成功后执行的操作
-            self.count_success(gen_type, req_gen_func.__name__)
-            self.cache_add(gen_type, *args, result=payload)
+            result = ret[0]
             self.callback(CALLBACK_GENERATE_PAYLOAD, {
                 "gen_type": gen_type,
                 "args": args,
-                "payload": payload
+                "payload": result
             })
             # 为了日志的简洁，仅打印一部分日志
-            if gen_type in (INTEGER, STRING) and payload != str(args[0]):
-                logger.info("{great}, {gen_type}({args_repl}) can be {payload}".format(
+            if gen_type in (INTEGER, STRING) and result != str(args[0]):
+                logger.info("{great}, {gen_type}({args_repl}) can be {result}".format(
                     great=colored("green", "Great"),
                     gen_type=colored("yellow", gen_type, bold=True),
                     args_repl=colored("yellow", ", ".join(repr(arg)
-                                      for arg in args)),
-                    payload=colored("blue", payload)
+                                        for arg in args)),
+                    result=colored("blue", result)
                 ))
 
             elif gen_type in (EVAL_FUNC, EVAL, CONFIG, MODULE_OS, OS_POPEN_OBJ, OS_POPEN_READ):
@@ -124,20 +132,40 @@ class PayloadGenerator:
                     great=colored("green", "Great"),
                     gen_type=colored("yellow", gen_type, bold=True),
                     args_repl=colored("yellow", ", ".join(repr(arg)
-                                      for arg in args)),
+                                        for arg in args)),
                 ))
-            return payload
+        
+            if hashable(gen_req):
+                self.cache[gen_req] = ret
+            used_count[gen.__name__] += 1
+            return ret
+        
         logger.warning("{failed} generating {gen_type}({args_repl}), it might not be an issue.".format(
             failed=colored("red", "failed"),
             gen_type=gen_type,
             args_repl=", ".join(repr(arg) for arg in args),
         ))
-        self.cache_add(gen_type, *args, result=None)
         return None
 
-    def generate(self, gen_type, *args):
-        generate_func = self.generate_funcs[gen_type] if gen_type in self.generate_funcs else self.default_generate
-        return generate_func(gen_type, *args)
+
+    def generate(self, gen_type, *args) ->  str | None:
+        result = self.generate_by_list([
+            (gen_type, *args)
+        ])
+        if result is None:
+            return None
+        s, c = result
+        return s
+
+    def generate_with_used_context(self, gen_type, *args) ->  ReqGenResult | None:
+        result = self.generate_by_list([
+            (gen_type, *args)
+        ])
+        if result is None:
+            return None
+        s, c = result
+        return s, c
+
 
 
 def generate(gen_type, *args, waf_func: Callable, context: Union[dict, None] = None) -> Union[str, None]:
@@ -294,6 +322,8 @@ def gen_positive_integer_sum(context: dict, value: int):
 
     return [
         (FORMULAR_SUM, tuple(payload_vars))
+    ] + [
+        (WITH_CONTEXT_VAR, v) for v in payload_vars
     ]
 
 # ---
@@ -312,8 +342,10 @@ def gen_integer_context(context: dict, value: int):
         return [
             (UNSATISFIED, )
         ]
+    v = [k for k, v in context.items() if v == value][0]
     return [
-        (LITERAL, [k for k, v in context.items() if v == value][0])
+        (LITERAL, v),
+        (WITH_CONTEXT_VAR, v),
     ]
 
 
@@ -394,6 +426,8 @@ def gen_integer_subtract(context: dict, value: int):
         sub_vars.append(ints[0][0])
     return [
         (LITERAL, "({})".format("-".join([to_sub_name, ] + sub_vars)))
+    ] + [
+        (WITH_CONTEXT_VAR, v) for v in [to_sub_name, ] + sub_vars
     ]
 
 
@@ -419,9 +453,11 @@ def gen_string_percent_context(context):
         return [
             (UNSATISFIED, )
         ]
-
+    v = [k for k, v in context.items() if v == "%"][0]
     return [
-        (LITERAL, [k for k, v in context.items() if v == "%"][0])
+        (LITERAL, v)
+    ] + [
+        (WITH_CONTEXT_VAR, v)
     ]
 
 
@@ -617,8 +653,11 @@ def gen_string_underline_literal2(context):
 @req_gen
 def gen_string_underline_context(context: dict):
     if "_" in context.values():
+        v = [k for k, v in context.items() if v == "_"][0]
         return [
-            (LITERAL, [k for k, v in context.items() if v == "_"][0])
+            (LITERAL, v)
+        ] + [
+            (WITH_CONTEXT_VAR, v)
         ]
     return [
         (UNSATISFIED, )
@@ -781,8 +820,11 @@ def gen_string_context(context: dict, value: str):
         return [
             (UNSATISFIED, )
         ]
+    v = [k for k, v in context.items() if v == value][0]
     return [
-        (LITERAL, [k for k, v in context.items() if v == value][0])
+        (LITERAL, v)
+    ] + [
+        (WITH_CONTEXT_VAR, v)
     ]
 
 
@@ -986,6 +1028,8 @@ def gen_string_formatfunc2(context: dict, value: str):
         (LITERAL, "("),
         (LITERAL, ",".join(str(ord(c)) for c in value)),
         (LITERAL, "))")
+    ] + [
+        (WITH_CONTEXT_VAR, k)
     ]
     return req
 

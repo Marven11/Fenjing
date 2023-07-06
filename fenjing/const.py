@@ -2,6 +2,7 @@ DEFAULT_USER_AGENT = "Fenjing/0.1"
 
 LITERAL = "literal"
 UNSATISFIED = "unsatisfied"
+WITH_CONTEXT_VAR = "with_context_var"
 ZERO = "zero"
 POSITIVE_INTEGER = "positive_integer"
 INTEGER = "integer"
