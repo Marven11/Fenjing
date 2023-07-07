@@ -3,7 +3,6 @@ from typing import Callable, DefaultDict, List, Dict, Union, Any
 import re
 import time
 import logging
-import typing
 from typing import Callable, Any, Dict, Tuple
 from .colorize import colored
 from .const import *
@@ -47,7 +46,7 @@ class PayloadGenerator:
         self.cache = {}
         self.generate_funcs: List[Tuple[
             Callable[[ReqGenRequirement], bool],
-            Callable[[ReqGenRequirement], ReqGenResult | None]
+            Callable[[ReqGenRequirement], Union[ReqGenResult, None]]
         ]]
         self.generate_funcs = [
             (
@@ -76,7 +75,7 @@ class PayloadGenerator:
         
         self.callback = callback if callback else (lambda x, y: None)
 
-    def generate_by_list(self, req_list: List[ReqGenRequirement]) -> ReqGenResult | None:
+    def generate_by_list(self, req_list: List[ReqGenRequirement]) -> Union[ReqGenResult, None]:
         str_result, used_context = "", {}
         for req in req_list:
             for checker, runner in self.generate_funcs:
@@ -97,7 +96,7 @@ class PayloadGenerator:
             return None
         return str_result, used_context
 
-    def common_generate(self, gen_req: ReqGenRequirement) -> ReqGenResult | None:
+    def common_generate(self, gen_req: ReqGenRequirement) -> Union[ReqGenResult, None]:
 
         gen_type: str
         gen_type, *args = gen_req
@@ -148,7 +147,7 @@ class PayloadGenerator:
         return None
 
 
-    def generate(self, gen_type, *args) ->  str | None:
+    def generate(self, gen_type, *args) ->  Union[str, None]:
         result = self.generate_by_list([
             (gen_type, *args)
         ])
@@ -157,7 +156,7 @@ class PayloadGenerator:
         s, c = result
         return s
 
-    def generate_with_used_context(self, gen_type, *args) ->  ReqGenResult | None:
+    def generate_with_used_context(self, gen_type, *args) ->  Union[ReqGenResult, None]:
         result = self.generate_by_list([
             (gen_type, *args)
         ])
