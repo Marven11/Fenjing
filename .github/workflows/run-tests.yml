@@ -1,0 +1,29 @@
+name: Run tests
+
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.7'
+    - name: Install packages
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Run tests
+      run: | 
+        cd tests
+        python -m unittest *.py
+
