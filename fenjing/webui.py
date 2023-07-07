@@ -76,7 +76,7 @@ class CallBackLogger:
 
     def __call__(self, callback_type, data):
         def default_handler(data):
-            return logger.warning(f"{callback_type=} not found")
+            return logger.warning(f"callback_type={callback_type} not found")
         return {
             CALLBACK_PREPARE_FULLPAYLOADGEN: self.callback_prepare_fullpayloadgen,
             CALLBACK_GENERATE_FULLPAYLOAD: self.callback_generate_fullpayload,
