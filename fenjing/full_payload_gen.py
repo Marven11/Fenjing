@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple, Union, Dict
+from typing import Callable, List, Tuple, Union, Dict, Any
 import logging
 
 from . import payload_gen
@@ -44,6 +44,17 @@ def get_outer_pattern(waf_func):
         logger.warning("LOTS OF THINGS is being waf, NOTHING FOR YOU!")
         return None, None
 
+def context_payloads_to_context(context_payload: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    """将context_payload转换成context字典。
+
+    Args:
+        context_payload (Dict[str, Dict[str, Any]]): 一个存储着payload以及对应上下文的字典
+
+    Returns:
+        Dict[str, Any]: 一个字典，键是变量名，值是变量值
+    """
+    return {var_name: var_value for _, d in context_payload.items() for var_name, var_value in d.items()}
+
 
 class FullPayloadGen:
     """接受一个waf函数并负责生成payload
@@ -78,7 +89,7 @@ class FullPayloadGen:
 
         self.context_payload = filter_by_waf(context_vars_all, self.waf_func)
 
-        self.context = {var_name: var_value for _, d in self.context_payload.items() for var_name, var_value in d.items()}
+        self.context = context_payloads_to_context(self.context_payload)
 
         self.outer_pattern, self.will_print = get_outer_pattern(self.waf_func)
         if not self.outer_pattern:
@@ -96,6 +107,28 @@ class FullPayloadGen:
             "outer_pattern": self.outer_pattern,
             "will_print": self.will_print,
         })
+        return True
+
+    def add_context_variable(self, payload: str, context_vars: Dict[str, Any], check_waf: bool = True) -> bool:
+        """将提供上下文变量以及对应payload加入payload生成器中，需要先调用.do_prepare函数
+
+        Args:
+            payload (str): 上下文变量对应的payload
+            context_vars (Dict[str, Any]): 所有上下文变量，键是变量名，值是变量值
+            check_waf (bool, optional): 是否使用waf函数检查传入的payload. Defaults to True.
+
+        Raises:
+            Exception: 需要先调用.do_prepare函数，否则抛出exception
+
+        Returns:
+            bool: 是否通过waf函数，不检查waf则永远为True
+        """
+        if not self.prepared:
+            raise Exception("Please run .do_prepare() first")
+        if check_waf and self.waf_func(payload):
+            return False
+        self.context_payload[payload] = context_vars
+        self.context = context_payloads_to_context(self.context_payload)
         return True
 
     def generate(self, gen_type, *args) -> Tuple[Union[str, None], Union[bool, None]]:
