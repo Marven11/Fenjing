@@ -7,191 +7,126 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <style>
         body {
-            background-color: #f2f2f2;
-            color: #444;
-            font-family: 'Helvetica Neue', sans-serif;
-            font-size: 16px;
-            line-height: 1.5;
-            padding: 2em;
-        }
-
-        header {
-            background-color: #8B0000;
-            color: #fff;
-            padding: 20px;
-            text-align: center;
-        }
-
-        nav ul {
-            list-style: none;
+            font-family: Arial, sans-serif;
+            background-color: #f1f1f1;
             margin: 0;
             padding: 0;
         }
 
-        nav li {
-            display: inline-block;
-            margin: 0 10px;
+        header {
+            background-color: #fff;
+            color: #1F2421;
+            padding: 20px;
+            text-align: left;
         }
 
-        nav li a {
-            color: #fff;
-            text-decoration: none;
-            font-size: 18px;
-        }
-
-        nav li a:hover {
-            color: #FFFACD;
+        header h1 {
+            margin: 0;
         }
 
         main {
+            margin: 20px;
             display: flex;
-            flex-direction: row;
-            margin-top: 2em;
         }
 
-        textarea,
-        input {
-            font-family: 'Helvetica Neue', sans-serif;
-            font-size: 16px;
-            line-height: 1.5;
-        }
-
-        .left-part {
-            padding-right: 2%;
-
+        form,
+        div.panel {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 10px;
             display: flex;
             flex-direction: column;
-            width: 70%
         }
 
-        .left-part textarea,
-        .left-part input {
-            font-family: monospace;
+        form#createCrackTask {
+            width: 30%;
+            justify-content: flex-end;
         }
 
-        #taskFlashMessage {
-            flex: 1;
-            resize: none;
-        }
-
-        #taskMessage {
-            flex: 5;
-            resize: none;
+        form#createInteractiveTaskForm {
+            width: 70%;
+            justify-content: flex-end;
 
         }
 
-        #createInteractiveTaskForm {
-            width: 100%;
-            display: flex;
-
-        }
-
-        #createInteractiveTaskForm input[type='text'] {
-            display: inline-block;
-            flex: 1;
-            /* width: 70%; */
-        }
-
-        #createInteractiveTaskForm input[type='submit'] {
-            display: inline-block;
-            /* margin-left: 20px; */
-        }
-
-
-
-        #createInteractiveTaskForm input {
-            font-size: 16px;
-            letter-spacing: 1px;
-            /* margin: 6px 10px; */
-        }
-
-        .right-part {
-            flex-grow: 3;
-            background-color: #fff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 2%;
-            box-sizing: border-box;
-            line-height: 1.5em;
-        }
-
-        .right-part input[type="text"] {
-            width: 100%;
-        }
-
-        .right-part label {
+        label {
             display: block;
+            margin-bottom: 10px;
         }
 
-        .right-part input[type=checkbox] {
-            display: inline-block;
-            /* margin-right: 0.5em; */
+        input[type="text"],
+        input[type="password"],
+        select {
+            padding: 10px;
+            border: 1px solid #D8E2DC;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            /* margin-top: 5px; */
         }
 
-        .submit-button {
-            border: none;
-            padding: 0.5em 1em;
-            background-color: #2ecc71;
+        input[type="submit"] {
+            background-color: #F69479;
             color: #fff;
-            font-size: 1.2em;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
-            font-weight: bold;
         }
+        input#cmd {
+            margin-top: 5px;
+
+        }
+
+        /* 
+input[type="submit"]:hover {
+  background-color: #555;
+} */
     </style>
 </head>
 
 <body>
-    <!-- <header>
-        <h1>Header Here</h1>
-    </header> -->
     <header>
-        <nav>
-            <ul>
-                <li><a href="#">首 页</a></li>
-                <!-- <li><a href="#">关于我们</a></li> -->
-            </ul>
-        </nav>
+        <h1>首页</h1>
     </header>
+
+
     <main>
-        <div class="left-part">
-            <textarea name="taskMessage" id="taskMessage" cols="100" rows="20" readonly></textarea>
+        <form id="createCrackTask">
+            <label for="url">URL:</label>
+            <input type="text" id="url" name="url" placeholder="http://127.0.0.1:1234" />
+            <label for="method">请求方式:</label>
+            <select id="method" name="method">
+                <option value="POST">POST</option>
+                <option value="GET">GET</option>
+            </select>
+            <label for="inputs">表单的所有输入:</label>
+            <input type="text" id="inputs" name="inputs" placeholder="id,name" />
+            <br /><br />
+
+            <label for="action">提交 URL:</label>
+            <input type="text" id="action" name="action" placeholder="可不填，默认和URL相同" />
+            <br /><br />
+
+            <label for="action">最小请求间隔:</label>
+            <input type="text" id="interval" name="interval" value="0.1" />
+            <br /><br />
+
+            <input type="hidden" name="type" value="crack" />
+            <input type="submit" value="开始分析">
+
+        </form>
+
+        <form id="createInteractiveTaskForm">
+            <textarea name="taskMessage" id="taskMessage" cols="100" rows="22" readonly></textarea>
             <textarea name="taskFlashMessage" id="taskFlashMessage" cols="100" rows="3" readonly></textarea>
+            <input type="text" id="cmd" name="cmd" placeholder="uname -a" />
+            <input type="hidden" name="type" value="interactive" />
+            <input type="hidden" name="last_task_id" value="" />
+            <input type="submit" value="执行Shell指令">
+        </form>
 
-            <form id="createInteractiveTaskForm">
-                <input type="text" id="cmd" name="cmd" placeholder="uname -a" />
-                <input type="hidden" name="type" value="interactive" />
-                <input type="hidden" name="last_task_id" value="" />
-                <input type="submit" value="执行Shell指令">
-            </form>
-        </div>
-        <div class="right-part">
-            <form id="createCrackTask">
-                <label for="url">URL:</label>
-                <input type="text" id="url" name="url" placeholder="http://127.0.0.1:1234" />
-                <br /><br />
 
-                <label for="method">请求方式:</label>
-                <select id="method" name="method">
-                    <option value="POST">POST</option>
-                    <option value="GET">GET</option>
-                </select>
-                <br /><br />
-
-                <label for="inputs">表单的所有输入:</label>
-                <input type="text" id="inputs" name="inputs" placeholder="id,name" />
-                <br /><br />
-
-                <label for="action">提交 URL:</label>
-                <input type="text" id="action" name="action" placeholder="可不填，默认和URL相同" />
-                <br /><br />
-
-                <label for="action">最小请求间隔:</label>
-                <input type="text" id="interval" name="interval" value="0.1" />
-                <br /><br />
-
-                <input type="hidden" name="type" value="crack" />
-                <input type="submit" value="开始分析">
-            </form>
-        </div>
     </main>
     <script>
 
