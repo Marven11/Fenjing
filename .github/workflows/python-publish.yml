@@ -12,6 +12,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'VERSION'
 permissions:
   contents: read
 
