@@ -10,8 +10,18 @@ import random
 import string
 from copy import copy
 
+<<<<<<< HEAD
 from .const import DETECT_MODE_ACCURATE, DETECT_MODE_FAST, DANGEROUS_KEYWORDS
 from .submitter import Submitter
+=======
+from .const import (
+    CALLBACK_SUBMIT,
+    # WAF_PAGE_SAMPLE_MODE_FAST,
+    WAF_PAGE_SAMPLE_MODE_FULL,
+)
+from .form import fill_form
+from .requester import Requester
+>>>>>>> 1ab472a (Waf page sampling fast mode is closed by default because we want accuracy over speed.)
 from .colorize import colored
 
 
@@ -34,7 +44,11 @@ class WafFuncGen:
         self,
         submitter: Submitter,
         callback: Union[Callable[[str, Dict], None], None] = None,
+<<<<<<< HEAD
         detect_mode: str = DETECT_MODE_ACCURATE,
+=======
+        waf_page_sample_mode: str = WAF_PAGE_SAMPLE_MODE_FULL,
+>>>>>>> 1ab472a (Waf page sampling fast mode is closed by default because we want accuracy over speed.)
     ):
         self.subm = submitter
         self.callback: Callable[[str, Dict], None] = (
