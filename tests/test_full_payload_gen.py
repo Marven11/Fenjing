@@ -14,8 +14,8 @@ fenjing.payload_gen.logger.setLevel(logging.ERROR)
 logging.basicConfig(level=logging.INFO)
 
 
-def get_full_payload_gen(blacklist):
-    return FullPayloadGen(lambda x: all(word not in x for word in blacklist))
+def get_full_payload_gen(blacklist, detect_mode = fenjing.const.DETECT_MODE_ACCURATE):
+    return FullPayloadGen(lambda x: all(word not in x for word in blacklist), detect_mode=detect_mode)
 
 
 class FullPayloadGenTestCaseHard(unittest.TestCase):
@@ -209,7 +209,11 @@ class FullPayloadGenTestCaseRandom(unittest.TestCase):
                         "９",
                     ],
                     k=25,
-                )
+                ),
+                detect_mode=random.choice([
+                    fenjing.const.DETECT_MODE_ACCURATE,
+                    fenjing.const.DETECT_MODE_FAST,
+                ])
             )
             for _ in range(50)
         ]
