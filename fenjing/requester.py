@@ -14,7 +14,7 @@ class Requester:
         timeout=10,
         retry_times=5,
         retry_interval=1,
-        retry_status=(429, ),
+        retry_status=(429,),
         user_agent=DEFAULT_USER_AGENT,
         headers={},
     ):

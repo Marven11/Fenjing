@@ -26,7 +26,9 @@ def parse_urls(html: Union[str, BeautifulSoup]) -> list:
 
 def yield_form(requester, start_url):
     found = False
-    targets = [start_url, ]
+    targets = [
+        start_url,
+    ]
     visited = set()
     while targets:
         target_url = targets.pop(0)

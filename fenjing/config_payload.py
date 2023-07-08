@@ -4,7 +4,15 @@ from .full_payload_gen import FullPayloadGen
 
 full_payload_store: Dict[int, FullPayloadGen] = {}
 
-def config_payload(waf_func: Callable[[str, ], bool]) -> Union[str, None]:
+
+def config_payload(
+    waf_func: Callable[
+        [
+            str,
+        ],
+        bool,
+    ]
+) -> Union[str, None]:
     """根据提供的waf函数生成读取config的payload
 
     Args:
@@ -23,4 +31,3 @@ def config_payload(waf_func: Callable[[str, ], bool]) -> Union[str, None]:
     if not will_print:
         return None
     return payload
-

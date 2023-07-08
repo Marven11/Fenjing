@@ -14,20 +14,23 @@ from .colorize import colored
 from .webui import main as webui_main
 import click
 
-TITLE = colored("yellow", r"""
+TITLE = colored(
+    "yellow",
+    r"""
     ____             _ _            
    / __/__  ____    (_|_)___  ____ _
   / /_/ _ \/ __ \  / / / __ \/ __ `/
  / __/  __/ / / / / / / / / / /_/ / 
 /_/  \___/_/ /_/_/ /_/_/ /_/\__, /  
               /___/        /____/   
-""".strip("\n"), bold=True)
+""".strip(
+        "\n"
+    ),
+    bold=True,
+)
 LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format=LOGGING_FORMAT
-)
+logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT)
 logger = logging.getLogger("cli")
 
 
@@ -35,11 +38,12 @@ def cmd_exec(cmd, cracker: FormCracker, field: str, full_payload_gen: FullPayloa
     payload, will_print = full_payload_gen.generate(OS_POPEN_READ, cmd)
     logger.info(f"Submit payload {colored('blue', payload)}")
     if not will_print:
-        logger.warning("Payload generator says that this payload {wont_print} command execution result.".format(
-            wont_print = colored('red', "won't print")
-        ))
-    r = cracker.submit(
-        {field: payload})
+        logger.warning(
+            "Payload generator says that this payload {wont_print} command execution result.".format(
+                wont_print=colored("red", "won't print")
+            )
+        )
+    r = cracker.submit({field: payload})
     assert r is not None
     return r.text
 
@@ -80,7 +84,7 @@ def parse_headers_cookies(headers_list: List[str], cookies: str) -> Dict[str, st
     if cookies:
         headers["Cookie"] = cookies
     return headers
-    
+
 
 @click.group()
 def main():
@@ -97,46 +101,40 @@ def main():
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
 def get_config(
-        url: str,
-        action: str,
-        method: str,
-        inputs: str,
-        interval: float,
-        user_agent: str,
-        header: tuple,
-        cookies: str):
+    url: str,
+    action: str,
+    method: str,
+    inputs: str,
+    interval: float,
+    user_agent: str,
+    header: tuple,
+    cookies: str,
+):
     """
     攻击指定的表单，并获得目标服务器的flask config
     """
     print(TITLE)
-    assert all(param is not None for param in [
-               url, inputs]), "Please check your param"
+    assert all(param is not None for param in [url, inputs]), "Please check your param"
     form = Form(
-        action=action or urlparse(url).path,
-        method=method,
-        inputs=inputs.split(",")
+        action=action or urlparse(url).path, method=method, inputs=inputs.split(",")
     )
     requester = Requester(
         interval=interval,
         user_agent=user_agent,
-        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies)
+        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
     )
-    cracker = FormCracker(
-        url=url,
-        form=form,
-        requester=requester
-    )
+    cracker = FormCracker(url=url, form=form, requester=requester)
     result = cracker.crack()
     if result is None:
         logger.warning("Test form failed...")
         return
     full_payload_gen, field = result
     payload = full_payload_gen.generate(CONFIG)
-    r = cracker.submit(
-        {field: payload})
-    
+    r = cracker.submit({field: payload})
+
     print(r.text if r is not None else None)
     logger.warning("Bye!")
+
 
 @main.command()
 @click.option("--url", "-u", help="form所在的URL")
@@ -149,43 +147,38 @@ def get_config(
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
 def crack(
-        url: str,
-        action: str,
-        method: str,
-        inputs: str,
-        exec_cmd: str,
-        interval: float,
-        user_agent: str,
-        header: tuple,
-        cookies: str):
+    url: str,
+    action: str,
+    method: str,
+    inputs: str,
+    exec_cmd: str,
+    interval: float,
+    user_agent: str,
+    header: tuple,
+    cookies: str,
+):
     """
     攻击指定的表单
     """
     print(TITLE)
-    assert all(param is not None for param in [
-               url, inputs]), "Please check your param"
+    assert all(param is not None for param in [url, inputs]), "Please check your param"
     form = Form(
-        action=action or urlparse(url).path,
-        method=method,
-        inputs=inputs.split(",")
+        action=action or urlparse(url).path, method=method, inputs=inputs.split(",")
     )
     requester = Requester(
         interval=interval,
         user_agent=user_agent,
-        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies)
+        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
     )
-    cracker = FormCracker(
-        url=url,
-        form=form,
-        requester=requester
-    )
+    cracker = FormCracker(url=url, form=form, requester=requester)
     result = cracker.crack()
     if result is None:
         logger.warning("Test form failed...")
         return
     full_payload_gen, field = result
-    cmd_exec_func = partial(cmd_exec, cracker=cracker,
-                            field=field, full_payload_gen=full_payload_gen)
+    cmd_exec_func = partial(
+        cmd_exec, cracker=cracker, field=field, full_payload_gen=full_payload_gen
+    )
     if exec_cmd == "":
         interact(cmd_exec_func)
     else:
@@ -206,9 +199,9 @@ def scan(url, exec_cmd, interval, user_agent, header, cookies):
     """
     print(TITLE)
     requester = Requester(
-        interval=interval, 
-        user_agent=user_agent, 
-        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies)
+        interval=interval,
+        user_agent=user_agent,
+        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
     )
     for page_url, forms in yield_form(requester, url):
         for form in forms:
@@ -217,8 +210,12 @@ def scan(url, exec_cmd, interval, user_agent, header, cookies):
             if result is None:
                 continue
             full_payload_gen, field = result
-            cmd_exec_func = partial(cmd_exec, cracker=cracker,
-                                    field=field, full_payload_gen=full_payload_gen)
+            cmd_exec_func = partial(
+                cmd_exec,
+                cracker=cracker,
+                field=field,
+                full_payload_gen=full_payload_gen,
+            )
             if exec_cmd == "":
                 interact(cmd_exec_func)
             else:
@@ -228,13 +225,14 @@ def scan(url, exec_cmd, interval, user_agent, header, cookies):
 
 
 @main.command()
-@click.option("--host", "-h", default = "127.0.0.1", help="需要监听的host, 默认为127.0.0.1")
-@click.option("--port", "-p", default = 11451, help="需要监听的端口, 默认为11451")
+@click.option("--host", "-h", default="127.0.0.1", help="需要监听的host, 默认为127.0.0.1")
+@click.option("--port", "-p", default=11451, help="需要监听的端口, 默认为11451")
 def webui(host, port):
     """
     启动webui
     """
     webui_main(host, port)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

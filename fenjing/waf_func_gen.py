@@ -19,22 +19,52 @@ class WafFuncGen:
     """
     根据指定的表单生成对应的WAF函数
     """
+
     dangerous_keywords = [
-        '"', "'", "+", ".", "0", "1", "2", "=", "[", "_", "%",
-        "attr", "builtins", "chr", "class", "config", 
-        "eval", "global", "include", 
-        "lipsum", "mro", "namespace", "open",
-        "pop", "popen", "read", "request", "self", 
-        "subprocess", "system", "url_for", "value", 
-        "{{", "|", "}}", "~"
+        '"',
+        "'",
+        "+",
+        ".",
+        "0",
+        "1",
+        "2",
+        "=",
+        "[",
+        "_",
+        "%",
+        "attr",
+        "builtins",
+        "chr",
+        "class",
+        "config",
+        "eval",
+        "global",
+        "include",
+        "lipsum",
+        "mro",
+        "namespace",
+        "open",
+        "pop",
+        "popen",
+        "read",
+        "request",
+        "self",
+        "subprocess",
+        "system",
+        "url_for",
+        "value",
+        "{{",
+        "|",
+        "}}",
+        "~",
     ]
 
     def __init__(
-            self,
-            url: str,
-            form: Dict[str, Any],
-            requester: Requester,
-            callback: Union[Callable[[str, Dict], None], None] = None
+        self,
+        url: str,
+        form: Dict[str, Any],
+        requester: Requester,
+        callback: Union[Callable[[str, Dict], None], None] = None,
     ):
         """根据指定的表单生成对应的WAF函数
 
@@ -47,8 +77,9 @@ class WafFuncGen:
         self.url = url
         self.form = form
         self.req = requester
-        self.callback: Callable[[str, Dict], None] = callback if callback else (
-            lambda x, y: None)
+        self.callback: Callable[[str, Dict], None] = (
+            callback if callback else (lambda x, y: None)
+        )
 
     def submit(self, inputs: dict):
         """根据inputs提交form
@@ -62,15 +93,18 @@ class WafFuncGen:
         all_length = sum(len(v) for v in inputs.values())
         if all_length > 2048 and self.form["method"] == "GET":
             logger.warning(
-                f"inputs are extremely long (len={all_length}) that the request might fail")
-        r = self.req.request(
-            **fill_form(self.url, self.form, inputs))
+                f"inputs are extremely long (len={all_length}) that the request might fail"
+            )
+        r = self.req.request(**fill_form(self.url, self.form, inputs))
 
-        self.callback(CALLBACK_SUBMIT, {
-            "form": self.form,
-            "inputs": inputs,
-            "response": r,
-        })
+        self.callback(
+            CALLBACK_SUBMIT,
+            {
+                "form": self.form,
+                "inputs": inputs,
+                "response": r,
+            },
+        )
 
         return r
 
@@ -86,10 +120,12 @@ class WafFuncGen:
         resps = {}
         for keyword in self.dangerous_keywords:
             logger.info(
-                f"Testing dangerous keyword {colored('yellow', repr(keyword * 3))}")
+                f"Testing dangerous keyword {colored('yellow', repr(keyword * 3))}"
+            )
             resps[keyword] = self.submit({input_field: keyword * 3})
         hashes = [
-            hash(r.text) for keyword, r in resps.items()
+            hash(r.text)
+            for keyword, r in resps.items()
             if r is not None and r.status_code != 500 and keyword not in r.text
         ]
         return [k for k, v in Counter(hashes).items() if v >= 3]
@@ -102,9 +138,10 @@ class WafFuncGen:
             extra_content = "".join(random.choices(string.ascii_lowercase, k=6))
             r = self.submit({input_field: extra_content + value})
             assert r is not None
-            if hash(r.text) in waf_hashes: # 页面的hash和waf页面的hash相同
+            if hash(r.text) in waf_hashes:  # 页面的hash和waf页面的hash相同
                 return False
-            if r.status_code == 500: # Jinja渲染错误
+            if r.status_code == 500:  # Jinja渲染错误
                 return True
-            return extra_content in r.text # 产生回显
+            return extra_content in r.text  # 产生回显
+
         return waf_func

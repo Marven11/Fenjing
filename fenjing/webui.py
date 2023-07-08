@@ -21,42 +21,35 @@ class CallBackLogger:
         self.messages = messages
 
     def callback_prepare_fullpayloadgen(self, data):
-        self.messages.append(
-            f"上下文payload测试完毕。"
-        )
+        self.messages.append(f"上下文payload测试完毕。")
         if data["context"]:
-            context_repr = ', '.join(f"{k}={repr(v)}"
-                                     for k, v in data['context'].items())
-            self.messages.append(
-                f"以下是在上下文中的值：{context_repr}"
+            context_repr = ", ".join(
+                f"{k}={repr(v)}" for k, v in data["context"].items()
             )
+            self.messages.append(f"以下是在上下文中的值：{context_repr}")
         else:
-            self.messages.append(
-                f"没有上下文payload可以通过waf。。。"
-            )
+            self.messages.append(f"没有上下文payload可以通过waf。。。")
         if not data["will_print"]:
-            self.messages.append(
-                f"生成的payload将不会具有回显。"
-            )
+            self.messages.append(f"生成的payload将不会具有回显。")
 
     def callback_generate_fullpayload(self, data):
-        payload = data['payload'] if len(data['payload']) < 30 else data['payload'][:30] + "..."
-        self.messages.append(
-            f"分析完毕，已为类型{data['gen_type']}生成payload {payload}"
+        payload = (
+            data["payload"]
+            if len(data["payload"]) < 30
+            else data["payload"][:30] + "..."
         )
+        self.messages.append(f"分析完毕，已为类型{data['gen_type']}生成payload {payload}")
         if not data["will_print"]:
-            self.messages.append(
-                f"payload将不会产生回显"
-            )
+            self.messages.append(f"payload将不会产生回显")
 
     def callback_generate_payload(self, data):
-        payload_repr = data['payload']
+        payload_repr = data["payload"]
         if len(payload_repr) > 100:
             payload_repr = payload_repr[:100] + "..."
         self.flash_messages.append(
             "请求{req}对应的payload可以是{payload}".format(
                 req=f"{data['gen_type']}({', '.join(repr(arg) for arg in data['args'])})",
-                payload=payload_repr
+                payload=payload_repr,
             )
         )
 
@@ -70,19 +63,18 @@ class CallBackLogger:
             return
         testsuccess_msg = "payload测试成功！" if data["test_success"] else "payload测试失败。"
         will_print_msg = "其会产生回显。" if data["will_print"] else "其不会产生回显。"
-        self.messages.append(
-            testsuccess_msg + will_print_msg
-        )
+        self.messages.append(testsuccess_msg + will_print_msg)
 
     def __call__(self, callback_type, data):
         def default_handler(data):
             return logger.warning(f"callback_type={callback_type} not found")
+
         return {
             CALLBACK_PREPARE_FULLPAYLOADGEN: self.callback_prepare_fullpayloadgen,
             CALLBACK_GENERATE_FULLPAYLOAD: self.callback_generate_fullpayload,
             CALLBACK_GENERATE_PAYLOAD: self.callback_generate_payload,
             CALLBACK_SUBMIT: self.callback_submit,
-            CALLBACK_TEST_FORM_INPUT: self.callback_test_form_input
+            CALLBACK_TEST_FORM_INPUT: self.callback_test_form_input,
         }.get(callback_type, default_handler)(data)
 
 
@@ -100,26 +92,18 @@ class CrackTaskThread(threading.Thread):
         self.cracker = FormCracker(
             url=url,
             form=form,
-            requester=Requester(
-                interval=interval,
-                user_agent=DEFAULT_USER_AGENT
-            ),
-            callback=self.callback
+            requester=Requester(interval=interval, user_agent=DEFAULT_USER_AGENT),
+            callback=self.callback,
         )
 
     def run(self):
-        self.messages.append(
-            f"开始分析WAF"
-        )
+        self.messages.append(f"开始分析WAF")
         self.result = self.cracker.crack()
         if self.result:
-            self.messages.append(
-                f"WAF已绕过，现在可以执行Shell指令了"
-            )
+            self.messages.append(f"WAF已绕过，现在可以执行Shell指令了")
         else:
-            self.messages.append(
-                f"WAF绕过失败"
-            )
+            self.messages.append(f"WAF绕过失败")
+
 
 class InteractiveTaskThread(threading.Thread):
     def __init__(self, taskid, cracker, field, full_payload_gen, cmd):
@@ -138,22 +122,13 @@ class InteractiveTaskThread(threading.Thread):
         self.full_payload_gen.callback = self.callback
 
     def run(self):
-        self.messages.append(
-            f"开始生成payload"
-        )
-        payload, will_print = self.full_payload_gen.generate(
-            OS_POPEN_READ,
-            self.cmd
-        )
+        self.messages.append(f"开始生成payload")
+        payload, will_print = self.full_payload_gen.generate(OS_POPEN_READ, self.cmd)
         if not will_print:
-            self.messages.append(
-                f"此payload不会产生回显"
-            )
+            self.messages.append(f"此payload不会产生回显")
         r = self.cracker.submit({self.field: payload})
         assert r is not None
-        self.messages.append(
-            f"提交payload的回显如下："
-        )
+        self.messages.append(f"提交payload的回显如下：")
         self.messages.append(r.text)
 
 
@@ -165,9 +140,7 @@ def index():
 def create_crack_task(url, method, inputs, action, interval):
     assert url != "" and inputs != "", "wrong param"
     form = Form(
-        action=action or urlparse(url).path,
-        method=method,
-        inputs=inputs.split(",")
+        action=action or urlparse(url).path, method=method, inputs=inputs.split(",")
     )
     taskid = uuid.uuid4().hex
     task = CrackTaskThread(taskid, url, form, float(interval))
@@ -182,30 +155,31 @@ def create_interactive_id(cmd, last_task):
     cracker, field, full_payload_gen = (
         last_task.cracker,
         last_task.result.input_field,
-        last_task.result.full_payload_gen
+        last_task.result.full_payload_gen,
     )
     taskid = uuid.uuid4().hex
-    task = InteractiveTaskThread(
-        taskid,
-        cracker,
-        field,
-        full_payload_gen,
-        cmd
-    )
+    task = InteractiveTaskThread(taskid, cracker, field, full_payload_gen, cmd)
     task.daemon = True
     task.start()
     tasks[taskid] = task
     return taskid
 
 
-@app.route("/createTask", methods=["POST", ])  # type: ignore
+@app.route(
+    "/createTask",
+    methods=[
+        "POST",
+    ],
+)  # type: ignore
 def create_task():
     if request.form.get("type", None) not in ["crack", "interactive"]:
         logging.info(request.form)
-        return jsonify({
-            "code": APICODE_WRONG_INPUT,
-            "message": f"unknown type {request.form.get('type', None)}"
-        })
+        return jsonify(
+            {
+                "code": APICODE_WRONG_INPUT,
+                "message": f"unknown type {request.form.get('type', None)}",
+            }
+        )
     task_type = request.form.get("type", None)
     if task_type == "crack":
         taskid = create_crack_task(
@@ -215,68 +189,76 @@ def create_task():
             request.form["action"],
             request.form["interval"],
         )
-        return jsonify({
-            "code": APICODE_OK,
-            "taskid": taskid
-        })
+        return jsonify({"code": APICODE_OK, "taskid": taskid})
     elif task_type == "interactive":
         cmd, last_task_id = (
             request.form["cmd"],
             request.form["last_task_id"],
         )
         if last_task_id not in tasks:
-            return jsonify({
-                "code": APICODE_WRONG_INPUT,
-                "message": f"last_task_id not found: {last_task_id}"
-            })
+            return jsonify(
+                {
+                    "code": APICODE_WRONG_INPUT,
+                    "message": f"last_task_id not found: {last_task_id}",
+                }
+            )
         last_task = tasks[last_task_id]
         if not isinstance(last_task, CrackTaskThread):
-            return jsonify({
-                "code": APICODE_WRONG_INPUT,
-                "message": f"last_task_id not found: {last_task_id}"
-            })
+            return jsonify(
+                {
+                    "code": APICODE_WRONG_INPUT,
+                    "message": f"last_task_id not found: {last_task_id}",
+                }
+            )
         if last_task.result is None:
-            return jsonify({
-                "code": APICODE_WRONG_INPUT,
-                "message": f"specified last_task failed: {last_task_id}"
-            })
+            return jsonify(
+                {
+                    "code": APICODE_WRONG_INPUT,
+                    "message": f"specified last_task failed: {last_task_id}",
+                }
+            )
         taskid = create_interactive_id(cmd, last_task)
-        return jsonify({
-            "code": APICODE_OK,
-            "taskid": taskid
-        })
+        return jsonify({"code": APICODE_OK, "taskid": taskid})
 
 
-@app.route("/watchTask", methods=["POST", ])  # type: ignore
+@app.route(
+    "/watchTask",
+    methods=[
+        "POST",
+    ],
+)  # type: ignore
 def watchTask():
     if "taskid" not in request.form:
-        return jsonify({
-            "code": APICODE_WRONG_INPUT,
-            "message": "taskid not provided"
-        })
+        return jsonify({"code": APICODE_WRONG_INPUT, "message": "taskid not provided"})
     if request.form["taskid"] not in tasks:
-        return jsonify({
-            "code": APICODE_WRONG_INPUT,
-            "message": f"task not found: {request.form['taskid']}"
-        })
+        return jsonify(
+            {
+                "code": APICODE_WRONG_INPUT,
+                "message": f"task not found: {request.form['taskid']}",
+            }
+        )
     task: CrackTaskThread = tasks[request.form["taskid"]]
     if isinstance(task, CrackTaskThread):
-        return jsonify({
-            "code": APICODE_OK,
-            "taskid": task.taskid,
-            "done": not task.is_alive(),
-            "messages": task.messages,
-            "flash_messages": task.flash_messages,
-            "success": task.result.input_field if task.result else None
-        })
+        return jsonify(
+            {
+                "code": APICODE_OK,
+                "taskid": task.taskid,
+                "done": not task.is_alive(),
+                "messages": task.messages,
+                "flash_messages": task.flash_messages,
+                "success": task.result.input_field if task.result else None,
+            }
+        )
     elif isinstance(task, InteractiveTaskThread):
-        return jsonify({
-            "code": APICODE_OK,
-            "taskid": task.taskid,
-            "done": not task.is_alive(),
-            "messages": task.messages,
-            "flash_messages": task.flash_messages,
-        })
+        return jsonify(
+            {
+                "code": APICODE_OK,
+                "taskid": task.taskid,
+                "done": not task.is_alive(),
+                "messages": task.messages,
+                "flash_messages": task.flash_messages,
+            }
+        )
 
 
 def main(host="127.0.0.1", port=11451):

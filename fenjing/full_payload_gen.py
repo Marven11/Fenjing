@@ -44,7 +44,10 @@ def get_outer_pattern(waf_func):
         logger.warning("LOTS OF THINGS is being waf, NOTHING FOR YOU!")
         return None, None
 
-def context_payloads_to_context(context_payload: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+
+def context_payloads_to_context(
+    context_payload: Dict[str, Dict[str, Any]]
+) -> Dict[str, Any]:
     """将context_payload转换成context字典。
 
     Args:
@@ -53,7 +56,11 @@ def context_payloads_to_context(context_payload: Dict[str, Dict[str, Any]]) -> D
     Returns:
         Dict[str, Any]: 一个字典，键是变量名，值是变量值
     """
-    return {var_name: var_value for _, d in context_payload.items() for var_name, var_value in d.items()}
+    return {
+        var_name: var_value
+        for _, d in context_payload.items()
+        for var_name, var_value in d.items()
+    }
 
 
 class FullPayloadGen:
@@ -63,15 +70,27 @@ class FullPayloadGen:
         - 前方提供变量等上下文的上下文payload（一般为{%set xxx=xxx%}的形式）
         - 以及后方实际发挥作用的作用payload（一般被双花括号{{}}包裹）
     """
-    def __init__(self, waf_func: Callable[[str, ], bool], callback: Union[Callable[[str, Dict], None], None] = None):
+
+    def __init__(
+        self,
+        waf_func: Callable[
+            [
+                str,
+            ],
+            bool,
+        ],
+        callback: Union[Callable[[str, Dict], None], None] = None,
+    ):
         self.waf_func = waf_func
         self.prepared = False
-        self._callback: Callable[[str, Dict], None] = callback if callback else (lambda x, y: None)
+        self._callback: Callable[[str, Dict], None] = (
+            callback if callback else (lambda x, y: None)
+        )
 
     @property
     def callback(self):
         return self._callback
-    
+
     @callback.setter
     def callback(self, callback):
         self._callback = callback
@@ -98,18 +117,26 @@ class FullPayloadGen:
             logger.info(f"use {colored('blue', self.outer_pattern)}")
         else:
             logger.warning(
-                f"use {colored('blue', self.outer_pattern)}, which {colored('red', 'will not print')} your result!")
+                f"use {colored('blue', self.outer_pattern)}, which {colored('red', 'will not print')} your result!"
+            )
 
-        self.payload_gen = payload_gen.PayloadGenerator(self.waf_func, self.context, self.callback)
+        self.payload_gen = payload_gen.PayloadGenerator(
+            self.waf_func, self.context, self.callback
+        )
         self.prepared = True
-        self.callback(CALLBACK_PREPARE_FULLPAYLOADGEN, {
-            "context": self.context,
-            "outer_pattern": self.outer_pattern,
-            "will_print": self.will_print,
-        })
+        self.callback(
+            CALLBACK_PREPARE_FULLPAYLOADGEN,
+            {
+                "context": self.context,
+                "outer_pattern": self.outer_pattern,
+                "will_print": self.will_print,
+            },
+        )
         return True
 
-    def add_context_variable(self, payload: str, context_vars: Dict[str, Any], check_waf: bool = True) -> bool:
+    def add_context_variable(
+        self, payload: str, context_vars: Dict[str, Any], check_waf: bool = True
+    ) -> bool:
         """将提供上下文变量以及对应payload加入payload生成器中，需要先调用.do_prepare函数
 
         Args:
@@ -149,21 +176,21 @@ class FullPayloadGen:
             logger.warning("Bypassing WAF Failed.")
             return None, None
         inner_payload, used_context = ret
-        context_payload = "".join(filter_by_used_context(self.context_payload, used_context).keys())
+        context_payload = "".join(
+            filter_by_used_context(self.context_payload, used_context).keys()
+        )
         assert isinstance(self.outer_pattern, str)
 
         payload = context_payload + self.outer_pattern.replace("PAYLOAD", inner_payload)
 
-        self.callback(CALLBACK_GENERATE_FULLPAYLOAD, {
-            "gen_type": gen_type,
-            "args": args,
-            "payload": payload,
-            "will_print": self.will_print,
-        })
-
-        return (
-            payload, 
-            self.will_print
+        self.callback(
+            CALLBACK_GENERATE_FULLPAYLOAD,
+            {
+                "gen_type": gen_type,
+                "args": args,
+                "payload": payload,
+                "will_print": self.will_print,
+            },
         )
 
-
+        return (payload, self.will_print)

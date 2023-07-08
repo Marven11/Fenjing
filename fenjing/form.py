@@ -25,11 +25,7 @@ def Form(*, action: str, inputs: Iterable, method: str = "POST") -> Dict[str, An
     if not action.startswith("/"):
         action = "/" + action
     assert method in ["GET", "POST"]
-    return {
-        "action": action,
-        "method": method,
-        "inputs": set(inputs)
-    }
+    return {"action": action, "method": method, "inputs": set(inputs)}
 
 
 def parse_forms(url, html: Union[str, BeautifulSoup]) -> List[dict]:
@@ -59,7 +55,7 @@ def parse_forms(url, html: Union[str, BeautifulSoup]) -> List[dict]:
                 element.attrs["name"]
                 for element in form_element.select("input")
                 if "name" in element.attrs
-            ]
+            ],
         )
         details.append(form)
     return details
@@ -70,8 +66,7 @@ def random_fill(form):
     randomli fill the form
     """
     return {
-        k: "".join(random.choices(string.ascii_lowercase, k=8))
-        for k in form["inputs"]
+        k: "".join(random.choices(string.ascii_lowercase, k=8)) for k in form["inputs"]
     }
 
 
@@ -96,5 +91,5 @@ def fill_form(url, form, form_inputs=None, random_fill_other=True):
     return {
         "url": urlunparse(urlparse(url)._replace(path=form["action"])),
         "method": form["method"],
-        ("data" if form["method"] == "POST" else "params"): fill
+        ("data" if form["method"] == "POST" else "params"): fill,
     }
