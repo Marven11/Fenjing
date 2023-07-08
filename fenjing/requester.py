@@ -1,22 +1,30 @@
-import requests
+"""实际发出网络请求并返回响应
+"""
+
 import logging
 import traceback
 import time
+
+import requests
+
+
 from .const import DEFAULT_USER_AGENT
 
 logger = logging.getLogger("requester")
 
 
 class Requester:
+    """实际发送HTTP请求的类"""
+
     def __init__(
         self,
         interval=0.0,
         timeout=10,
         retry_times=5,
         retry_interval=1,
-        retry_status=(429, ),
+        retry_status=(429,),
         user_agent=DEFAULT_USER_AGENT,
-        headers={},
+        headers=None,
     ):
         self.interval = interval
         self.timeout = timeout
@@ -31,6 +39,11 @@ class Requester:
             self.session.headers.update(headers)
 
     def request_once(self, **kwargs):
+        """发出一次网络请求，失败时返回None
+
+        Returns:
+            Response | None: 返回的响应
+        """
         duration = time.perf_counter() - self.last_request_time
         if duration < self.interval:
             time.sleep(self.interval - duration)
@@ -38,20 +51,27 @@ class Requester:
         if "timeout" not in kwargs:
             kwargs["timeout"] = self.timeout
         try:
-            r = self.session.request(**kwargs)
-        except Exception as e:
-            logging.warning(f"Exception found when requesting: {type(e)}")
+            resp = self.session.request(**kwargs)
+        except Exception as exception:  # pylint: disable=W0718
+            logging.warning(
+                "Exception found when requesting: %s", type(exception)
+            )
             logging.debug(traceback.format_exc())
             return None
-        if r.status_code in self.retry_status:
+        if resp.status_code in self.retry_status:
             return None
 
         self.last_request_time = time.perf_counter()
-        return r
+        return resp
 
     def request(self, **kwargs):
-        for i in range(self.retry_times - 1):
-            r = self.request_once(**kwargs)
-            if r:
-                return r
+        """发送请求，自动重试
+
+        Returns:
+            Response | None: 响应
+        """
+        for _ in range(self.retry_times - 1):
+            resp = self.request_once(**kwargs)
+            if resp:
+                return resp
         return self.request_once(**kwargs)

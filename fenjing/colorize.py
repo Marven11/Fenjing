@@ -1,3 +1,7 @@
+"""给字符串加上ANSI转义符以在命令行中打印出颜色
+
+"""
+
 import platform
 
 SHOULD_COLOR = platform.system() != "Windows"

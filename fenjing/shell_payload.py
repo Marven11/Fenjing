@@ -1,10 +1,22 @@
+"""生成执行Shell指令的payload
+"""
+
 from typing import Callable, Tuple, Dict, Union
 from .const import OS_POPEN_READ
 from .full_payload_gen import FullPayloadGen
 
 full_payload_store: Dict[int, FullPayloadGen] = {}
 
-def exec_cmd_payload(waf_func: Callable[[str, ], bool], cmd: str) -> Tuple[Union[str, None], Union[bool, None]]:
+
+def exec_cmd_payload(
+    waf_func: Callable[
+        [
+            str,
+        ],
+        bool,
+    ],
+    cmd: str,
+) -> Tuple[Union[str, None], Union[bool, None]]:
     """根据提供的waf函数为一个shell命令生成对应的payload
 
     Args:
@@ -21,4 +33,3 @@ def exec_cmd_payload(waf_func: Callable[[str, ], bool], cmd: str) -> Tuple[Union
     else:
         full_payload = full_payload_store[id(waf_func)]
     return full_payload.generate(OS_POPEN_READ, cmd)
-

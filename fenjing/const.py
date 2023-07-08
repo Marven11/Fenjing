@@ -1,4 +1,9 @@
+"""所有常用常数
+"""
+
 DEFAULT_USER_AGENT = "Fenjing/0.1"
+
+# 支持的类型
 
 LITERAL = "literal"
 UNSATISFIED = "unsatisfied"
@@ -55,11 +60,15 @@ GEN_TYPES = [
     "os_popen_read",
 ]
 
+# callback函数的参数
+
 CALLBACK_PREPARE_FULLPAYLOADGEN = "prepare_fullpayloadgen"
 CALLBACK_GENERATE_FULLPAYLOAD = "generate_full_payload"
 CALLBACK_GENERATE_PAYLOAD = "payload_gen"
 CALLBACK_SUBMIT = "submit"
 CALLBACK_TEST_FORM_INPUT = "test_form_input"
+
+# WEBUI的接口返回值
 
 APICODE_OK = 200
 APICODE_WRONG_INPUT = 401
