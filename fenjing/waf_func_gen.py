@@ -22,50 +22,52 @@ from .colorize import colored
 logger = logging.getLogger("waf_func_gen")
 Result = namedtuple("Result", "payload_generate_func input_field")
 
+dangerous_keywords = [
+    '"',
+    "'",
+    "+",
+    ".",
+    "0",
+    "1",
+    "2",
+    "=",
+    "[",
+    "_",
+    "%",
+    "attr",
+    "builtins",
+    "chr",
+    "class",
+    "config",
+    "eval",
+    "global",
+    "include",
+    "lipsum",
+    "mro",
+    "namespace",
+    "open",
+    "pop",
+    "popen",
+    "read",
+    "request",
+    "self",
+    "subprocess",
+    "system",
+    "url_for",
+    "value",
+    "{{",
+    "|",
+    "}}",
+    "~",
+]
+
+random.shuffle(dangerous_keywords)
+
 
 class WafFuncGen:
     """
     根据指定的表单生成对应的WAF函数
     """
-
-    dangerous_keywords = [
-        '"',
-        "'",
-        "+",
-        ".",
-        "0",
-        "1",
-        "2",
-        "=",
-        "[",
-        "_",
-        "%",
-        "attr",
-        "builtins",
-        "chr",
-        "class",
-        "config",
-        "eval",
-        "global",
-        "include",
-        "lipsum",
-        "mro",
-        "namespace",
-        "open",
-        "pop",
-        "popen",
-        "read",
-        "request",
-        "self",
-        "subprocess",
-        "system",
-        "url_for",
-        "value",
-        "{{",
-        "|",
-        "}}",
-        "~",
-    ]
 
     def __init__(
         self,
@@ -135,19 +137,19 @@ class WafFuncGen:
         """
         resps = {}
         test_keywords = (
-            self.dangerous_keywords
+            dangerous_keywords
             if self.waf_page_sample_mode == WAF_PAGE_SAMPLE_MODE_FULL
             else [
-                "".join(self.dangerous_keywords[i:i+4])
-                for i in range(0, len(self.dangerous_keywords), 4)
+                "".join(dangerous_keywords[i: i + 3])  # flake8: noqa
+                for i in range(0, len(dangerous_keywords), 3)
             ]
         )
         for keyword in test_keywords:
             logger.info(
                 "Testing dangerous keyword %s",
-                colored("yellow", repr(keyword * 3)),
+                colored("yellow", repr(keyword * 2)),
             )
-            resps[keyword] = self.submit({input_field: keyword * 3})
+            resps[keyword] = self.submit({input_field: keyword * 2})
         hashes = [
             hash(r.text)
             for keyword, r in resps.items()
