@@ -58,7 +58,7 @@ def yield_form(
 
         resp = requester.request(method="GET", url=target_url)
         if resp is None:
-            logger.warning("Fetch URL %(url)s failed!", target_url)
+            logger.warning("Fetch URL %s failed!", target_url)
             continue
         html = BeautifulSoup(resp.text, "html.parser")
         forms = parse_forms(target_url, html)

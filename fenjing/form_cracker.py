@@ -163,18 +163,18 @@ class FormCracker:
         if will_print:
             if self.test_input(input_field, payload):
                 logger.info(
-                    "%(success)s Now we can generate payloads.",
+                    "%s Now we can generate payloads.",
                     colored("green", "Success!", bold=True),
                 )
                 is_test_success = True
             else:
                 logger.info(
-                    "%(failed)s! Generated payloads might be useless.",
+                    "%s! Generated payloads might be useless.",
                     colored("yellow", "Test Payload Failed", bold=True),
                 )
         else:
             logger.info(
-                "Input %(field)s looks great, "
+                "Input %s looks great, "
                 + "but we WON'T SEE the execution result! "
                 + "You can try generating payloads anyway.",
                 input_field,

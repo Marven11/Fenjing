@@ -138,7 +138,7 @@ class FullPayloadGen:
             logger.info("use %s", colored("blue", self.outer_pattern))
         else:
             logger.warning(
-                "use %(outer_pattern)s, which %(wont_print)s your result!",
+                "use %s, which %s your result!",
                 colored("blue", self.outer_pattern),
                 colored("red", "will not print"),
             )
