@@ -3,3 +3,4 @@ beautifulsoup4
 click
 flask
 jinja2
+mypy
