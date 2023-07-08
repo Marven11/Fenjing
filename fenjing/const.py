@@ -73,7 +73,7 @@ CALLBACK_TEST_FORM_INPUT = "test_form_input"
 APICODE_OK = 200
 APICODE_WRONG_INPUT = 401
 
-# 生成WAF函数时获取WAF后页面哈希的模式
+# 程序检测的目标模式：快速或精确
 
-WAF_PAGE_SAMPLE_MODE_FAST = "fast"
-WAF_PAGE_SAMPLE_MODE_FULL = "full"
+DETECT_MODE_FAST = "fast"
+DETECT_MODE_ACCURATE = "accurate"

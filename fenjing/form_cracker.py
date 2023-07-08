@@ -4,15 +4,16 @@
 
 from collections import namedtuple
 import logging
-from typing import List, Dict, Any, Union, Callable
+from typing import List, Dict, Union, Callable
 
-from .form import random_fill, fill_form
+from .form import random_fill, fill_form, Form
 from .requester import Requester
 from .colorize import colored
 from .const import (
     CALLBACK_SUBMIT,
     CALLBACK_TEST_FORM_INPUT,
     OS_POPEN_READ,
+    DETECT_MODE_ACCURATE,
 )
 from .waf_func_gen import WafFuncGen
 from .full_payload_gen import FullPayloadGen
@@ -34,9 +35,10 @@ class FormCracker:
     def __init__(
         self,
         url: str,
-        form: Dict[str, Any],
+        form: Form,
         requester: Requester,
         callback: Union[Callable[[str, Dict], None], None] = None,
+        detect_mode: str = DETECT_MODE_ACCURATE,
     ):
         """生成用于攻击form的类
 
@@ -54,8 +56,13 @@ class FormCracker:
             callback if callback else (lambda x, y: None)
         )
         self.waf_func_gen = WafFuncGen(
-            self.url, self.form, self.req, self.callback
+            self.url,
+            self.form,
+            self.req,
+            self.callback,
+            detect_mode=detect_mode,
         )
+        self.detect_mode = detect_mode
 
     @property
     def callback(self):
@@ -146,7 +153,9 @@ class FormCracker:
         logger.info("Testing %s", colored("yellow", input_field))
 
         waf_func = self.waf_func_gen.generate(input_field)
-        full_payload_gen = FullPayloadGen(waf_func, callback=self.callback)
+        full_payload_gen = FullPayloadGen(
+            waf_func, callback=self.callback, detect_mode=self.detect_mode
+        )
         payload, will_print = full_payload_gen.generate(
             OS_POPEN_READ, self.test_cmd
         )

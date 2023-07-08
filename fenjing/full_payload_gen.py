@@ -15,6 +15,7 @@ from .context_vars import (
 from .const import (
     CALLBACK_PREPARE_FULLPAYLOADGEN,
     CALLBACK_GENERATE_FULLPAYLOAD,
+    DETECT_MODE_ACCURATE,
 )
 
 logger = logging.getLogger("shell_payload")
@@ -81,6 +82,7 @@ class FullPayloadGen:
             bool,
         ],
         callback: Union[Callable[[str, Dict], None], None] = None,
+        detect_mode: str = DETECT_MODE_ACCURATE,
     ):
         self.__slot__ = [
             "waf_func",
@@ -100,6 +102,7 @@ class FullPayloadGen:
         self.context = context_payloads_to_context(self.context_payload)
         self.outer_pattern, self.will_print = None, None
         self.payload_gen = None
+        self.detect_mode = detect_mode
 
     @property
     def callback(self):
@@ -144,7 +147,10 @@ class FullPayloadGen:
             )
 
         self.payload_gen = payload_gen.PayloadGenerator(
-            self.waf_func, self.context, self.callback
+            self.waf_func,
+            self.context,
+            self.callback,
+            detect_mode=self.detect_mode,
         )
         self.prepared = True
         self.callback(

@@ -17,8 +17,16 @@ ReqGen = Callable[..., ReqGenReturn]
 ReqGenResult = Tuple[str, ContextVariable]
 
 req_gens: DefaultDict[str, List[ReqGen]] = defaultdict(list)
-used_count = defaultdict(int)
 logger = logging.getLogger("payload_gen")
+
+gen_weight_default = {
+    "gen_string_removedunder": 1,
+    "gen_string_x1": 1,
+    "gen_string_x2": 1,
+    "gen_string_formatpercent": 1,
+    "gen_attribute_attrfilter": 1,
+    "gen_item_dunderfunc": 1
+}
 
 
 def req_gen(f: ReqGen):
@@ -42,6 +50,7 @@ class PayloadGenerator:
         waf_func: Callable[[str], bool],
         context: Union[Dict, None],
         callback: Union[Callable[[str, Dict], None], None] = None,
+        detect_mode: str = DETECT_MODE_ACCURATE
     ):
         self.waf_func = waf_func
         self.context = context if context else {}
@@ -68,8 +77,11 @@ class PayloadGenerator:
             ),
             ((lambda gen_req: True), self.common_generate),
         ]
-        # LITERAL: self.literal_generate,
-        # UNSATISFIED: self.unsatisfied_generate
+        self.used_count = defaultdict(int)
+
+        if detect_mode == DETECT_MODE_FAST:
+            for k in gen_weight_default:
+                self.used_count[k] += gen_weight_default[k]
 
         self.callback = callback if callback else (lambda x, y: None)
 
@@ -104,7 +116,7 @@ class PayloadGenerator:
             return None
 
         gens = req_gens[gen_type].copy()
-        gens.sort(key=lambda gen: used_count[gen.__name__], reverse=True)
+        gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         for gen in gens:
             ret = self.generate_by_list(gen(self.context, *args))
             if ret is None:
@@ -147,7 +159,7 @@ class PayloadGenerator:
 
             if hashable(gen_req):
                 self.cache[gen_req] = ret
-            used_count[gen.__name__] += 1
+            self.used_count[gen.__name__] += 1
             return ret
 
         logger.warning(

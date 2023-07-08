@@ -19,6 +19,7 @@ from .const import (
     OS_POPEN_READ,
     DEFAULT_USER_AGENT,
     CONFIG,
+    DETECT_MODE_ACCURATE,
 )
 from .colorize import colored
 from .webui import main as webui_main
@@ -122,6 +123,9 @@ def main():
 @click.option("--inputs", "-i", help="form的参数，以逗号分隔")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option(
+    "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
+)
+@click.option(
     "--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent"
 )
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
@@ -132,6 +136,7 @@ def get_config(
     method: str,
     inputs: str,
     interval: float,
+    detect_mode: str,
     user_agent: str,
     header: tuple,
     cookies: str,
@@ -155,7 +160,9 @@ def get_config(
             headers_list=list(header), cookies=cookies
         ),
     )
-    cracker = FormCracker(url=url, form=form, requester=requester)
+    cracker = FormCracker(
+        url=url, form=form, requester=requester, detect_mode=detect_mode
+    )
     result = cracker.crack()
     if result is None:
         logger.warning("Test form failed...")
@@ -178,6 +185,9 @@ def get_config(
 )
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option(
+    "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
+)
+@click.option(
     "--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent"
 )
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
@@ -189,6 +199,7 @@ def crack(
     inputs: str,
     exec_cmd: str,
     interval: float,
+    detect_mode: str,
     user_agent: str,
     header: tuple,
     cookies: str,
@@ -212,7 +223,9 @@ def crack(
             headers_list=list(header), cookies=cookies
         ),
     )
-    cracker = FormCracker(url=url, form=form, requester=requester)
+    cracker = FormCracker(
+        url=url, form=form, requester=requester, detect_mode=detect_mode
+    )
     result = cracker.crack()
     if result is None:
         logger.warning("Test form failed...")
@@ -236,11 +249,14 @@ def crack(
 @click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则进入交互模式")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option(
+    "--detect-mode", default=DETECT_MODE_ACCURATE, help="检测模式，可为accurate或fast"
+)
+@click.option(
     "--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent"
 )
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
-def scan(url, exec_cmd, interval, user_agent, header, cookies):
+def scan(url, exec_cmd, interval, detect_mode, user_agent, header, cookies):
     """
     扫描指定的网站
     """
@@ -255,7 +271,10 @@ def scan(url, exec_cmd, interval, user_agent, header, cookies):
     for page_url, forms in yield_form(requester, url):
         for form in forms:
             cracker = FormCracker(
-                url=page_url, form=form, requester=requester
+                url=page_url,
+                form=form,
+                requester=requester,
+                detect_mode=detect_mode,
             )
             result = cracker.crack()
             if result is None:

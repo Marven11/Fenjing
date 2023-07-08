@@ -5,16 +5,15 @@
 from collections import Counter, namedtuple
 from functools import lru_cache
 import logging
-from typing import Dict, Callable, Any, Union
+from typing import Dict, Callable, Union
 import random
 import string
 
 from .const import (
     CALLBACK_SUBMIT,
-    # WAF_PAGE_SAMPLE_MODE_FAST,
-    WAF_PAGE_SAMPLE_MODE_FULL,
+    DETECT_MODE_ACCURATE,
 )
-from .form import fill_form
+from .form import fill_form, Form
 from .requester import Requester
 from .colorize import colored
 
@@ -72,10 +71,10 @@ class WafFuncGen:
     def __init__(
         self,
         url: str,
-        form: Dict[str, Any],
+        form: Form,
         requester: Requester,
         callback: Union[Callable[[str, Dict], None], None] = None,
-        waf_page_sample_mode: str = WAF_PAGE_SAMPLE_MODE_FULL,
+        detect_mode: str = DETECT_MODE_ACCURATE,
     ):
         """根据指定的表单生成对应的WAF函数
 
@@ -85,9 +84,9 @@ class WafFuncGen:
             requester (Requester): 用于发出请求的requester，为None时自动构造.
             callback (Union[Callable[[str, Dict], None], None], optional):
                 callback函数，默认为None
-            waf_page_sample_mode (str): 测试WAF页面hash的模式
+            detect_mode (str): 测试WAF页面hash的模式
                 "fast": 一次发送多个危险的关键字
-                "full": 一次发送一个危险的关键字
+                "accurate": 一次发送一个危险的关键字
         """
         self.url = url
         self.form = form
@@ -95,7 +94,7 @@ class WafFuncGen:
         self.callback: Callable[[str, Dict], None] = (
             callback if callback else (lambda x, y: None)
         )
-        self.waf_page_sample_mode = waf_page_sample_mode
+        self.detect_mode = detect_mode
 
     def submit(self, inputs: dict):
         """根据inputs提交form
@@ -138,7 +137,7 @@ class WafFuncGen:
         resps = {}
         test_keywords = (
             dangerous_keywords
-            if self.waf_page_sample_mode == WAF_PAGE_SAMPLE_MODE_FULL
+            if self.detect_mode == DETECT_MODE_ACCURATE
             else [
                 "".join(dangerous_keywords[i: i + 3])  # flake8: noqa
                 for i in range(0, len(dangerous_keywords), 3)
