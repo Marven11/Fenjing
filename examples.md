@@ -19,9 +19,10 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
 - 也可以指定多个input：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name,email`
 - 指定攻击成功后执行的命令
     - 不指定则进入交互模式
-    - `python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --user-agent`
+    - `python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name` --exec-cmd 'ls /'
 
 通用设置
+- 指定分析模式`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --detect-mode fast`
 - 指定请求间隔：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --interval 0.1`
 - 指定请求时使用的UA：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --user-agent 'Aaa/1.1'`
 - 指定Header：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --header 'Aaa: Bbb' --header 'Ccc: Ddd'`

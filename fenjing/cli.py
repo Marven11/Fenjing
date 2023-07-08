@@ -34,7 +34,7 @@ TITLE = colored(
 /_/  \___/_/ /_/_/ /_/_/ /_/\__, /
               /___/        /____/
 
-    ------ Made with passion by Marven11
+    ------Made with passion by Marven11
 """.strip(
         "\n"
     ),
