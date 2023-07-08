@@ -9,7 +9,11 @@ from typing import Dict, Callable, Any, Union
 import random
 import string
 
-from .const import CALLBACK_SUBMIT
+from .const import (
+    CALLBACK_SUBMIT,
+    WAF_PAGE_SAMPLE_MODE_FAST,
+    WAF_PAGE_SAMPLE_MODE_FULL,
+)
 from .form import fill_form
 from .requester import Requester
 from .colorize import colored
@@ -69,6 +73,7 @@ class WafFuncGen:
         form: Dict[str, Any],
         requester: Requester,
         callback: Union[Callable[[str, Dict], None], None] = None,
+        waf_page_sample_mode: str = WAF_PAGE_SAMPLE_MODE_FAST,
     ):
         """根据指定的表单生成对应的WAF函数
 
@@ -78,6 +83,9 @@ class WafFuncGen:
             requester (Requester): 用于发出请求的requester，为None时自动构造.
             callback (Union[Callable[[str, Dict], None], None], optional):
                 callback函数，默认为None
+            waf_page_sample_mode (str): 测试WAF页面hash的模式
+                "fast": 一次发送多个危险的关键字
+                "full": 一次发送一个危险的关键字
         """
         self.url = url
         self.form = form
@@ -85,6 +93,7 @@ class WafFuncGen:
         self.callback: Callable[[str, Dict], None] = (
             callback if callback else (lambda x, y: None)
         )
+        self.waf_page_sample_mode = waf_page_sample_mode
 
     def submit(self, inputs: dict):
         """根据inputs提交form
@@ -125,7 +134,15 @@ class WafFuncGen:
             List[int]: payload被waf后页面对应的hash
         """
         resps = {}
-        for keyword in self.dangerous_keywords:
+        test_keywords = (
+            self.dangerous_keywords
+            if self.waf_page_sample_mode == WAF_PAGE_SAMPLE_MODE_FULL
+            else [
+                "".join(self.dangerous_keywords[i:i+4])
+                for i in range(0, len(self.dangerous_keywords), 4)
+            ]
+        )
+        for keyword in test_keywords:
             logger.info(
                 "Testing dangerous keyword %s",
                 colored("yellow", repr(keyword * 3)),
