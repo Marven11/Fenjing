@@ -1,20 +1,27 @@
 """与HTML表格相关的函数
 
 """
+import sys
 from urllib.parse import urlparse, urlunparse
 import random
 import logging
 import string
-from typing import Dict, List, Union, Iterable, Literal
+from typing import Dict, List, Union, Iterable
 
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger("utils.form")
-
 Form = Dict[
-    Union[Literal["action"], Literal["inputs"], Literal["method"]],
+    str,
     Union[str, set],
 ]
+if sys.version_info >= (3, 8):
+    from typing import Literal
+
+    Form = Dict[
+        Literal["action", "inputs", "method"],
+        Union[str, set],
+    ]
 
 
 def get_form(action: str, inputs: Iterable, method: str = "POST") -> Form:
