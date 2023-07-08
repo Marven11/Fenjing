@@ -1,4 +1,8 @@
-from typing import Callable, Tuple, Dict, Union
+"""生成获取config的payload
+
+"""
+
+from typing import Callable, Dict, Union
 from .const import CONFIG
 from .full_payload_gen import FullPayloadGen
 

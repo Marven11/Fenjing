@@ -1,9 +1,10 @@
+# pylint: skip-file
+# flake8: noqa
 from collections import defaultdict
-from typing import Callable, DefaultDict, List, Dict, Union, Any
+from typing import Callable, DefaultDict, List, Dict, Union, Any, Tuple
 import re
 import time
 import logging
-from typing import Callable, Any, Dict, Tuple
 from .colorize import colored
 from .const import *
 

@@ -1,16 +1,23 @@
+"""与HTML表格相关的函数
+
+"""
 from urllib.parse import urlparse, urlunparse
-from typing import Iterable
 import random
 import logging
 import string
-from typing import Dict, Any, List, Union
+from typing import Dict, List, Union, Iterable, Literal
 
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger("utils.form")
 
+Form = Dict[
+    Union[Literal["action"], Literal["inputs"], Literal["method"]],
+    Union[str, set],
+]
 
-def Form(*, action: str, inputs: Iterable, method: str = "POST") -> Dict[str, Any]:
+
+def get_form(action: str, inputs: Iterable, method: str = "POST") -> Form:
     """根据输入生成一个表单
 
     Args:
@@ -19,7 +26,7 @@ def Form(*, action: str, inputs: Iterable, method: str = "POST") -> Dict[str, An
         method (str, optional): 提交方法. Defaults to "POST".
 
     Returns:
-        Dict[str, Any]: 表单
+        Form: 表单
     """
     method = method.upper()
     if not action.startswith("/"):
@@ -28,7 +35,7 @@ def Form(*, action: str, inputs: Iterable, method: str = "POST") -> Dict[str, An
     return {"action": action, "method": method, "inputs": set(inputs)}
 
 
-def parse_forms(url, html: Union[str, BeautifulSoup]) -> List[dict]:
+def parse_forms(url, html: Union[str, BeautifulSoup]) -> List[Form]:
     """从html中解析出对应的表单
 
     Args:
@@ -36,19 +43,19 @@ def parse_forms(url, html: Union[str, BeautifulSoup]) -> List[dict]:
         html (Union[str, BeautifulSoup]): HTML
 
     Returns:
-        List[dict]: 所有表单
+        List[Form]: 所有表单
     """
     parsed_url = urlparse(url)
     uri = parsed_url.path
 
     if isinstance(html, str):
-        bs = BeautifulSoup(html, "html.parser")
+        bs_doc = BeautifulSoup(html, "html.parser")
     elif isinstance(html, BeautifulSoup):
-        bs = html
+        bs_doc = html
 
     details = []
-    for form_element in bs.select("form"):
-        form = Form(
+    for form_element in bs_doc.select("form"):
+        form = get_form(
             action=form_element.attrs.get("action", uri),
             method=form_element.attrs.get("method", "POST").upper(),
             inputs=[
@@ -61,28 +68,34 @@ def parse_forms(url, html: Union[str, BeautifulSoup]) -> List[dict]:
     return details
 
 
-def random_fill(form):
-    """
-    randomli fill the form
+def random_fill(form: Form) -> Dict[str, str]:
+    """随机填充表格
+
+    Args:
+        form (Form): 表格
+
+    Returns:
+        Dict[str, str]: 随机填充的结果，键为表格项，值为表格项的值
     """
     return {
-        k: "".join(random.choices(string.ascii_lowercase, k=8)) for k in form["inputs"]
+        k: "".join(random.choices(string.ascii_lowercase, k=8))
+        for k in form["inputs"]
     }
 
 
-def fill_form(url, form, form_inputs=None, random_fill_other=True):
+def fill_form(url, form, form_inputs=None, randomly_fill_other=True):
     """根据输入填充表单，返回给requests库的参数
 
     Args:
         url (str): 表单所在的URL
         form (dict): 表单
         form_inputs (dict, optional): input以及对应的值. Defaults to None.
-        random_fill_other (bool, optional): 是否随机填充其他input. Defaults to True.
+        randomly_fill_other (bool, optional): 是否随机填充其他input. Defaults to True.
 
     Returns:
         dict: 给requests的参数
     """
-    if random_fill_other:
+    if randomly_fill_other:
         fill = random_fill(form)
         if form_inputs is not None:
             fill.update(form_inputs)

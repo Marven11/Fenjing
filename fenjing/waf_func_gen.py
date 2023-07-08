@@ -1,11 +1,15 @@
+"""根据指定的表单生成对应的WAF函数
+
+"""
+
 from collections import Counter, namedtuple
 from functools import lru_cache
 import logging
-from typing import List, Dict, Tuple, Callable, Any, Union
+from typing import Dict, Callable, Any, Union
 import random
 import string
 
-from .const import *
+from .const import CALLBACK_SUBMIT
 from .form import fill_form
 from .requester import Requester
 from .colorize import colored
@@ -72,7 +76,8 @@ class WafFuncGen:
             url (str): form所在的url.
             form (dict): 解析后的form元素
             requester (Requester): 用于发出请求的requester，为None时自动构造.
-            callback (Union[Callable[[str, Dict], None], None], optional): callback函数，默认为None
+            callback (Union[Callable[[str, Dict], None], None], optional):
+                callback函数，默认为None
         """
         self.url = url
         self.form = form
@@ -93,20 +98,22 @@ class WafFuncGen:
         all_length = sum(len(v) for v in inputs.values())
         if all_length > 2048 and self.form["method"] == "GET":
             logger.warning(
-                f"inputs are extremely long (len={all_length}) that the request might fail"
+                "inputs are extremely long (len=%d) "
+                + "that the request might fail",
+                all_length,
             )
-        r = self.req.request(**fill_form(self.url, self.form, inputs))
+        resp = self.req.request(**fill_form(self.url, self.form, inputs))
 
         self.callback(
             CALLBACK_SUBMIT,
             {
                 "form": self.form,
                 "inputs": inputs,
-                "response": r,
+                "response": resp,
             },
         )
 
-        return r
+        return resp
 
     def waf_page_hash(self, input_field: str):
         """使用危险的payload测试对应的input，得到一系列响应后，求出响应中最常见的几个hash
@@ -120,28 +127,41 @@ class WafFuncGen:
         resps = {}
         for keyword in self.dangerous_keywords:
             logger.info(
-                f"Testing dangerous keyword {colored('yellow', repr(keyword * 3))}"
+                "Testing dangerous keyword %s",
+                colored("yellow", repr(keyword * 3)),
             )
             resps[keyword] = self.submit({input_field: keyword * 3})
         hashes = [
             hash(r.text)
             for keyword, r in resps.items()
-            if r is not None and r.status_code != 500 and keyword not in r.text
+            if r is not None
+            and r.status_code != 500
+            and keyword not in r.text
         ]
         return [k for k, v in Counter(hashes).items() if v >= 3]
 
-    def generate(self, input_field):
+    def generate(self, input_field: str) -> Callable:
+        """生成WAF函数
+
+        Args:
+            input_field (str): 表格项
+
+        Returns:
+            Callable: WAF函数
+        """
         waf_hashes = self.waf_page_hash(input_field)
 
         @lru_cache(1000)
         def waf_func(value):
-            extra_content = "".join(random.choices(string.ascii_lowercase, k=6))
-            r = self.submit({input_field: extra_content + value})
-            assert r is not None
-            if hash(r.text) in waf_hashes:  # 页面的hash和waf页面的hash相同
+            extra_content = "".join(
+                random.choices(string.ascii_lowercase, k=6)
+            )
+            resp = self.submit({input_field: extra_content + value})
+            assert resp is not None
+            if hash(resp.text) in waf_hashes:  # 页面的hash和waf页面的hash相同
                 return False
-            if r.status_code == 500:  # Jinja渲染错误
+            if resp.status_code == 500:  # Jinja渲染错误
                 return True
-            return extra_content in r.text  # 产生回显
+            return extra_content in resp.text  # 产生回显
 
         return waf_func
