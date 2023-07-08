@@ -13,6 +13,7 @@
 - 集成了大部分CTF中的SSTI WAF绕过技巧
 - 全自动扫描HTML页面中的form元素并进行攻击
 - 全自动分析网站的WAF并生成相应的payload
+- 可选默认的精确模式或自动跳过不必要检查的快速模式
 - 方便的网页界面/命令行界面
 
 ## 快速上手
@@ -131,14 +132,21 @@ docker run -it --net host fenjing webui
 ```
 Usage: python -m fenjing scan [OPTIONS]
 
+  扫描指定的网站
+
 Options:
   -u, --url TEXT       需要扫描的URL
   -e, --exec-cmd TEXT  成功后执行的shell指令，不填则进入交互模式
   --interval FLOAT     每次请求的间隔
+  --detect-mode TEXT   检测模式，可为accurate或fast
   --user-agent TEXT    请求时使用的User Agent
+  --header TEXT        请求时使用的Headers
+  --cookies TEXT       请求时使用的Cookie
   --help               Show this message and exit.
 
 Usage: python -m fenjing crack [OPTIONS]
+
+  攻击指定的表单
 
 Options:
   -u, --url TEXT       form所在的URL
@@ -147,7 +155,10 @@ Options:
   -i, --inputs TEXT    form的参数，以逗号分隔
   -e, --exec-cmd TEXT  成功后执行的shell指令，不填则成功后进入交互模式
   --interval FLOAT     每次请求的间隔
+  --detect-mode TEXT   分析模式，可为accurate或fast
   --user-agent TEXT    请求时使用的User Agent
+  --header TEXT        请求时使用的Headers
+  --cookies TEXT       请求时使用的Cookie
   --help               Show this message and exit.
 
 Usage: python -m fenjing get-config [OPTIONS]
@@ -155,13 +166,16 @@ Usage: python -m fenjing get-config [OPTIONS]
   攻击指定的表单，并获得目标服务器的flask config
 
 Options:
-  -u, --url TEXT     form所在的URL
-  -a, --action TEXT  form的action，默认为当前路径
-  -m, --method TEXT  form的提交方式，默认为POST
-  -i, --inputs TEXT  form的参数，以逗号分隔
-  --interval FLOAT   每次请求的间隔
-  --user-agent TEXT  请求时使用的User Agent
-  --help             Show this message and exit.
+  -u, --url TEXT      form所在的URL
+  -a, --action TEXT   form的action，默认为当前路径
+  -m, --method TEXT   form的提交方式，默认为POST
+  -i, --inputs TEXT   form的参数，以逗号分隔
+  --interval FLOAT    每次请求的间隔
+  --detect-mode TEXT  分析模式，可为accurate或fast
+  --user-agent TEXT   请求时使用的User Agent
+  --header TEXT       请求时使用的Headers
+  --cookies TEXT      请求时使用的Cookie
+  --help              Show this message and exit.
 ```
 
 ### 作为python库使用
