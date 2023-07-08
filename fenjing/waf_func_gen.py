@@ -11,7 +11,7 @@ import string
 
 from .const import (
     CALLBACK_SUBMIT,
-    WAF_PAGE_SAMPLE_MODE_FAST,
+    # WAF_PAGE_SAMPLE_MODE_FAST,
     WAF_PAGE_SAMPLE_MODE_FULL,
 )
 from .form import fill_form
@@ -75,7 +75,7 @@ class WafFuncGen:
         form: Dict[str, Any],
         requester: Requester,
         callback: Union[Callable[[str, Dict], None], None] = None,
-        waf_page_sample_mode: str = WAF_PAGE_SAMPLE_MODE_FAST,
+        waf_page_sample_mode: str = WAF_PAGE_SAMPLE_MODE_FULL,
     ):
         """根据指定的表单生成对应的WAF函数
 
