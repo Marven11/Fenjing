@@ -1219,37 +1219,37 @@ def gen_config_self(context):
     ]
 
 
-@req_gen
-def gen_config_request(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (LITERAL, "request"),
-            (ATTRIBUTE, "application"),
-            (ATTRIBUTE, "__self__"),
-            (ATTRIBUTE, "json_module"),
-            (ATTRIBUTE, "JSONEncoder"),
-            (ATTRIBUTE, "default"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "current_app"),
-            (ATTRIBUTE, "config"),
-        )
-    ]
+# @req_gen
+# def gen_config_request(context):
+#     return [
+#         (
+#             CHAINED_ATTRIBUTE_ITEM,
+#             (LITERAL, "request"),
+#             (ATTRIBUTE, "application"),
+#             (ATTRIBUTE, "__self__"),
+#             (ATTRIBUTE, "json_module"),
+#             (ATTRIBUTE, "JSONEncoder"),
+#             (ATTRIBUTE, "default"),
+#             (ATTRIBUTE, "__globals__"),
+#             (ITEM, "current_app"),
+#             (ATTRIBUTE, "config"),
+#         )
+#     ]
 
 
 # ---
 
 
-@req_gen
-def gen_module_os_urlfor(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (LITERAL, "url_for"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "os"),
-        )
-    ]
+# @req_gen
+# def gen_module_os_urlfor(context):
+#     return [
+#         (
+#             CHAINED_ATTRIBUTE_ITEM,
+#             (LITERAL, "url_for"),
+#             (ATTRIBUTE, "__globals__"),
+#             (ITEM, "os"),
+#         )
+#     ]
 
 
 @req_gen
