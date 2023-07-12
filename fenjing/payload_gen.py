@@ -1173,16 +1173,16 @@ def gen_eval_func_joiner(context):
     ]
 
 
-# @req_gen
-# def gen_eval_func_x(context):
-#     return [(
-#         CHAINED_ATTRIBUTE_ITEM,
-#         (LITERAL, "x"),
-#         (ATTRIBUTE, "__init__"),
-#         (ATTRIBUTE, "__globals__"),
-#         (ITEM, "__builtins__"),
-#         (ITEM, "eval")
-#     )]
+@req_gen
+def gen_eval_func_namespace(context):
+    return [(
+        CHAINED_ATTRIBUTE_ITEM,
+        (LITERAL, "namespace"),
+        (ATTRIBUTE, "__init__"),
+        (ATTRIBUTE, "__globals__"),
+        (ITEM, "__builtins__"),
+        (ITEM, "eval")
+    )]
 
 # ---
 
