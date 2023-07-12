@@ -1253,6 +1253,16 @@ def gen_config_self(context):
 
 
 @req_gen
+def gen_module_os_eval(context):
+    return [
+        (EVAL, "__import__"),
+        (LITERAL, "("),
+        (STRING, "os"),
+        (LITERAL, ")"),
+    ]
+
+
+@req_gen
 def gen_module_os_config(context):
     return [
         (
@@ -1265,14 +1275,6 @@ def gen_module_os_config(context):
     ]
 
 
-@req_gen
-def gen_module_os_eval(context):
-    return [
-        (EVAL, "__import__"),
-        (LITERAL, "("),
-        (STRING, "os"),
-        (LITERAL, ")"),
-    ]
 
 # ---
 
