@@ -1265,13 +1265,17 @@ def gen_module_os_config(context):
     ]
 
 
+@req_gen
+def gen_module_os_eval(context):
+    return [
+        (EVAL, "__import__"),
+        (LITERAL, "("),
+        (STRING, "os"),
+        (LITERAL, ")"),
+    ]
+
 # ---
 
-
-@req_gen
-def gen_os_popen_obj_eval(context, cmd):
-    cmd = cmd.replace("'", "\\'")
-    return [(EVAL, "__import__('os').popen('" + cmd + "')")]
 
 
 @req_gen
@@ -1285,6 +1289,13 @@ def gen_os_popen_obj_normal(context, cmd):
     ]
 
 
+
+@req_gen
+def gen_os_popen_obj_eval(context, cmd):
+    cmd = cmd.replace("'", "\\'")
+    return [(EVAL, "__import__('os').popen('" + cmd + "')")]
+
+
 # ---
 
 
@@ -1294,6 +1305,12 @@ def gen_os_popen_read_normal(context, cmd):
         (LITERAL, "("),
         (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"),
         (LITERAL, "())"),
+    ]
+
+@req_gen
+def gen_os_popen_read_eval(context, cmd):
+    return [
+        (EVAL, "__import__('os').popen('{}').read()".format(cmd.replace("'", "\\'"))),
     ]
 
 
