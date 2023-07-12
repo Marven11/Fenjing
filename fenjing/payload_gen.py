@@ -122,6 +122,8 @@ class PayloadGenerator:
         for gen in gens:
             ret = self.generate_by_list(gen(self.context, *args))
             if ret is None:
+                if hashable(gen_req):
+                    self.cache[gen_req] = ret
                 continue
             result = ret[0]
             self.callback(
