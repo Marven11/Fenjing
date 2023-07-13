@@ -8,10 +8,12 @@ import logging
 from typing import Dict, Callable, Union
 import random
 import string
+from copy import copy
 
 from .const import (
     CALLBACK_SUBMIT,
     DETECT_MODE_ACCURATE,
+    DANGEROUS_KEYWORDS
 )
 from .form import fill_form, Form
 from .requester import Requester
@@ -21,44 +23,7 @@ from .colorize import colored
 logger = logging.getLogger("waf_func_gen")
 Result = namedtuple("Result", "payload_generate_func input_field")
 
-dangerous_keywords = [
-    '"',
-    "'",
-    "+",
-    ".",
-    "0",
-    "1",
-    "2",
-    "=",
-    "[",
-    "_",
-    "%",
-    "attr",
-    "builtins",
-    "chr",
-    "class",
-    "config",
-    "eval",
-    "global",
-    "include",
-    "lipsum",
-    "mro",
-    "namespace",
-    "open",
-    "pop",
-    "popen",
-    "read",
-    "request",
-    "self",
-    "subprocess",
-    "system",
-    "url_for",
-    "value",
-    "{{",
-    "|",
-    "}}",
-    "~",
-]
+dangerous_keywords = copy(DANGEROUS_KEYWORDS)
 
 random.shuffle(dangerous_keywords)
 
