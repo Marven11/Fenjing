@@ -15,7 +15,7 @@ from .const import (
     OS_POPEN_READ,
     DETECT_MODE_ACCURATE,
 )
-from .waf_func_gen import WafFuncGen
+from .waf_func_gen_form import WafFuncGenForm
 from .full_payload_gen import FullPayloadGen
 
 logger = logging.getLogger("form_cracker")
@@ -55,7 +55,7 @@ class FormCracker:
         self._callback: Callable[[str, Dict], None] = (
             callback if callback else (lambda x, y: None)
         )
-        self.waf_func_gen = WafFuncGen(
+        self.waf_func_gen = WafFuncGenForm(
             self.url,
             self.form,
             self.req,

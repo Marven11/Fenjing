@@ -20,7 +20,7 @@ from .requester import Requester
 from .colorize import colored
 
 
-logger = logging.getLogger("waf_func_gen")
+logger = logging.getLogger("waf_func_gen_form")
 Result = namedtuple("Result", "payload_generate_func input_field")
 
 dangerous_keywords = copy(DANGEROUS_KEYWORDS)
@@ -28,7 +28,7 @@ dangerous_keywords = copy(DANGEROUS_KEYWORDS)
 random.shuffle(dangerous_keywords)
 
 
-class WafFuncGen:
+class WafFuncGenForm:
     """
     根据指定的表单生成对应的WAF函数
     """
