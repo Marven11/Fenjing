@@ -21,6 +21,10 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
     - 不指定则进入交互模式
     - `python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name` --exec-cmd 'ls /'
 
+攻击对应的路径：
+- `python -m fenjing crack-path --url 'http://xxx.xxx/hello/'`
+- 只需要提供路径的前缀即可
+
 通用设置
 - 指定分析模式`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --detect-mode fast`
 - 指定请求间隔：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --interval 0.1`

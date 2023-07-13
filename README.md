@@ -14,6 +14,7 @@
 - 全自动扫描HTML页面中的form元素并进行攻击
 - 全自动分析网站的WAF并生成相应的payload
 - 使用精确模式全面分析网站或使用快速模式减少不必要的网络请求
+- 支持攻击对应的HTML表单或HTML路径
 - 方便的网页界面/命令行界面
 
 ## 快速上手
@@ -127,6 +128,10 @@ docker run -it --net host fenjing webui
   - 需要指定表单的url, action(GET或POST)以及所有字段(比如'name')
   - 攻击成功后也会提供一个模拟终端或执行给定的命令
   - 示例：`python -m fenjing crack --url 'http://xxx/' --method GET --inputs name`
+- crack-path: 对某个特定的路径进行攻击
+  - 攻击某个路径（如`http://xxx.xxx/hello/<payload>`）存在的漏洞
+  - 参数大致上和crack相同，但是只需要提供对应的路径
+  - 示例：`python -m fenjing crack-path --url 'http://xxx/hello/'`
 - get-config: 对某个特定的表单进行攻击，但是只获取flask config
   - 参数大致上和crack相同
 ```
@@ -176,6 +181,21 @@ Options:
   --header TEXT       请求时使用的Headers
   --cookies TEXT      请求时使用的Cookie
   --help              Show this message and exit.
+
+Usage: python -m fenjing crack-path [OPTIONS]
+
+  攻击指定的路径
+
+Options:
+  -u, --url TEXT       需要攻击的URL
+  -e, --exec-cmd TEXT  成功后执行的shell指令，不填则成功后进入交互模式
+  --interval FLOAT     每次请求的间隔
+  --detect-mode TEXT   分析模式，可为accurate或fast
+  --user-agent TEXT    请求时使用的User Agent
+  --header TEXT        请求时使用的Headers
+  --cookies TEXT       请求时使用的Cookie
+  --help               Show this message and exit.
+
 ```
 
 ### 作为python库使用
@@ -209,5 +229,4 @@ if __name__ == "__main__":
 
 ## 项目结构
 
-[![](https://mermaid.ink/img/pako:eNp1U8tuwyAQ_BWElJziH_Chh6rH9tL21Dqy1niJUTG4PJqkUf69YCfBdlwOCIbZ2WEXTpTpGmlOudR71oBx5P2xUCQM66udga4h3glpyQDGwbTURvxiQgx-e7QOTYK4Nu04RFmXtsMKVT3PZNFkQgUhDgzHKaX45GBzDlk4bIUCGbFtYuyx8pFTRQ4XBrk-DOB2IkOy7GHAbybIzEW0blPQakXqoMec0Iq8Po9SAi-5V6zcoZpevGQG2Ne4HJaBKr2Ry7zB1J1cX6CZuQ6OUkM98pfMXTt3qbjDgyt_wIy4tkEpy4vGhMzF7h7nPrGnt1wEpzJkPU3XX3Ku2IPj_XrB-e2hXPt3X-PrybTOw9x3-5-4WReWLMYW0A1tw7sDUYevcoqhBXUNtljQPCwVemdAFrRQ50AF7_TbUTGaO-NxQ31Xg8MnAaGFLQ0PVNqAdqA-tE57rIXT5mX4jv2vPP8BWQ4lKg?type=png)](https://mermaid.live/edit#pako:eNp1U8tuwyAQ_BWElJziH_Chh6rH9tL21Dqy1niJUTG4PJqkUf69YCfBdlwOCIbZ2WEXTpTpGmlOudR71oBx5P2xUCQM66udga4h3glpyQDGwbTURvxiQgx-e7QOTYK4Nu04RFmXtsMKVT3PZNFkQgUhDgzHKaX45GBzDlk4bIUCGbFtYuyx8pFTRQ4XBrk-DOB2IkOy7GHAbybIzEW0blPQakXqoMec0Iq8Po9SAi-5V6zcoZpevGQG2Ne4HJaBKr2Ry7zB1J1cX6CZuQ6OUkM98pfMXTt3qbjDgyt_wIy4tkEpy4vGhMzF7h7nPrGnt1wEpzJkPU3XX3Ku2IPj_XrB-e2hXPt3X-PrybTOw9x3-5-4WReWLMYW0A1tw7sDUYevcoqhBXUNtljQPCwVemdAFrRQ50AF7_TbUTGaO-NxQ31Xg8MnAaGFLQ0PVNqAdqA-tE57rIXT5mX4jv2vPP8BWQ4lKg)
-
+[![](https://mermaid.ink/img/pako:eNp1VE1PxCAQ_SuERE_2D-zBg_GoF_WkNc0sHbZECisf7upm_7tQrNCPpUnDPB5vhpmBE2W6RbqhXOoD68A48nJXKxKG9dudgX1HvBPSkgTGwbTURvxgRgx-erQOTYa4Nn25RVmXzTRD1c49WTSVUEGIA8PSpRRvHOyGQxUWe6FARuw9Mw649ZGzjRwuDHJ9TOD7RIZU1W3C_4Mgsyhi6DZvuroibdBjTmhFnh4Kl8Ab7hVrdqia6Xmj1TAD7KPMiWWgGm_kOi9FVmheytIeXGcvhBHX8lK0lmGU6MJpoTB4Xvj-lhrawn3Ozdg4fwV3eHTNF5iCazuUsvnTmJC52C1x7jM7JyQdYQWcypDrqbvhpHPFASzt65XI_yswts-yuuPKtMIjuixD-g9teEFx1hlrwSfirJrrxPjRG9qHuwOiDdf9FDfX1HXYY003YarQOwOyprU6Byp4p5-_FaMbZzzeUL9vweG9gNAHPQ2XTNqA7kG9ap1tbIXT5jE9KcPLcv4FmdNlhw?type=png)](https://mermaid.live/edit#pako:eNp1VE1PxCAQ_SuERE_2D-zBg_GoF_WkNc0sHbZECisf7upm_7tQrNCPpUnDPB5vhpmBE2W6RbqhXOoD68A48nJXKxKG9dudgX1HvBPSkgTGwbTURvxgRgx-erQOTYa4Nn25RVmXzTRD1c49WTSVUEGIA8PSpRRvHOyGQxUWe6FARuw9Mw649ZGzjRwuDHJ9TOD7RIZU1W3C_4Mgsyhi6DZvuroibdBjTmhFnh4Kl8Ab7hVrdqia6Xmj1TAD7KPMiWWgGm_kOi9FVmheytIeXGcvhBHX8lK0lmGU6MJpoTB4Xvj-lhrawn3Ozdg4fwV3eHTNF5iCazuUsvnTmJC52C1x7jM7JyQdYQWcypDrqbvhpHPFASzt65XI_yswts-yuuPKtMIjuixD-g9teEFx1hlrwSfirJrrxPjRG9qHuwOiDdf9FDfX1HXYY003YarQOwOyprU6Byp4p5-_FaMbZzzeUL9vweG9gNAHPQ2XTNqA7kG9ap1tbIXT5jE9KcPLcv4FmdNlhw)
