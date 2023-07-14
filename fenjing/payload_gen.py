@@ -120,7 +120,8 @@ class PayloadGenerator:
         gens = req_gens[gen_type].copy()
         gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         for gen in gens:
-            ret = self.generate_by_list(gen(self.context, *args))
+            gen_ret: ReqGenReturn = gen(self.context, *args)
+            ret = self.generate_by_list(gen_ret)
             if ret is None:
                 if hashable(gen_req):
                     self.cache[gen_req] = ret
@@ -128,7 +129,7 @@ class PayloadGenerator:
             result = ret[0]
             self.callback(
                 CALLBACK_GENERATE_PAYLOAD,
-                {"gen_type": gen_type, "args": args, "payload": result},
+                {"gen_type": gen_type, "args": args, "gen_ret": gen_ret, "payload": result},
             )
             # 为了日志的简洁，仅打印一部分日志
             if gen_type in (INTEGER, STRING) and result != str(args[0]):
