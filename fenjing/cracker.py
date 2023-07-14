@@ -6,6 +6,7 @@ import logging
 import random
 from collections import namedtuple
 from string import ascii_lowercase
+from typing import Union, Callable, Dict
 
 from .submitter import Submitter
 from .colorize import colored
@@ -27,13 +28,32 @@ class Cracker:
     def __init__(
         self,
         submitter: Submitter,
+        callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
     ):
         self.detect_mode = detect_mode
         self.subm = submitter
-        self.waf_func_gen = WafFuncGen(
-            submitter, callback=None, detect_mode=detect_mode
+
+        self._callback: Callable[[str, Dict], None] = (
+            callback if callback else (lambda x, y: None)
         )
+        self.waf_func_gen = WafFuncGen(
+            submitter, callback=callback, detect_mode=detect_mode
+        )
+
+    @property
+    def callback(self):
+        """Callback函数
+
+        Returns:
+            Callable: Callback函数
+        """
+        return self._callback
+
+    @callback.setter
+    def callback(self, callback):
+        self._callback = callback
+        self.waf_func_gen.callback = callback
 
     def test_payload(self, payload: str):
         logger.info(
