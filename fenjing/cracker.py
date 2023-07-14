@@ -44,7 +44,7 @@ class Cracker:
         _, text = result
         return self.test_result in text
 
-    def is_vulunable(self):
+    def has_respond(self):
         content = "".join(random.choices(ascii_lowercase, k=6))
         resp = self.subm.submit(content)
         assert resp is not None

