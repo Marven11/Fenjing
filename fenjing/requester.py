@@ -72,6 +72,6 @@ class Requester:
         """
         for _ in range(self.retry_times - 1):
             resp = self.request_once(**kwargs)
-            if resp:
+            if resp is not None:
                 return resp
         return self.request_once(**kwargs)
