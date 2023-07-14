@@ -1,14 +1,16 @@
 # pylint: skip-file
 # flake8: noqa
 from flask import Flask, render_template, request, jsonify
-
+from typing import Union
 import logging
 import threading
 import uuid
 from urllib.parse import urlparse
 
-from .form import get_form
-from .form_cracker import FormCracker
+from .form import get_form, Form
+from .cracker import Cracker
+from .submitter import Submitter, FormSubmitter
+from .full_payload_gen import FullPayloadGen
 from .requester import Requester
 from .const import (
     CALLBACK_GENERATE_FULLPAYLOAD,
@@ -19,7 +21,7 @@ from .const import (
     APICODE_OK,
     APICODE_WRONG_INPUT,
     DEFAULT_USER_AGENT,
-    OS_POPEN_READ
+    OS_POPEN_READ,
 )
 
 logger = logging.getLogger("webui")
@@ -68,9 +70,14 @@ class CallBackLogger:
         )
 
     def callback_submit(self, data):
-        self.flash_messages.append(
-            f"提交表单完成，返回值为{data['response'].status_code}，输入为{data['inputs']}，表单为{data['form']}"
-        )
+        if data.get("type", "form"):
+            self.flash_messages.append(
+                f"提交表单完成，返回值为{data['response'].status_code}，输入为{data['inputs']}，表单为{data['form']}"
+            )
+        else:
+            self.flash_messages.append(
+                f"提交payload完成，返回值为{data['response'].status_code}，提交payload为{data['payload']}"
+            )
 
     def callback_test_form_input(self, data):
         if not data["ok"]:
@@ -95,40 +102,55 @@ class CallBackLogger:
 
 
 class CrackTaskThread(threading.Thread):
-    def __init__(self, taskid, url, form, interval):
+    def __init__(self, taskid, url, form: Form, interval):
         super().__init__()
-        self.result = None
+        self.success = False
         self.taskid = taskid
         self.form = form
-
+        self.url = url
         self.flash_messages = []
         self.messages = []
         self.callback = CallBackLogger(self.flash_messages, self.messages)
-
-        self.cracker = FormCracker(
-            url=url,
-            form=form,
-            requester=Requester(
-                interval=interval, user_agent=DEFAULT_USER_AGENT
-            ),
-            callback=self.callback,
+        self.submitter: Union[Submitter, None] = None
+        self.cracker: Union[Cracker, None]
+        self.requester = Requester(
+            interval=interval, user_agent=DEFAULT_USER_AGENT
         )
 
     def run(self):
-        self.messages.append(f"开始分析WAF")
-        self.result = self.cracker.crack()
-        if self.result:
-            self.messages.append(f"WAF已绕过，现在可以执行Shell指令了")
-        else:
+        for input_field in self.form["inputs"]:
+            self.messages.append(f"开始分析表单项{input_field}")
+            self.submitter = FormSubmitter(
+                self.url,
+                self.form,
+                input_field,
+                self.requester,
+                self.callback,
+            )
+            self.cracker = Cracker(self.submitter, self.callback)
+            if not self.cracker.has_respond():
+                continue
+            self.full_payload_gen = self.cracker.crack()
+            if self.full_payload_gen:
+                self.messages.append(f"WAF已绕过，现在可以执行Shell指令了")
+                self.success = True
+                break
+            continue
+        if not self.full_payload_gen:
             self.messages.append(f"WAF绕过失败")
 
 
 class InteractiveTaskThread(threading.Thread):
-    def __init__(self, taskid, cracker, field, full_payload_gen, cmd):
+    def __init__(
+        self,
+        taskid: str,
+        submitter: Submitter,
+        full_payload_gen: FullPayloadGen,
+        cmd: str,
+    ):
         super().__init__()
         self.taskid = taskid
-        self.cracker = cracker
-        self.field = field
+        self.submitter = submitter
         self.full_payload_gen = full_payload_gen
         self.cmd = cmd
 
@@ -136,7 +158,7 @@ class InteractiveTaskThread(threading.Thread):
         self.messages = []
         self.callback = CallBackLogger(self.flash_messages, self.messages)
 
-        self.cracker.callback = self.callback
+        self.submitter.callback = self.callback
         self.full_payload_gen.callback = self.callback
 
     def run(self):
@@ -144,12 +166,15 @@ class InteractiveTaskThread(threading.Thread):
         payload, will_print = self.full_payload_gen.generate(
             OS_POPEN_READ, self.cmd
         )
+        if not payload:
+            self.messages.append(f"payload生成失败")
+            return
         if not will_print:
             self.messages.append(f"此payload不会产生回显")
-        r = self.cracker.submit({self.field: payload})
-        assert r is not None
+        resp = self.submitter.submit(payload)
+        assert resp is not None
         self.messages.append(f"提交payload的回显如下：")
-        self.messages.append(r.text)
+        self.messages.append(resp.text)
 
 
 @app.route("/")
@@ -174,15 +199,12 @@ def create_crack_task(url, method, inputs, action, interval):
 
 def create_interactive_id(cmd, last_task):
     assert cmd != "", "wrong param"
-    cracker, field, full_payload_gen = (
-        last_task.cracker,
-        last_task.result.input_field,
-        last_task.result.full_payload_gen,
+    submitter, full_payload_gen = (
+        last_task.submitter,
+        last_task.full_payload_gen,
     )
     taskid = uuid.uuid4().hex
-    task = InteractiveTaskThread(
-        taskid, cracker, field, full_payload_gen, cmd
-    )
+    task = InteractiveTaskThread(taskid, submitter, full_payload_gen, cmd)
     task.daemon = True
     task.start()
     tasks[taskid] = task
@@ -234,7 +256,7 @@ def create_task():
                     "message": f"last_task_id not found: {last_task_id}",
                 }
             )
-        if last_task.result is None:
+        if not last_task.success :
             return jsonify(
                 {
                     "code": APICODE_WRONG_INPUT,
@@ -272,7 +294,7 @@ def watchTask():
                 "done": not task.is_alive(),
                 "messages": task.messages,
                 "flash_messages": task.flash_messages,
-                "success": task.result.input_field if task.result else None,
+                "success": task.success,
             }
         )
     elif isinstance(task, InteractiveTaskThread):
