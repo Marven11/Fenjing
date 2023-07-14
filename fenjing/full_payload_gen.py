@@ -18,7 +18,7 @@ from .const import (
     DETECT_MODE_ACCURATE,
 )
 
-logger = logging.getLogger("shell_payload")
+logger = logging.getLogger("full_payload_gen")
 
 
 def get_outer_pattern(
@@ -234,5 +234,10 @@ class FullPayloadGen:
                 "will_print": self.will_print,
             },
         )
-
+        if not self.will_print:
+            logger.warning(
+                "use %s, which %s your result!",
+                colored("blue", self.outer_pattern),
+                colored("red", "will not print"),
+            )
         return (payload, self.will_print)
