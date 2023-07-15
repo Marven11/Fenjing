@@ -84,13 +84,17 @@ class WafFuncGen:
             Callable: WAF函数
         """
         waf_hashes = self.waf_page_hash()
+        # 随着检测payload一起提交的附加内容
+        # content: 内容本身，passed: 内容是否确认可以通过waf
+        extra_content, extra_passed = (
+            "".join(random.choices(string.ascii_lowercase, k=6)),
+            False,
+        )
 
         @lru_cache(1000)
         def waf_func(value):
+            nonlocal extra_content, extra_passed
             for _ in range(5):
-                extra_content = "".join(
-                    random.choices(string.ascii_lowercase, k=6)
-                )
                 result = self.subm.submit(extra_content + value)
                 if result is None:
                     return False
@@ -111,14 +115,22 @@ class WafFuncGen:
                 # 因此我们选择直接返回False
                 if self.detect_mode == DETECT_MODE_FAST:
                     return False
-                # 检测是否是extra_content导致的WAF，如果是的话重新检测
+                # 如果extra_content之前检测过，则可以确定不是它产生的问题，返回False
+                if extra_passed:
+                    return False
+                # 检测是否是extra_content导致的WAF
+                # 如果是的话更换extra_content并重新检测
                 extra_content_result = self.subm.submit(extra_content)
                 if (
                     extra_content_result is not None
                     and extra_content_result.status_code != 500
                     and hash(extra_content_result.text) in waf_hashes
                 ):
+                    extra_content = "".join(
+                        random.choices(string.ascii_lowercase, k=6)
+                    )
                     continue
+                extra_passed = True
                 return False
             # 五次检测都失败，我们选择直接返回False
             return False
