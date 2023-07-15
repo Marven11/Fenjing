@@ -561,6 +561,40 @@ def gen_string_percent_lower_c_concat(context):
         (LITERAL, ")"),
     ]
 
+@req_gen
+def gen_string_percent_lower_c_dictjoin(context):
+    # "(dict([('%',x),('c',x)])|join)"
+    return [
+        (LITERAL, "(dict([("),
+        (STRING_PERCENT, ),
+        (LITERAL, ",x),("),
+        (STRING_LOWERC, ),
+        (LITERAL, ",x)])|join)")
+    ]
+
+
+@req_gen
+def gen_string_percent_lower_c_listjoin(context):
+    # "(['%','c']|join)"
+    return [
+        (LITERAL, "(["),
+        (STRING_PERCENT, ),
+        (LITERAL, ","),
+        (STRING_LOWERC, ),
+        (LITERAL, "]|join)")
+    ]
+
+@req_gen
+def gen_string_percent_lower_c_tuplejoin(context):
+    # "(('%','c')|join)"
+    return [
+        (LITERAL, "(("),
+        (STRING_PERCENT, ),
+        (LITERAL, ","),
+        (STRING_LOWERC, ),
+        (LITERAL, ")|join)")
+    ]
+
 
 @req_gen
 def gen_string_percent_lower_c_cycler(context):
