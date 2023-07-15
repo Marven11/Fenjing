@@ -556,7 +556,7 @@ def gen_string_percent_lower_c_concat(context):
     return [
         (LITERAL, "("),
         (STRING_PERCENT,),
-        (STRING_STRING_CONCNAT,),
+        (STRING_STRING_CONCAT,),
         (STRING_LOWERC,),
         (LITERAL, ")"),
     ]
@@ -624,7 +624,7 @@ def gen_string_many_percent_lower_c_concat(context, count: int):
         ]
         if i == 0
         else [
-            (STRING_STRING_CONCNAT,),
+            (STRING_STRING_CONCAT,),
             (STRING_PERCENT_LOWER_C,),
         ]
         for i in range(count)
@@ -864,9 +864,9 @@ def gen_string_removedunder(context: dict, value: str):
         (STRING_UNDERLINE,),
         (LITERAL, "*"),
         (INTEGER, 2),
-        (STRING_STRING_CONCNAT,),
+        (STRING_STRING_CONCAT,),
         (STRING, value[2:-2]),
-        (STRING_STRING_CONCNAT,),
+        (STRING_STRING_CONCAT,),
         (STRING_UNDERLINE,),
         (LITERAL, "*"),
         (INTEGER, 2),
@@ -924,7 +924,7 @@ def gen_string_splitdictjoin(context: dict, value: str):
     req = []
     for i, part in enumerate(parts):
         if i != 0:
-            req.append((STRING_STRING_CONCNAT,))
+            req.append((STRING_STRING_CONCAT,))
         req.append((LITERAL, "(dict({}=x)|join)".format(part)))
     return req
 
@@ -960,7 +960,7 @@ def gen_string_splitdictjoin3(context: dict, value: str):
 def gen_string_chars(context: dict, value: str):
     ans: List[Any] = [(LITERAL, "("), (CHAR, value[0])]
     for c in value[1:]:
-        ans.append((STRING_STRING_CONCNAT,))
+        ans.append((STRING_STRING_CONCAT,))
         ans.append((CHAR, c))
     ans.append(
         (LITERAL, ")"),
