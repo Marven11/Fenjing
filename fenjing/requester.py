@@ -42,7 +42,7 @@ class Requester:
         """发出一次网络请求，失败时返回None
 
         Returns:
-            Response | None: 返回的响应
+            Union[Response, None]: 返回的响应
         """
         duration = time.perf_counter() - self.last_request_time
         if duration < self.interval:
@@ -68,7 +68,7 @@ class Requester:
         """发送请求，自动重试
 
         Returns:
-            Response | None: 响应
+            Union[Response, None]: 响应
         """
         for _ in range(self.retry_times - 1):
             resp = self.request_once(**kwargs)

@@ -39,10 +39,10 @@ class BaseSubmitter:
     def add_tamperer(self, tamperer: Tamperer):
         self.tamperers.append(tamperer)
 
-    def submit_raw(self, raw_payload: str) -> HTTPResponse | None:
+    def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
         raise NotImplementedError()
 
-    def submit(self, payload: str) -> HTTPResponse | None:
+    def submit(self, payload: str) -> Union[HTTPResponse, None]:
         if self.tamperers:
             logger.info("Applying tampers...")
             for tamperer in self.tamperers:
@@ -78,7 +78,7 @@ class FormSubmitter(BaseSubmitter):
         self.req = requester
         self.target_field = target_field
 
-    def submit_raw(self, raw_payload: str) -> HTTPResponse | None:
+    def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
         inputs = {self.target_field: raw_payload}
         resp = self.req.request(
             **fill_form(self.url, self.form, inputs)
@@ -114,7 +114,7 @@ class PathSubmitter(BaseSubmitter):
         self.url = url
         self.req = requester
 
-    def submit_raw(self, raw_payload: str) -> HTTPResponse | None:
+    def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
         if any(w in raw_payload for w in ["/", ".."]):
             logger.info(
                 "Don't submit %s because it can't be in the path.",

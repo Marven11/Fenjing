@@ -7,6 +7,7 @@ sys.path.append("..")
 
 import unittest
 import fenjing
+from typing import Union
 from fenjing.cracker import Cracker
 from fenjing.submitter import BaseSubmitter, HTTPResponse
 from fenjing import const
@@ -19,7 +20,7 @@ class FakeSubmitter(BaseSubmitter):
         super().__init__(callback)
         self.waf = waf
 
-    def submit_raw(self, raw_payload: str) -> HTTPResponse | None:
+    def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
         if not self.waf(raw_payload):
             return HTTPResponse(200, "Nope")
         try:
