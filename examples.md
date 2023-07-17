@@ -32,6 +32,27 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
 - 指定Header：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --header 'Aaa: Bbb' --header 'Ccc: Ddd'`
 - 指定Cookie：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --cookie 'name1=value1; name2=value2'`
 
+### Tamper Cmd的使用
+
+如果指定了`--tamper-cmd`参数，焚靖在每次提交payload时会使用指定的命令打开一个子进程，向这个子进程的标准输入传入payload, 并将子进程的输出作为编码后的结果进行提交。
+
+例如：Linux中有一个命令行程序`base64`，它会从输入中读取内容，进行base64编码并输出
+
+我们就可以使用`--tamper-cmd 'base64'`指定使用这个命令编码payload
+
+同样道理，`--tamper-cmd 'base64|rev'`就是先进行base64编码再将内容反转
+
+也可以使用python来自定义编码方式，例子如下：
+
+先新建一个`encoder.py`，写入以下内容：
+
+```python
+s = input()
+print(s[::-1], end = "") # 将payload反转
+```
+
+然后指定`--tamper-cmd 'python encoder.py'`就可以了
+
 
 ## 作为库使用
 

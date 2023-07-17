@@ -15,6 +15,7 @@
 - 全自动分析网站的WAF并生成相应的payload
 - 使用精确模式全面分析网站或使用快速模式减少不必要的网络请求
 - 支持攻击对应的HTML表单或HTML路径
+- 使用Shell指令对要发送的payload进行编码
 - 方便的网页界面/命令行界面
 
 ## 快速上手
@@ -117,6 +118,8 @@ docker run -it --net host fenjing webui
 
 ### 作为命令行脚本使用
 
+各个功能的介绍：
+
 - webui: 网页UI
   - 顾名思义，网页UI
   - 默认端口11451
@@ -134,6 +137,27 @@ docker run -it --net host fenjing webui
   - 示例：`python -m fenjing crack-path --url 'http://xxx/hello/'`
 - get-config: 对某个特定的表单进行攻击，但是只获取flask config
   - 参数大致上和crack相同
+
+一些特殊的选项：
+
+- `--detect-mode`：检测模式，可为accurate或fast
+  - 默认为accurate
+  - 在开始尝试触发WAF, 获取WAF页面对应hash时：
+    - accurate模式会一个接一个地发送尽可能多的payload
+    - fast模式会将多个payload组合在一起发送，
+  - 在生成payload时：
+    - accurate模式会先从最简单的方法试起
+    - fast模式会先尝试使用复杂但通常更能绕过WAF的方法
+- `--tamper-cmd`：编码payload
+  - 某些情况下，目标会先将用户输入进行base64解码后再渲染
+  - tamper-cmd可以在payload发出前先调用shell指令对payload进行编码，从而处理上述情况
+  - 例如：
+    - `--tamper-cmd 'rev'`：将payload反转后再发出
+    - `--tamper-cmd 'base64'`：将payload进行base64编码后发出
+    - `--tamper-cmd 'base64 | rev'`：将payload进行base64编码并反转后再发出
+  - 更多例子可以参考[examples.md](examples.md)
+
+
 ```
 Usage: python -m fenjing scan [OPTIONS]
 
@@ -147,6 +171,7 @@ Options:
   --user-agent TEXT    请求时使用的User Agent
   --header TEXT        请求时使用的Headers
   --cookies TEXT       请求时使用的Cookie
+  --tamper-cmd TEXT    在发送payload之前进行编码的命令，默认不进行额外操作
   --help               Show this message and exit.
 
 Usage: python -m fenjing crack [OPTIONS]
@@ -164,6 +189,7 @@ Options:
   --user-agent TEXT    请求时使用的User Agent
   --header TEXT        请求时使用的Headers
   --cookies TEXT       请求时使用的Cookie
+  --tamper-cmd TEXT    在发送payload之前进行编码的命令，默认不进行额外操作
   --help               Show this message and exit.
 
 Usage: python -m fenjing get-config [OPTIONS]
@@ -180,6 +206,7 @@ Options:
   --user-agent TEXT   请求时使用的User Agent
   --header TEXT       请求时使用的Headers
   --cookies TEXT      请求时使用的Cookie
+  --tamper-cmd TEXT    在发送payload之前进行编码的命令，默认不进行额外操作
   --help              Show this message and exit.
 
 Usage: python -m fenjing crack-path [OPTIONS]
@@ -194,6 +221,7 @@ Options:
   --user-agent TEXT    请求时使用的User Agent
   --header TEXT        请求时使用的Headers
   --cookies TEXT       请求时使用的Cookie
+  --tamper-cmd TEXT    在发送payload之前进行编码的命令，默认不进行额外操作
   --help               Show this message and exit.
 
 ```
@@ -229,4 +257,4 @@ if __name__ == "__main__":
 
 ## 项目结构
 
-[![](https://mermaid.ink/img/pako:eNp1VE1PxCAQ_SuERE_2D-zBg_GoF_WkNc0sHbZECisf7upm_7tQrNCPpUnDPB5vhpmBE2W6RbqhXOoD68A48nJXKxKG9dudgX1HvBPSkgTGwbTURvxgRgx-erQOTYa4Nn25RVmXzTRD1c49WTSVUEGIA8PSpRRvHOyGQxUWe6FARuw9Mw649ZGzjRwuDHJ9TOD7RIZU1W3C_4Mgsyhi6DZvuroibdBjTmhFnh4Kl8Ab7hVrdqia6Xmj1TAD7KPMiWWgGm_kOi9FVmheytIeXGcvhBHX8lK0lmGU6MJpoTB4Xvj-lhrawn3Ozdg4fwV3eHTNF5iCazuUsvnTmJC52C1x7jM7JyQdYQWcypDrqbvhpHPFASzt65XI_yswts-yuuPKtMIjuixD-g9teEFx1hlrwSfirJrrxPjRG9qHuwOiDdf9FDfX1HXYY003YarQOwOyprU6Byp4p5-_FaMbZzzeUL9vweG9gNAHPQ2XTNqA7kG9ap1tbIXT5jE9KcPLcv4FmdNlhw?type=png)](https://mermaid.live/edit#pako:eNp1VE1PxCAQ_SuERE_2D-zBg_GoF_WkNc0sHbZECisf7upm_7tQrNCPpUnDPB5vhpmBE2W6RbqhXOoD68A48nJXKxKG9dudgX1HvBPSkgTGwbTURvxgRgx-erQOTYa4Nn25RVmXzTRD1c49WTSVUEGIA8PSpRRvHOyGQxUWe6FARuw9Mw649ZGzjRwuDHJ9TOD7RIZU1W3C_4Mgsyhi6DZvuroibdBjTmhFnh4Kl8Ab7hVrdqia6Xmj1TAD7KPMiWWgGm_kOi9FVmheytIeXGcvhBHX8lK0lmGU6MJpoTB4Xvj-lhrawn3Ozdg4fwV3eHTNF5iCazuUsvnTmJC52C1x7jM7JyQdYQWcypDrqbvhpHPFASzt65XI_yswts-yuuPKtMIjuixD-g9teEFx1hlrwSfirJrrxPjRG9qHuwOiDdf9FDfX1HXYY003YarQOwOyprU6Byp4p5-_FaMbZzzeUL9vweG9gNAHPQ2XTNqA7kG9ap1tbIXT5jE9KcPLcv4FmdNlhw)
+[![](https://mermaid.ink/img/pako:eNptU8tuwyAQ_BWE1JziH8ihh6rXntpT68ja4CVGxYvLo0ka5d-L7SQGxxwQDLuzj1nOXJga-YZLbQ6iAevZx0tJLC4XdnsLXcOCV9qxEeyXMNpY9YcTYvEnoPNoJ0ga26Yu5Px0HU9I9TySQ1soikQSBKYhtfqS4DYSivjYKgLdY9vJ4oC70NvsehupLEpzHMFtRsOK4nnE70mwWRbCgvhG6xK_EUmigaxkIFHtkSY0MrTKZ21wAqgKVj9wDXksOKTPy1FSdIllaGtJs6I6OGkDdVLU0xOrY5-EV4buol_F8nj01S-kPXANal1daTJjqfaPuAyTdZ7_IpjTsFUebihzzjiA6X21kPl9xm7SZ1LewFylcR9mZMEl0eexxpL4mrdxQkHV8VOde5-S-wZbLPkmHgmDt6BLXtIlmkLw5v1Egm-8DbjmoavB46uCKFrL4yhrF9EO6NOY6Y618sa-jR93-L-Xf1aoMIE?type=png)](https://mermaid.live/edit#pako:eNptU8tuwyAQ_BWE1JziH8ihh6rXntpT68ja4CVGxYvLo0ka5d-L7SQGxxwQDLuzj1nOXJga-YZLbQ6iAevZx0tJLC4XdnsLXcOCV9qxEeyXMNpY9YcTYvEnoPNoJ0ga26Yu5Px0HU9I9TySQ1soikQSBKYhtfqS4DYSivjYKgLdY9vJ4oC70NvsehupLEpzHMFtRsOK4nnE70mwWRbCgvhG6xK_EUmigaxkIFHtkSY0MrTKZ21wAqgKVj9wDXksOKTPy1FSdIllaGtJs6I6OGkDdVLU0xOrY5-EV4buol_F8nj01S-kPXANal1daTJjqfaPuAyTdZ7_IpjTsFUebihzzjiA6X21kPl9xm7SZ1LewFylcR9mZMEl0eexxpL4mrdxQkHV8VOde5-S-wZbLPkmHgmDt6BLXtIlmkLw5v1Egm-8DbjmoavB46uCKFrL4yhrF9EO6NOY6Y618sa-jR93-L-Xf1aoMIE)
