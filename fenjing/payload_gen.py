@@ -795,7 +795,7 @@ def gen_char_select(context, c):
 
 @req_gen
 def gen_char_dict(context, c):
-    if not re.match("[0-9A-Za-z]", c):
+    if not re.match("[A-Za-z]", c):
         return [(UNSATISFIED,)]
     return [(LITERAL, f"(dict({c}=x)|join)")]
 
