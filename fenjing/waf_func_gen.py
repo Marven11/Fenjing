@@ -48,14 +48,13 @@ class WafFuncGen:
         Returns:
             List[int]: payload被waf后页面对应的hash
         """
-        test_keywords = (
-            dangerous_keywords
-            if self.detect_mode == DETECT_MODE_ACCURATE
-            else [
-                "".join(dangerous_keywords[i: i + 3])  # flake8: noqa
-                for i in range(0, len(dangerous_keywords), 3)
-            ]
-        )
+        composed_test_keywords = [
+            "".join(dangerous_keywords[i: i + 3])  # flake8: noqa
+            for i in range(0, len(dangerous_keywords), 3)
+        ]
+        test_keywords = composed_test_keywords
+        if self.detect_mode == DETECT_MODE_ACCURATE:
+            test_keywords += dangerous_keywords
         hashes: List[int] = []
         for keyword in test_keywords:
             logger.info(
