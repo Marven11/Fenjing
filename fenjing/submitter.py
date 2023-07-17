@@ -44,10 +44,10 @@ class BaseSubmitter:
 
     def submit(self, payload: str) -> Union[HTTPResponse, None]:
         if self.tamperers:
-            logger.info("Applying tampers...")
+            logger.debug("Applying tampers...")
             for tamperer in self.tamperers:
                 payload = tamperer(payload)
-        logger.info("Submit %s", colored("blue", payload))
+        logger.debug("Submit %s", colored("blue", payload))
         return self.submit_raw(payload)
 
 
