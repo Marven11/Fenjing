@@ -1,15 +1,38 @@
 from typing import List, Callable, Union, NamedTuple, Dict
 from urllib.parse import quote
 import logging
+import subprocess
 
 from .form import Form, fill_form
 from .requester import Requester
 from .colorize import colored
 from .const import CALLBACK_SUBMIT
+
 logger = logging.getLogger("submitter")
 
 
 Tamperer = Callable[[str], str]
+
+
+def shell_tamperer(shell_cmd: str) -> Tamperer:
+    def tamperer(payload: str):
+        proc = subprocess.Popen(
+            shell_cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        proc.stdin.write(payload.encode())
+        proc.stdin.close()
+        ret = proc.wait()
+        if ret != 0:
+            raise ValueError(
+                f"Shell command return non-zero code {ret} for input {payload}"
+            )
+        return proc.stdout.read().decode()
+
+    return tamperer
 
 
 class HTTPResponse(NamedTuple):
@@ -80,15 +103,16 @@ class FormSubmitter(BaseSubmitter):
 
     def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
         inputs = {self.target_field: raw_payload}
-        resp = self.req.request(
-            **fill_form(self.url, self.form, inputs)
+        resp = self.req.request(**fill_form(self.url, self.form, inputs))
+        self.callback(
+            CALLBACK_SUBMIT,
+            {
+                "type": "form",
+                "form": self.form,
+                "inputs": inputs,
+                "response": resp,
+            },
         )
-        self.callback(CALLBACK_SUBMIT, {
-            "type": "form",
-            "form": self.form,
-            "inputs": inputs,
-            "response": resp,
-        })
         if resp is None:
             return None
         return HTTPResponse(resp.status_code, resp.text)
@@ -124,12 +148,15 @@ class PathSubmitter(BaseSubmitter):
         resp = self.req.request(
             method="GET", url=self.url + quote(raw_payload)
         )
-        self.callback(CALLBACK_SUBMIT, {
-            "type": "path",
-            "url": self.url,
-            "payload": raw_payload,
-            "response": resp,
-        })
+        self.callback(
+            CALLBACK_SUBMIT,
+            {
+                "type": "path",
+                "url": self.url,
+                "payload": raw_payload,
+                "response": resp,
+            },
+        )
         if resp is None:
             return None
         return HTTPResponse(resp.status_code, resp.text)

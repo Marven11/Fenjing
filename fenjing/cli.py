@@ -12,7 +12,7 @@ import click
 
 from .form import get_form
 from .cracker import Cracker
-from .submitter import Submitter, PathSubmitter, FormSubmitter
+from .submitter import Submitter, PathSubmitter, FormSubmitter, shell_tamperer
 from .full_payload_gen import FullPayloadGen
 from .scan_url import yield_form
 from .requester import Requester
@@ -132,6 +132,9 @@ def main():
 )
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
+@click.option(
+    "--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作"
+)
 def get_config(
     url: str,
     action: str,
@@ -142,6 +145,7 @@ def get_config(
     user_agent: str,
     header: tuple,
     cookies: str,
+    tamper_cmd: str,
 ):
     """
     攻击指定的表单，并获得目标服务器的flask config
@@ -162,9 +166,14 @@ def get_config(
             headers_list=list(header), cookies=cookies
         ),
     )
+    tamperer = None
+    if tamper_cmd:
+        tamperer = shell_tamperer(tamper_cmd)
     found, submitter, full_payload_gen = False, None, None
     for input_field in form["inputs"]:
         submitter = FormSubmitter(url, form, input_field, requester)
+        if tamperer:
+            submitter.add_tamperer(tamperer)
         cracker = Cracker(submitter, detect_mode=detect_mode)
         if not cracker.has_respond():
             logger.info(
@@ -217,6 +226,9 @@ def get_config(
 )
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
+@click.option(
+    "--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作"
+)
 def crack(
     url: str,
     action: str,
@@ -228,6 +240,7 @@ def crack(
     user_agent: str,
     header: tuple,
     cookies: str,
+    tamper_cmd: str,
 ):
     """
     攻击指定的表单
@@ -248,9 +261,14 @@ def crack(
             headers_list=list(header), cookies=cookies
         ),
     )
+    tamperer = None
+    if tamper_cmd:
+        tamperer = shell_tamperer(tamper_cmd)
     found, submitter, full_payload_gen = False, None, None
     for input_field in form["inputs"]:
         submitter = FormSubmitter(url, form, input_field, requester)
+        if tamperer:
+            submitter.add_tamperer(tamperer)
         cracker = Cracker(submitter, detect_mode=detect_mode)
         if not cracker.has_respond():
             logger.info(
@@ -294,6 +312,9 @@ def crack(
 )
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
+@click.option(
+    "--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作"
+)
 def crack_path(
     url: str,
     exec_cmd: str,
@@ -302,6 +323,7 @@ def crack_path(
     user_agent: str,
     header: tuple,
     cookies: str,
+    tamper_cmd: str,
 ):
     """
     攻击指定的路径
@@ -316,6 +338,9 @@ def crack_path(
         ),
     )
     submitter = PathSubmitter(url=url, requester=requester)
+    if tamper_cmd:
+        tamperer = shell_tamperer(tamper_cmd)
+        submitter.add_tamperer(tamperer)
     cracker = Cracker(submitter=submitter, detect_mode=detect_mode)
     full_payload_gen = cracker.crack()
     if full_payload_gen is None:
@@ -345,7 +370,19 @@ def crack_path(
 )
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
-def scan(url, exec_cmd, interval, detect_mode, user_agent, header, cookies):
+@click.option(
+    "--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作"
+)
+def scan(
+    url,
+    exec_cmd,
+    interval,
+    detect_mode,
+    user_agent,
+    header,
+    cookies,
+    tamper_cmd: str,
+):
     """
     扫描指定的网站
     """
@@ -362,9 +399,14 @@ def scan(url, exec_cmd, interval, detect_mode, user_agent, header, cookies):
         for (page_url, forms) in yield_form(requester, url)
         for form in forms
     )
+    tamperer = None
+    if tamper_cmd:
+        tamperer = shell_tamperer(tamper_cmd)
     for page_url, form in url_forms:
         for input_field in form["inputs"]:
             submitter = FormSubmitter(page_url, form, input_field, requester)
+            if tamperer:
+                submitter.add_tamperer(tamperer)
             cracker = Cracker(submitter, detect_mode=detect_mode)
             if not cracker.has_respond():
                 continue
