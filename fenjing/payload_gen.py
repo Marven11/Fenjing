@@ -167,7 +167,7 @@ class PayloadGenerator:
             self.used_count[gen.__name__] += 1
             return ret
 
-        logger.warning(
+        logger.info(
             "{failed} generating {gen_type}({args_repl}), it might not be an issue.".format(
                 failed=colored("red", "failed"),
                 gen_type=gen_type,
