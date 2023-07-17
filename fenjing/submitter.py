@@ -135,4 +135,4 @@ class PathSubmitter(BaseSubmitter):
         return HTTPResponse(resp.status_code, resp.text)
 
 
-Submitter = Union[FormSubmitter, PathSubmitter]
+Submitter = BaseSubmitter
