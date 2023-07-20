@@ -31,6 +31,7 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
 - 指定请求时使用的UA：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --user-agent 'Aaa/1.1'`
 - 指定Header：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --header 'Aaa: Bbb' --header 'Ccc: Ddd'`
 - 指定Cookie：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --cookie 'name1=value1; name2=value2'`
+- 指定代理：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --proxy 'http://127.0.0.1:7890'`
 
 ### Tamper Cmd的使用
 

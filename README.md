@@ -74,11 +74,11 @@ docker run -it --net host fenjing webui
 
 ### `'%c'`绕过:
 
-支持绕过引号，`g`和`lipsum`
+支持绕过引号，`g`，`lipsum`和`urlencode`
 
 ### 下划线绕过：
 
-支持`(lipsum|escape|batch(22)|list|first|last)`
+支持`(lipsum|escape|batch(22)|list|first|last)`等
 - 其中的数字22支持上面的数字绕过
 
 ### 任意字符串：
@@ -171,6 +171,7 @@ Options:
   --user-agent TEXT    请求时使用的User Agent
   --header TEXT        请求时使用的Headers
   --cookies TEXT       请求时使用的Cookie
+  --proxy TEXT         请求时使用的代理
   --tamper-cmd TEXT    在发送payload之前进行编码的命令，默认不进行额外操作
   --help               Show this message and exit.
 
@@ -189,6 +190,7 @@ Options:
   --user-agent TEXT    请求时使用的User Agent
   --header TEXT        请求时使用的Headers
   --cookies TEXT       请求时使用的Cookie
+  --proxy TEXT         请求时使用的代理
   --tamper-cmd TEXT    在发送payload之前进行编码的命令，默认不进行额外操作
   --help               Show this message and exit.
 
@@ -206,7 +208,8 @@ Options:
   --user-agent TEXT   请求时使用的User Agent
   --header TEXT       请求时使用的Headers
   --cookies TEXT      请求时使用的Cookie
-  --tamper-cmd TEXT    在发送payload之前进行编码的命令，默认不进行额外操作
+  --proxy TEXT        请求时使用的代理
+  --tamper-cmd TEXT   在发送payload之前进行编码的命令，默认不进行额外操作
   --help              Show this message and exit.
 
 Usage: python -m fenjing crack-path [OPTIONS]
@@ -221,6 +224,7 @@ Options:
   --user-agent TEXT    请求时使用的User Agent
   --header TEXT        请求时使用的Headers
   --cookies TEXT       请求时使用的Cookie
+  --proxy TEXT         请求时使用的代理
   --tamper-cmd TEXT    在发送payload之前进行编码的命令，默认不进行额外操作
   --help               Show this message and exit.
 
