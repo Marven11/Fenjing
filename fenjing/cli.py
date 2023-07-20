@@ -67,8 +67,7 @@ def cmd_exec_submitter(
     logger.info("Submit payload %s", colored("blue", payload))
     if not will_print:
         payload_wont_print = (
-            "Payload generator says that this "
-            + "payload %s command execution result."
+            "Payload generator says that this " + "payload %s command execution result."
         )
         logger.warning(payload_wont_print, colored("red", "won't print"))
     result = submitter.submit(payload)
@@ -94,9 +93,7 @@ def interact(cmd_exec_func: Callable):
         print(result)
 
 
-def parse_headers_cookies(
-    headers_list: List[str], cookies: str
-) -> Dict[str, str]:
+def parse_headers_cookies(headers_list: List[str], cookies: str) -> Dict[str, str]:
     headers = {}
     if headers_list:
         for header in headers_list:
@@ -127,14 +124,11 @@ def main():
 @click.option(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
 )
-@click.option(
-    "--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent"
-)
+@click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
-@click.option(
-    "--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作"
-)
+@click.option("--proxy", default="", help="请求时使用的代理")
+@click.option("--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作")
 def get_config(
     url: str,
     action: str,
@@ -145,15 +139,14 @@ def get_config(
     user_agent: str,
     header: tuple,
     cookies: str,
+    proxy: str,
     tamper_cmd: str,
 ):
     """
     攻击指定的表单，并获得目标服务器的flask config
     """
     print(TITLE)
-    assert all(
-        param is not None for param in [url, inputs]
-    ), "Please check your param"
+    assert all(param is not None for param in [url, inputs]), "Please check your param"
     form = get_form(
         action=action or urlparse(url).path,
         method=method,
@@ -162,9 +155,8 @@ def get_config(
     requester = Requester(
         interval=interval,
         user_agent=user_agent,
-        headers=parse_headers_cookies(
-            headers_list=list(header), cookies=cookies
-        ),
+        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
+        proxy=proxy,
     )
     tamperer = None
     if tamper_cmd:
@@ -176,15 +168,11 @@ def get_config(
             submitter.add_tamperer(tamperer)
         cracker = Cracker(submitter, detect_mode=detect_mode)
         if not cracker.has_respond():
-            logger.info(
-                "Test input field %s failed, continue...", input_field
-            )
+            logger.info("Test input field %s failed, continue...", input_field)
             continue
         full_payload_gen = cracker.crack()
         if not full_payload_gen:
-            logger.info(
-                "Test input field %s failed, continue...", input_field
-            )
+            logger.info("Test input field %s failed, continue...", input_field)
             continue
         found = True
     if not found:
@@ -194,9 +182,7 @@ def get_config(
 
     payload, will_print = full_payload_gen.generate(CONFIG)
     if not payload:
-        logger.error(
-            "The generator %s generating payload", colored("red", "failed")
-        )
+        logger.error("The generator %s generating payload", colored("red", "failed"))
         return
     if not will_print:
         logger.error(
@@ -214,21 +200,16 @@ def get_config(
 @click.option("--action", "-a", default=None, help="form的action，默认为当前路径")
 @click.option("--method", "-m", default="POST", help="form的提交方式，默认为POST")
 @click.option("--inputs", "-i", help="form的参数，以逗号分隔")
-@click.option(
-    "--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式"
-)
+@click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
 )
-@click.option(
-    "--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent"
-)
+@click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
-@click.option(
-    "--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作"
-)
+@click.option("--proxy", default="", help="请求时使用的代理")
+@click.option("--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作")
 def crack(
     url: str,
     action: str,
@@ -240,15 +221,14 @@ def crack(
     user_agent: str,
     header: tuple,
     cookies: str,
+    proxy: str,
     tamper_cmd: str,
 ):
     """
     攻击指定的表单
     """
     print(TITLE)
-    assert all(
-        param is not None for param in [url, inputs]
-    ), "Please check your param"
+    assert all(param is not None for param in [url, inputs]), "Please check your param"
     form = get_form(
         action=action or urlparse(url).path,
         method=method,
@@ -257,9 +237,8 @@ def crack(
     requester = Requester(
         interval=interval,
         user_agent=user_agent,
-        headers=parse_headers_cookies(
-            headers_list=list(header), cookies=cookies
-        ),
+        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
+        proxy=proxy,
     )
     tamperer = None
     if tamper_cmd:
@@ -271,15 +250,11 @@ def crack(
             submitter.add_tamperer(tamperer)
         cracker = Cracker(submitter, detect_mode=detect_mode)
         if not cracker.has_respond():
-            logger.info(
-                "Test input field %s failed, continue...", input_field
-            )
+            logger.info("Test input field %s failed, continue...", input_field)
             continue
         full_payload_gen = cracker.crack()
         if not full_payload_gen:
-            logger.info(
-                "Test input field %s failed, continue...", input_field
-            )
+            logger.info("Test input field %s failed, continue...", input_field)
             continue
         found = True
     if not found:
@@ -300,21 +275,16 @@ def crack(
 
 @main.command()
 @click.option("--url", "-u", help="需要攻击的URL")
-@click.option(
-    "--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式"
-)
+@click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
 )
-@click.option(
-    "--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent"
-)
+@click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
-@click.option(
-    "--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作"
-)
+@click.option("--proxy", default="", help="请求时使用的代理")
+@click.option("--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作")
 def crack_path(
     url: str,
     exec_cmd: str,
@@ -323,6 +293,7 @@ def crack_path(
     user_agent: str,
     header: tuple,
     cookies: str,
+    proxy: str,
     tamper_cmd: str,
 ):
     """
@@ -333,9 +304,8 @@ def crack_path(
     requester = Requester(
         interval=interval,
         user_agent=user_agent,
-        headers=parse_headers_cookies(
-            headers_list=list(header), cookies=cookies
-        ),
+        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
+        proxy=proxy,
     )
     submitter = PathSubmitter(url=url, requester=requester)
     if tamper_cmd:
@@ -365,14 +335,11 @@ def crack_path(
 @click.option(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="检测模式，可为accurate或fast"
 )
-@click.option(
-    "--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent"
-)
+@click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
-@click.option(
-    "--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作"
-)
+@click.option("--proxy", default="", help="请求时使用的代理")
+@click.option("--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作")
 def scan(
     url,
     exec_cmd,
@@ -381,6 +348,7 @@ def scan(
     user_agent,
     header,
     cookies,
+    proxy,
     tamper_cmd: str,
 ):
     """
@@ -390,9 +358,8 @@ def scan(
     requester = Requester(
         interval=interval,
         user_agent=user_agent,
-        headers=parse_headers_cookies(
-            headers_list=list(header), cookies=cookies
-        ),
+        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
+        proxy=proxy,
     )
     url_forms = (
         (page_url, form)
@@ -427,9 +394,7 @@ def scan(
 
 
 @main.command()
-@click.option(
-    "--host", "-h", default="127.0.0.1", help="需要监听的host, 默认为127.0.0.1"
-)
+@click.option("--host", "-h", default="127.0.0.1", help="需要监听的host, 默认为127.0.0.1")
 @click.option("--port", "-p", default=11451, help="需要监听的端口, 默认为11451")
 def webui(host, port):
     """

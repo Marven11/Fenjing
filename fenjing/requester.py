@@ -25,6 +25,7 @@ class Requester:
         retry_status=(429,),
         user_agent=DEFAULT_USER_AGENT,
         headers=None,
+        proxy=None,
     ):
         self.interval = interval
         self.timeout = timeout
@@ -37,6 +38,12 @@ class Requester:
 
         if headers:
             self.session.headers.update(headers)
+
+        if proxy:
+            self.session.proxies = {
+                "http": proxy,
+                "https": proxy
+            }
 
     def request_once(self, **kwargs):
         """发出一次网络请求，失败时返回None
@@ -53,9 +60,7 @@ class Requester:
         try:
             resp = self.session.request(**kwargs)
         except Exception as exception:  # pylint: disable=W0718
-            logging.warning(
-                "Exception found when requesting: %s", type(exception)
-            )
+            logging.warning("Exception found when requesting: %s", type(exception))
             logging.debug(traceback.format_exc())
             return None
         if resp.status_code in self.retry_status:
