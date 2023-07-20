@@ -4,3 +4,4 @@ click
 flask
 jinja2
 mypy
+pysocks
