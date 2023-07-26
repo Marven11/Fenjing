@@ -2,6 +2,7 @@ from typing import List, Callable, Union, NamedTuple, Dict
 from urllib.parse import quote
 import logging
 import subprocess
+import html
 
 from .form import Form, fill_form
 from .requester import Requester
@@ -23,6 +24,7 @@ def shell_tamperer(shell_cmd: str) -> Tamperer:
             stdin=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
+        assert proc.stdin and proc.stdout
         proc.stdin.write(payload.encode())
         proc.stdin.close()
         ret = proc.wait()
@@ -71,8 +73,10 @@ class BaseSubmitter:
             for tamperer in self.tamperers:
                 payload = tamperer(payload)
         logger.debug("Submit %s", colored("blue", payload))
-        return self.submit_raw(payload)
-
+        resp = self.submit_raw(payload)
+        if resp is None:
+            return None
+        return HTTPResponse(resp.status_code, html.unescape(resp.text))
 
 class FormSubmitter(BaseSubmitter):
     """
