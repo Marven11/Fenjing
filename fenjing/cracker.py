@@ -9,6 +9,8 @@ from collections import namedtuple
 from string import ascii_lowercase
 from typing import Union, Callable, Dict
 
+from fenjing.form import random_fill
+
 from .submitter import FormSubmitter, RequestSubmitter, Submitter
 from .colorize import colored
 from .const import (
@@ -129,7 +131,7 @@ class Cracker:
             (
                 CHAINED_ATTRIBUTE_ITEM,
                 (LITERAL, "request"),
-                (ATTRIBUTE, "args"),
+                (ATTRIBUTE, "values"),
                 (ATTRIBUTE, args_target_field),
             ),
         )
@@ -143,8 +145,8 @@ class Cracker:
             url=self.subm.url,
             method=method,
             target_field=args_target_field,
-            params=payload_dict if method == "GET" else {},
-            data=payload_dict if method != "GET" else {},
+            params=random_fill(self.subm.form) | payload_dict if method == "GET" else {},
+            data=random_fill(self.subm.form) | payload_dict if method != "GET" else {},
             requester=self.subm.req,
         )
         if self.subm.tamperers:
