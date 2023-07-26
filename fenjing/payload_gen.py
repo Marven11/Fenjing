@@ -1148,33 +1148,29 @@ def gen_attribute_normal1(context, obj_req, attr_name):
     if not re.match("[A-Za-z_][A-Za-z0-9_]+", attr_name):
         return [(UNSATISFIED,)]
     return [
-        (LITERAL, "("),
         obj_req,
         (LITERAL, "."),
         (LITERAL, attr_name),
-        (LITERAL, ")"),
     ]
 
 
 @req_gen
 def gen_attribute_normal2(context, obj_req, attr_name):
     return [
-        (LITERAL, "("),
         obj_req,
         (LITERAL, "["),
         (STRING, attr_name),
-        (LITERAL, "])"),
+        (LITERAL, "]"),
     ]
 
 
 @req_gen
 def gen_attribute_attrfilter(context, obj_req, attr_name):
     return [
-        (LITERAL, "("),
         obj_req,
         (LITERAL, "|attr("),
         (STRING, attr_name),
-        (LITERAL, "))"),
+        (LITERAL, ")"),
     ]
 
 
@@ -1186,33 +1182,29 @@ def gen_item_normal1(context, obj_req, item_name):
     if not re.match("[A-Za-z_][A-Za-z0-9_]+", item_name):
         return [(UNSATISFIED,)]
     return [
-        (LITERAL, "("),
         obj_req,
         (LITERAL, "."),
         (LITERAL, item_name),
-        (LITERAL, ")"),
     ]
 
 
 @req_gen
 def gen_item_normal2(context, obj_req, item_name):
     return [
-        (LITERAL, "("),
         obj_req,
         (LITERAL, "["),
         (STRING, item_name),
-        (LITERAL, "])"),
+        (LITERAL, "]"),
     ]
 
 
 @req_gen
 def gen_item_dunderfunc(context, obj_req, item_name):
     return [
-        (LITERAL, "("),
         (ATTRIBUTE, obj_req, "__getitem__"),
         (LITERAL, "("),
         (STRING, item_name),
-        (LITERAL, "))"),
+        (LITERAL, ")"),
     ]
 
 
