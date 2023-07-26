@@ -841,6 +841,13 @@ def gen_char_num(context, c):
         return [(UNSATISFIED,)]
     return [(LITERAL, f"((", ), (INTEGER, int(c)), (LITERAL, ").__str__( ))")]
 
+@req_gen
+def gen_char_num2(context, c):
+    if not re.match("[0-9]", c):
+        return [(UNSATISFIED,)]
+    return [(LITERAL, f"((", ), (INTEGER, int(c)), (LITERAL, ")|string)")]
+
+
 # ---
 # 以下的gen_string会互相依赖，但是产生互相依赖时传入的字符串长度会减少所以不会发生无限调用
 
