@@ -71,7 +71,6 @@ class CrackerTestHard(CrackerTestBase):
             "~",
             "{{",
         ]
-        self.subm = FakeSubmitter(lambda x: all(w not in x for w in self.blacklist))
 
 
 class CrackerTestWeird(CrackerTestBase):
@@ -87,7 +86,4 @@ class CrackerTestWeird(CrackerTestBase):
             "~",
             "{{",
         ]
-        self.subm = FakeSubmitter(
-            lambda s: any(w in s for w in "facklimama")
-            or all(w not in s for w in self.blacklist)
-        )
+
