@@ -1167,10 +1167,11 @@ def gen_attribute_normal2(context, obj_req, attr_name):
 @req_gen
 def gen_attribute_attrfilter(context, obj_req, attr_name):
     return [
+        (LITERAL, "("),
         obj_req,
         (LITERAL, "|attr("),
         (STRING, attr_name),
-        (LITERAL, ")"),
+        (LITERAL, "))"),
     ]
 
 
