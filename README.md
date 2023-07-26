@@ -16,6 +16,7 @@
 - 使用精确模式全面分析网站或使用快速模式减少不必要的网络请求
 - 支持攻击对应的HTML表单或HTML路径
 - 使用Shell指令对要发送的payload进行编码
+- \[试验性功能\]使用`--eval-args-payload`将payload放进GET参数中提交，有效降低payload长度
 - 方便的网页界面/命令行界面
 
 ## 快速上手
@@ -139,7 +140,7 @@ docker run -it --net host fenjing webui
   - 参数大致上和crack相同
 
 一些特殊的选项：
-
+- `--eval-args-payload`：试验性选项，将payload放在GET参数x中提交
 - `--detect-mode`：检测模式，可为accurate或fast
   - 默认为accurate
   - 在开始尝试触发WAF, 获取WAF页面对应hash时：

@@ -225,7 +225,7 @@ def get_config(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
 )
 @click.option(
-    "--eval-args-payload", default=False, is_flag=True, help="是否在GET参数中传递Eval payload"
+    "--eval-args-payload", default=False, is_flag=True, help="[试验性]是否在GET参数中传递Eval payload"
 )
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
