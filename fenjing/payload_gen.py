@@ -904,21 +904,6 @@ def gen_string_context(context: dict, value: str):
     return [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
 
 
-@req_gen
-def gen_string_removedunder(context: dict, value: str):
-    if not re.match("^__[A_Za-z0-9_]+__$", value):
-        return [(UNSATISFIED,)]
-    return [
-        (STRING_UNDERLINE,),
-        (LITERAL, "*"),
-        (INTEGER, 2),
-        (STRING_STRING_CONCAT,),
-        (STRING, value[2:-2]),
-        (STRING_STRING_CONCAT,),
-        (STRING_UNDERLINE,),
-        (LITERAL, "*"),
-        (INTEGER, 2),
-    ]
 
 
 @req_gen
@@ -956,6 +941,36 @@ def gen_string_concat3(context: dict, value: str):
         )
     ]
 
+
+
+@req_gen
+def gen_string_chars(context: dict, value: str):
+    ans: List[Any] = [(LITERAL, "("), (CHAR, value[0])]
+    for c in value[1:]:
+        ans.append((STRING_STRING_CONCAT,))
+        ans.append((CHAR, c))
+    ans.append(
+        (LITERAL, ")"),
+    )
+    return ans
+
+
+
+@req_gen
+def gen_string_removedunder(context: dict, value: str):
+    if not re.match("^__[A_Za-z0-9_]+__$", value):
+        return [(UNSATISFIED,)]
+    return [
+        (STRING_UNDERLINE,),
+        (LITERAL, "*"),
+        (INTEGER, 2),
+        (STRING_STRING_CONCAT,),
+        (STRING, value[2:-2]),
+        (STRING_STRING_CONCAT,),
+        (STRING_UNDERLINE,),
+        (LITERAL, "*"),
+        (INTEGER, 2),
+    ]
 
 @req_gen
 def gen_string_dictjoin(context: dict, value: str):
@@ -1003,17 +1018,6 @@ def gen_string_splitdictjoin3(context: dict, value: str):
         (LITERAL, "(dict({})|join)".format(",".join(f"{part}=x" for part in value)))
     ]
 
-
-@req_gen
-def gen_string_chars(context: dict, value: str):
-    ans: List[Any] = [(LITERAL, "("), (CHAR, value[0])]
-    for c in value[1:]:
-        ans.append((STRING_STRING_CONCAT,))
-        ans.append((CHAR, c))
-    ans.append(
-        (LITERAL, ")"),
-    )
-    return ans
 
 
 @req_gen
@@ -1262,6 +1266,17 @@ def gen_eval_func_namespace(context):
         CHAINED_ATTRIBUTE_ITEM,
         (LITERAL, "namespace"),
         (ATTRIBUTE, "__init__"),
+        (ATTRIBUTE, "__globals__"),
+        (ITEM, "__builtins__"),
+        (ITEM, "eval")
+    )]
+
+@req_gen
+def gen_eval_func_g(context):
+    return [(
+        CHAINED_ATTRIBUTE_ITEM,
+        (LITERAL, "g"),
+        (ATTRIBUTE, "pop"),
         (ATTRIBUTE, "__globals__"),
         (ITEM, "__builtins__"),
         (ITEM, "eval")
