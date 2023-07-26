@@ -4,6 +4,9 @@ sys.path.append("..")  # noqa
 
 import unittest
 import fenjing
+from flask import render_template_string
+
+
 from fenjing.payload_gen import PayloadGenerator
 from fenjing import const
 import logging

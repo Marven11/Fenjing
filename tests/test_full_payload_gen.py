@@ -1,12 +1,20 @@
-import sys  # noqa
+import sys
+
 
 sys.path.append("..")  # noqa
 
+from fenjing.form import get_form
+from fenjing.requester import Requester
+
+from fenjing.submitter import FormSubmitter  # noqa
+
 import fenjing
 import logging
+from flask import render_template_string
+import os
+
 from fenjing import FullPayloadGen, const
 import unittest
-import jinja2
 import random
 
 fenjing.full_payload_gen.logger.setLevel(logging.ERROR)
@@ -22,6 +30,8 @@ def get_full_payload_gen(
         detect_mode=detect_mode,
     )
 
+VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
+
 
 class FullPayloadGenTestCaseSimple(unittest.TestCase):
     def setUp(self) -> None:
@@ -31,7 +41,12 @@ class FullPayloadGenTestCaseSimple(unittest.TestCase):
             "]",
         ]
         self.full_payload_gen = get_full_payload_gen(self.blacklist)
-
+        self.subm = FormSubmitter(
+            url=VULUNSERVER_ADDR,
+            form=get_form(action="/", inputs=["name"], method="GET"),
+            target_field="name",
+            requester=Requester(interval=0.01),
+        )
     def test_string(self):
         strings = [
             "123",
@@ -45,8 +60,9 @@ class FullPayloadGenTestCaseSimple(unittest.TestCase):
             assert payload is not None
             # why?
             # cause the stupid type checker thinks the 'payload' below would still be None
-            result = jinja2.Template(payload).render()
-            self.assertIn(string, result)
+            resp = self.subm.submit(payload)
+            assert resp is not None
+            self.assertIn(string, resp.text)
             for word in self.blacklist:
                 self.assertNotIn(word, payload)
 
@@ -58,13 +74,14 @@ class FullPayloadGenTestCaseSimple(unittest.TestCase):
         assert payload is not None
         # why?
         # cause the stupid type checker thinks the 'payload' below would still be None
-        result = jinja2.Template(payload).render()
-        self.assertIn("fen jing", result)
+        resp = self.subm.submit(payload)
+        assert resp is not None
+        self.assertIn("fen jing", resp.text)
         for word in self.blacklist:
             self.assertNotIn(word, payload)
 
 
-class FullPayloadGenTestCaseHard(unittest.TestCase):
+class FullPayloadGenTestCaseHard(FullPayloadGenTestCaseSimple):
     def setUp(self) -> None:
         super().setUp()
         self.blacklist = [
@@ -108,39 +125,8 @@ class FullPayloadGenTestCaseHard(unittest.TestCase):
         ]
         self.full_payload_gen = get_full_payload_gen(self.blacklist)
 
-    def test_string(self):
-        strings = [
-            "123",
-            "asdf",
-            "__dunder__",
-            "__import__('os').popen('echo test_command/$(ls / | base64 -w)').read()",
-        ]
-        for string in strings:
-            payload, _ = self.full_payload_gen.generate(const.STRING, string)
-            # self.assertIsNotNone(payload)
-            assert payload is not None
-            # why?
-            # cause the stupid type checker thinks the 'payload' below would still be None
-            result = jinja2.Template(payload).render()
-            self.assertIn(string, result)
-            for word in self.blacklist:
-                self.assertNotIn(word, payload)
 
-    def test_os_popen_read(self):
-        payload, _ = self.full_payload_gen.generate(
-            const.OS_POPEN_READ, "echo fen  jing;"
-        )
-        # self.assertIsNotNone(payload)
-        assert payload is not None
-        # why?
-        # cause the stupid type checker thinks the 'payload' below would still be None
-        result = jinja2.Template(payload).render()
-        self.assertIn("fen jing", result)
-        for word in self.blacklist:
-            self.assertNotIn(word, payload)
-
-
-class FullPayloadGenTestCaseHard2(unittest.TestCase):
+class FullPayloadGenTestCaseHard2(FullPayloadGenTestCaseSimple):
     def setUp(self) -> None:
         super().setUp()
         self.blacklist = [
@@ -183,40 +169,8 @@ class FullPayloadGenTestCaseHard2(unittest.TestCase):
         ]
         self.full_payload_gen = get_full_payload_gen(self.blacklist)
 
-    def test_string(self):
-        strings = [
-            "123",
-            "asdf",
-            "__dunder__",
-            "__import__('os').popen('echo test_command/$(ls / | base64 -w)').read()",
-        ]
-        for string in strings:
-            payload, _ = self.full_payload_gen.generate(const.STRING, string)
-            # self.assertIsNotNone(payload)
-            assert payload is not None
-            # why?
-            # cause the stupid type checker thinks the 'payload' below would still be None
-            result = jinja2.Template(payload).render()
-            self.assertIn(string, result)
-            for word in self.blacklist:
-                self.assertNotIn(word, payload)
 
-    def test_os_popen_read(self):
-        payload, _ = self.full_payload_gen.generate(
-            const.OS_POPEN_READ, "echo fen  jing;"
-        )
-        # self.assertIsNotNone(payload)
-        assert payload is not None
-        # why?
-        # cause the stupid type checker thinks the 'payload' below would still be None
-        result = jinja2.Template(payload).render()
-        self.assertIn("fen jing", result)
-
-        for word in self.blacklist:
-            self.assertNotIn(word, payload)
-
-
-class FullPayloadGenTestCaseRandom(unittest.TestCase):
+class FullPayloadGenTestCaseRandom(FullPayloadGenTestCaseSimple):
     def setUp(self) -> None:
         super().setUp()
         self.blacklists = [
@@ -277,33 +231,3 @@ class FullPayloadGenTestCaseRandom(unittest.TestCase):
             for blacklist in self.blacklists
         ]
 
-    def test_string(self):
-        strings = [
-            "123",
-            "asdf",
-            "__dunder__",
-            "__import__('os').popen('echo test_command/$(ls / | base64 -w)').read()",
-        ]
-        for g, blacklist in zip(self.full_payload_gens, self.blacklists):
-            for string in strings:
-                payload, _ = g.generate(const.STRING, string)
-                # self.assertIsNotNone(payload)
-                assert payload is not None
-                # why?
-                # cause the stupid type checker thinks the 'payload' below would still be None
-                result = jinja2.Template(payload).render()
-                self.assertIn(string, result)
-                for word in blacklist:
-                    self.assertNotIn(word, payload)
-
-    def test_os_popen_read(self):
-        for g, blacklist in zip(self.full_payload_gens, self.blacklists):
-            payload, _ = g.generate(const.OS_POPEN_READ, "echo fen  jing;")
-            # self.assertIsNotNone(payload)
-            assert payload is not None
-            # why?
-            # cause the stupid type checker thinks the 'payload' below would still be None
-            result = jinja2.Template(payload).render()
-            self.assertIn("fen jing", result)
-            for word in blacklist:
-                self.assertNotIn(word, payload)
