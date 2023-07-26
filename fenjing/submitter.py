@@ -114,7 +114,7 @@ class RequestSubmitter(BaseSubmitter):
             data.update({self.target_field: raw_payload})
         else:
             params.update({self.target_field: raw_payload})
-        logger.info("Submit %s", colored("blue", f"{self.url} {self.method} {params=} {data=}"))
+        logger.info("Submit %s", colored("blue", f"{self.url} {self.method} params={params} data={data}"))
         return self.req.request(
             method=self.method, url=self.url, params=params, data=data
         )
