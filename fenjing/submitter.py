@@ -78,6 +78,48 @@ class BaseSubmitter:
             return None
         return HTTPResponse(resp.status_code, html.unescape(resp.text))
 
+
+class RequestSubmitter(BaseSubmitter):
+    """向一个url提交GET或POST数据"""
+
+    def __init__(
+        self,
+        url: str,
+        method: str,
+        target_field: str,
+        params: Union[Dict[str, str], None],
+        data: Union[Dict[str, str], None],
+        requester: Requester,
+    ):
+        """传入目标的URL, method和提交的项
+
+        Args:
+            url (str): 目标URL
+            method (str): 方法
+            target_field (str): 目标项
+            params (Union[Dict[str, str], None]): 目标GET参数
+            data (Union[Dict[str, str], None]): 目标POST参数
+        """
+        super().__init__()
+        self.url = url
+        self.method = method
+        self.target_field = target_field
+        self.params = params if params else {}
+        self.data = data if data else {}
+        self.req = requester
+
+    def submit_raw(self, raw_payload):
+        params, data = self.params.copy(), self.data.copy()
+        if self.method == "POST":
+            data.update({self.target_field: raw_payload})
+        else:
+            params.update({self.target_field: raw_payload})
+        logger.info("Submit %s", colored("blue", f"{params=} {data=}"))
+        return self.req.request(
+            method=self.method, url=self.url, params=params, data=data
+        )
+
+
 class FormSubmitter(BaseSubmitter):
     """
     向一个表格的某一项提交payload, 其他项随机填充
@@ -149,9 +191,7 @@ class PathSubmitter(BaseSubmitter):
                 colored("yellow", repr(raw_payload)),
             )
             return None
-        resp = self.req.request(
-            method="GET", url=self.url + quote(raw_payload)
-        )
+        resp = self.req.request(method="GET", url=self.url + quote(raw_payload))
         self.callback(
             CALLBACK_SUBMIT,
             {

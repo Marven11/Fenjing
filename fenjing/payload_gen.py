@@ -1145,7 +1145,7 @@ def gen_string_formatfunc3(context: dict, value: str):
 
 @req_gen
 def gen_attribute_normal1(context, obj_req, attr_name):
-    if not re.match("[A-Za-z_][A-Za-z0-9_]+", attr_name):
+    if not re.match("[A-Za-z_]([A-Za-z0-9_]+)?", attr_name):
         return [(UNSATISFIED,)]
     return [
         obj_req,
@@ -1179,7 +1179,7 @@ def gen_attribute_attrfilter(context, obj_req, attr_name):
 
 @req_gen
 def gen_item_normal1(context, obj_req, item_name):
-    if not re.match("[A-Za-z_][A-Za-z0-9_]+", item_name):
+    if not re.match("[A-Za-z_]([A-Za-z0-9_]+)?", item_name):
         return [(UNSATISFIED,)]
     return [
         obj_req,
@@ -1377,12 +1377,12 @@ def gen_eval_func_namespace(context):
 
 
 @req_gen
-def gen_eval_normal(context, code):
+def gen_eval_normal(context, eval_param):
     return [
         (LITERAL, "("),
         (EVAL_FUNC,),
         (LITERAL, "("),
-        (STRING, code),
+        eval_param,
         (LITERAL, "))"),
     ]
 
@@ -1442,7 +1442,7 @@ def gen_module_os_import(context):
 @req_gen
 def gen_module_os_eval(context):
     return [
-        (EVAL, "__import__"),
+        (EVAL, (STRING, "__import__")),
         (LITERAL, "("),
         (STRING, "os"),
         (LITERAL, ")"),
@@ -1482,7 +1482,7 @@ def gen_os_popen_obj_normal(context, cmd):
 @req_gen
 def gen_os_popen_obj_eval(context, cmd):
     cmd = cmd.replace("'", "\\'")
-    return [(EVAL, "__import__('os').popen('" + cmd + "')")]
+    return [(EVAL, (STRING, "__import__('os').popen('" + cmd + "')"))]
 
 
 # ---
@@ -1518,7 +1518,7 @@ def gen_os_popen_read_normal2(context, cmd):
 @req_gen
 def gen_os_popen_read_eval(context, cmd):
     return [
-        (EVAL, "__import__('os').popen('{}').read()".format(cmd.replace("'", "\\'"))),
+        (EVAL, (STRING, "__import__('os').popen('{}').read()".format(cmd.replace("'", "\\'")))),
     ]
 
 

