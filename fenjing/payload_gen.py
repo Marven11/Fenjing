@@ -23,8 +23,8 @@ gen_weight_default = {
     "gen_string_percent_lower_c_concat": 1,
     "gen_string_lower_c_joinerbatch": 1,
     "gen_string_percent_urlencode2": 1,
-    "gen_string_x1": 1,
-    "gen_string_x2": 1,
+    "gen_string_concat1": 1,
+    "gen_string_concat2": 1,
     "gen_string_formatpercent": 1,
     "gen_attribute_attrfilter": 1,
     "gen_item_dunderfunc": 1
