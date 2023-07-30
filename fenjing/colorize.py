@@ -4,7 +4,13 @@
 
 import platform
 
-SHOULD_COLOR = platform.system() != "Windows"
+IS_SUPPORTED_PLATFORM = platform.system() != "Windows"
+IS_COLORING_ENABLED = False
+
+
+def set_enable_coloring(enable=True):
+    global IS_COLORING_ENABLED
+    IS_COLORING_ENABLED = enable
 
 
 def colored(color, text, bold=False):
@@ -18,7 +24,7 @@ def colored(color, text, bold=False):
     Returns:
         str: 上色后的字符串
     """
-    if not SHOULD_COLOR:
+    if not IS_SUPPORTED_PLATFORM or not IS_COLORING_ENABLED:
         return text
     colors = {
         "red": "31",

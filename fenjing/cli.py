@@ -24,8 +24,10 @@ from .const import (
     CONFIG,
     DETECT_MODE_ACCURATE,
 )
-from .colorize import colored
+from .colorize import colored, set_enable_coloring
 from .webui import main as webui_main
+
+set_enable_coloring()
 
 TITLE = colored(
     "yellow",
@@ -44,10 +46,8 @@ TITLE = colored(
     bold=True,
 )
 LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
-
 logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT)
 logger = logging.getLogger("cli")
-
 
 def cmd_exec_submitter(
     cmd: str, submitter: Submitter, full_payload_gen: FullPayloadGen
