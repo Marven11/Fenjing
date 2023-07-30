@@ -45,7 +45,14 @@ def shell_tamperer(shell_cmd: str) -> Tamperer:
             raise ValueError(
                 f"Shell command return non-zero code {ret} for input {payload}"
             )
-        return proc.stdout.read().decode()
+        out = proc.stdout.read().decode()
+        if out.endswith("\n"):
+            logger.warning(
+                "Tamperer %s output %s ends with '\\n', it may cause some issues.",
+                shell_cmd,
+                out,
+            )
+        return out
 
     return tamperer
 
