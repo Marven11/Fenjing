@@ -1,8 +1,12 @@
-from typing import List, Callable, Union, NamedTuple, Dict
-from urllib.parse import quote
+"""向某个表格或者路径发出payload的submitter
+"""
+
 import logging
 import subprocess
 import html
+
+from typing import List, Callable, Union, NamedTuple, Dict
+from urllib.parse import quote
 
 from .form import Form, fill_form
 from .requester import Requester
@@ -16,6 +20,15 @@ Tamperer = Callable[[str], str]
 
 
 def shell_tamperer(shell_cmd: str) -> Tamperer:
+    """返回一个新的shell tamperer
+
+    Args:
+        shell_cmd (str): 用于修改payload的命令
+
+    Returns:
+        Tamperer: 新的Tamperer
+    """
+
     def tamperer(payload: str):
         proc = subprocess.Popen(
             shell_cmd,
@@ -62,12 +75,33 @@ class BaseSubmitter:
         )
 
     def add_tamperer(self, tamperer: Tamperer):
+        """增加新的tamperer
+
+        Args:
+            tamperer (Tamperer): 新的tamperer
+        """
         self.tamperers.append(tamperer)
 
     def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
+        """提交tamperer修改后的payload
+
+        Args:
+            raw_payload (str): payload
+
+        Returns:
+            Union[HTTPResponse, None]: payload提交结果
+        """
         raise NotImplementedError()
 
     def submit(self, payload: str) -> Union[HTTPResponse, None]:
+        """调用tamperer修改payload并提交
+
+        Args:
+            raw_payload (str): payload
+
+        Returns:
+            Union[HTTPResponse, None]: payload提交结果
+        """
         if self.tamperers:
             logger.debug("Applying tampers...")
             for tamperer in self.tamperers:
@@ -114,7 +148,10 @@ class RequestSubmitter(BaseSubmitter):
             data.update({self.target_field: raw_payload})
         else:
             params.update({self.target_field: raw_payload})
-        logger.info("Submit %s", colored("blue", f"{self.url} {self.method} params={params} data={data}"))
+        logger.info(
+            "Submit %s",
+            colored("blue", f"{self.url} {self.method} params={params} data={data}"),
+        )
         return self.req.request(
             method=self.method, url=self.url, params=params, data=data
         )

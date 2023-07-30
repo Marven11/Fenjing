@@ -1,18 +1,18 @@
 """根据指定的表单生成对应的WAF函数
 
 """
-
-from collections import Counter, namedtuple
-from functools import lru_cache
 import logging
-from typing import Dict, Callable, Union, List
 import random
 import string
+
 from copy import copy
+from collections import Counter, namedtuple
+from functools import lru_cache
+from typing import Dict, Callable, Union, List
 
 from .const import DETECT_MODE_ACCURATE, DETECT_MODE_FAST, DANGEROUS_KEYWORDS
-from .submitter import Submitter
 from .colorize import colored
+from .submitter import Submitter
 
 
 logger = logging.getLogger("waf_func_gen")
@@ -21,7 +21,11 @@ Result = namedtuple("Result", "payload_generate_func input_field")
 dangerous_keywords = copy(DANGEROUS_KEYWORDS)
 
 random.shuffle(dangerous_keywords)
-render_error_keywords = ["TemplateSyntaxError", "Internal Server Error", "Traceback (most recent call last):"]
+render_error_keywords = [
+    "TemplateSyntaxError",
+    "Internal Server Error",
+    "Traceback (most recent call last):",
+]
 
 
 class WafFuncGen:
@@ -49,7 +53,7 @@ class WafFuncGen:
             List[int]: payload被waf后页面对应的hash
         """
         composed_test_keywords = [
-            "".join(dangerous_keywords[i: i + 3])  # flake8: noqa
+            "".join(dangerous_keywords[i : i + 3])  # flake8: noqa
             for i in range(0, len(dangerous_keywords), 3)
         ]
         test_keywords = composed_test_keywords
@@ -101,9 +105,7 @@ class WafFuncGen:
 
                 # 遇到500时，判断是否是Jinja渲染错误，是则返回True
                 if result.status_code == 500:
-                    return any(
-                        w in result.text for w in render_error_keywords
-                    )
+                    return any(w in result.text for w in render_error_keywords)
                 # 产生回显
                 if extra_content in result.text:
                     return True
@@ -125,9 +127,7 @@ class WafFuncGen:
                     and extra_content_result.status_code != 500
                     and hash(extra_content_result.text) in waf_hashes
                 ):
-                    extra_content = "".join(
-                        random.choices(string.ascii_lowercase, k=6)
-                    )
+                    extra_content = "".join(random.choices(string.ascii_lowercase, k=6))
                     continue
                 extra_passed = True
                 return False

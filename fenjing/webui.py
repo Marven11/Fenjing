@@ -1,17 +1,14 @@
 # pylint: skip-file
 # flake8: noqa
-from flask import Flask, render_template, request, jsonify
-from typing import Union
 import logging
 import threading
 import uuid
-from urllib.parse import urlparse
 
-from .form import get_form, Form
-from .cracker import Cracker
-from .submitter import Submitter, FormSubmitter
-from .full_payload_gen import FullPayloadGen
-from .requester import Requester
+from urllib.parse import urlparse
+from typing import Union
+
+from flask import Flask, render_template, request, jsonify
+
 from .const import (
     CALLBACK_GENERATE_FULLPAYLOAD,
     CALLBACK_GENERATE_PAYLOAD,
@@ -23,6 +20,12 @@ from .const import (
     DEFAULT_USER_AGENT,
     OS_POPEN_READ,
 )
+from .cracker import Cracker
+from .form import get_form, Form
+from .full_payload_gen import FullPayloadGen
+from .requester import Requester
+from .submitter import Submitter, FormSubmitter
+
 
 logger = logging.getLogger("webui")
 app = Flask(__name__)
@@ -52,9 +55,7 @@ class CallBackLogger:
             if len(data["payload"]) < 30
             else data["payload"][:30] + "..."
         )
-        self.messages.append(
-            f"分析完毕，已为类型{data['gen_type']}生成payload {payload}"
-        )
+        self.messages.append(f"分析完毕，已为类型{data['gen_type']}生成payload {payload}")
         if not data["will_print"]:
             self.messages.append(f"payload将不会产生回显")
 
@@ -82,9 +83,7 @@ class CallBackLogger:
     def callback_test_form_input(self, data):
         if not data["ok"]:
             return
-        testsuccess_msg = (
-            "payload测试成功！" if data["test_success"] else "payload测试失败。"
-        )
+        testsuccess_msg = "payload测试成功！" if data["test_success"] else "payload测试失败。"
         will_print_msg = "其会产生回显。" if data["will_print"] else "其不会产生回显。"
         self.messages.append(testsuccess_msg + will_print_msg)
 
@@ -113,9 +112,7 @@ class CrackTaskThread(threading.Thread):
         self.callback = CallBackLogger(self.flash_messages, self.messages)
         self.submitter: Union[Submitter, None] = None
         self.cracker: Union[Cracker, None]
-        self.requester = Requester(
-            interval=interval, user_agent=DEFAULT_USER_AGENT
-        )
+        self.requester = Requester(interval=interval, user_agent=DEFAULT_USER_AGENT)
 
     def run(self):
         for input_field in self.form["inputs"]:
@@ -163,9 +160,7 @@ class InteractiveTaskThread(threading.Thread):
 
     def run(self):
         self.messages.append(f"开始生成payload")
-        payload, will_print = self.full_payload_gen.generate(
-            OS_POPEN_READ, self.cmd
-        )
+        payload, will_print = self.full_payload_gen.generate(OS_POPEN_READ, self.cmd)
         if not payload:
             self.messages.append(f"payload生成失败")
             return
@@ -256,7 +251,7 @@ def create_task():
                     "message": f"last_task_id not found: {last_task_id}",
                 }
             )
-        if not last_task.success :
+        if not last_task.success:
             return jsonify(
                 {
                     "code": APICODE_WRONG_INPUT,
@@ -275,9 +270,7 @@ def create_task():
 )  # type: ignore
 def watchTask():
     if "taskid" not in request.form:
-        return jsonify(
-            {"code": APICODE_WRONG_INPUT, "message": "taskid not provided"}
-        )
+        return jsonify({"code": APICODE_WRONG_INPUT, "message": "taskid not provided"})
     if request.form["taskid"] not in tasks:
         return jsonify(
             {

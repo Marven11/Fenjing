@@ -2,8 +2,8 @@
 
 """
 
-from typing import Callable, Tuple, Union, Dict, Any
 import logging
+from typing import Callable, Tuple, Union, Dict, Any
 
 from . import payload_gen
 from .colorize import colored
@@ -128,9 +128,7 @@ class FullPayloadGen:
         if self.prepared:
             return True
 
-        self.context_payload = filter_by_waf(
-            self.context_payload, self.waf_func
-        )
+        self.context_payload = filter_by_waf(self.context_payload, self.waf_func)
 
         self.context = context_payloads_to_context(self.context_payload)
 
@@ -191,9 +189,7 @@ class FullPayloadGen:
         self.context = context_payloads_to_context(self.context_payload)
         return True
 
-    def generate(
-        self, gen_type, *args
-    ) -> Tuple[Union[str, None], Union[bool, None]]:
+    def generate(self, gen_type, *args) -> Tuple[Union[str, None], Union[bool, None]]:
         """根据要求生成payload
 
         Args:
@@ -206,9 +202,7 @@ class FullPayloadGen:
         if not self.prepared and not self.do_prepare():
             return None, None
 
-        assert (
-            self.payload_gen is not None
-        ), "when prepared, we should have payload_gen"
+        assert self.payload_gen is not None, "when prepared, we should have payload_gen"
 
         ret = self.payload_gen.generate_with_used_context(gen_type, *args)
 
@@ -221,9 +215,7 @@ class FullPayloadGen:
         )
         assert isinstance(self.outer_pattern, str)
 
-        payload = context_payload + self.outer_pattern.replace(
-            "PAYLOAD", inner_payload
-        )
+        payload = context_payload + self.outer_pattern.replace("PAYLOAD", inner_payload)
 
         self.callback(
             CALLBACK_GENERATE_FULLPAYLOAD,

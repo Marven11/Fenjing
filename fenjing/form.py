@@ -2,11 +2,11 @@
 
 """
 import sys
-from urllib.parse import urlparse, urlunparse
 import random
 import logging
 import string
 from typing import Dict, List, Union, Iterable
+from urllib.parse import urlparse, urlunparse
 
 from bs4 import BeautifulSoup
 

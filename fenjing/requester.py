@@ -7,7 +7,6 @@ import time
 
 import requests
 
-
 from .const import DEFAULT_USER_AGENT
 
 logger = logging.getLogger("requester")
@@ -40,10 +39,7 @@ class Requester:
             self.session.headers.update(headers)
 
         if proxy:
-            self.session.proxies = {
-                "http": proxy,
-                "https": proxy
-            }
+            self.session.proxies = {"http": proxy, "https": proxy}
 
     def request_once(self, **kwargs):
         """发出一次网络请求，失败时返回None

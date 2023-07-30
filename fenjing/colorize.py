@@ -9,7 +9,12 @@ IS_COLORING_ENABLED = False
 
 
 def set_enable_coloring(enable=True):
-    global IS_COLORING_ENABLED
+    """打开或关闭默认关闭的字符串上色
+
+    Args:
+        enable (bool, optional): 设置是否开启. Defaults to True.
+    """
+    global IS_COLORING_ENABLED  # pylint: disable=W0603
     IS_COLORING_ENABLED = enable
 
 

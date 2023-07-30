@@ -3,6 +3,7 @@
 """
 
 from typing import Callable, Dict, Union
+
 from .const import CONFIG
 from .full_payload_gen import FullPayloadGen
 

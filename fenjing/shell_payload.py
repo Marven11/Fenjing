@@ -2,6 +2,7 @@
 """
 
 from typing import Callable, Tuple, Dict, Union
+
 from .const import OS_POPEN_READ
 from .full_payload_gen import FullPayloadGen
 

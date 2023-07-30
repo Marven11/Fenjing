@@ -4,9 +4,11 @@
 
 import logging
 from typing import Union, Generator, Tuple, List
+
+from bs4 import BeautifulSoup
+
 from .form import parse_forms, Form
 from .requester import Requester
-from bs4 import BeautifulSoup
 
 logger = logging.getLogger("scan_url")
 
@@ -26,9 +28,7 @@ def parse_urls(html: Union[str, BeautifulSoup]) -> list:
         bs_obj = html
 
     return [
-        element.attrs["href"]
-        for element in bs_obj.select("a")
-        if "href" in element
+        element.attrs["href"] for element in bs_obj.select("a") if "href" in element
     ]
 
 
