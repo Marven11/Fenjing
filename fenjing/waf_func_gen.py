@@ -21,7 +21,7 @@ Result = namedtuple("Result", "payload_generate_func input_field")
 dangerous_keywords = copy(DANGEROUS_KEYWORDS)
 
 random.shuffle(dangerous_keywords)
-render_error_keywords = ["TemplateSyntaxError", "Internal Server Error"]
+render_error_keywords = ["TemplateSyntaxError", "Internal Server Error", "Traceback (most recent call last):"]
 
 
 class WafFuncGen:
