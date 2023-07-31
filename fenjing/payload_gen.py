@@ -189,7 +189,9 @@ class PayloadGenerator:
             return None
         return str_result, used_context
 
-    def literal_generate(self, target: LiteralTarget) -> PayloadGeneratorResult:
+    def literal_generate(self, target: LiteralTarget) -> Union[PayloadGeneratorResult, None]:
+        if self.detect_mode == DETECT_MODE_ACCURATE and not self.waf_func(target[1]):
+            return None
         return (target[1], {})
 
     def unsatisfied_generate(self, target: UnsatisfiedTarget) -> None:
