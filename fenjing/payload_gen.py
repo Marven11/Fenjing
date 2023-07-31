@@ -805,6 +805,14 @@ def gen_string_lower_c_joinerbatch(context):
         (LITERAL, ")|first|last)"),
     ]
 
+@expression_gen
+def gen_string_lower_c_namespacebatch(context):
+    return [
+        (LITERAL, "(namespace|escape|batch("),
+        (INTEGER, 36),
+        (LITERAL, ")|first|last)"),
+    ]
+
 
 # ---
 
