@@ -1,22 +1,95 @@
 """一个可以被SSTI的服务器
 """
+import random
 
-from flask import Flask
-from flask import request
-from flask import render_template_string
+from flask import Flask, request, render_template_string
 
 app = Flask(__name__)
-@app.route('/',methods=['GET', 'POST'])
-def test():
+blacklist = [
+    '0"',
+    ".",
+    '"',
+    "system",
+    "eval",
+    "exec",
+    "popen",
+    "subprocess",
+    "posix",
+    "builtins",
+    "namespace",
+    "read",
+    "self",
+    "mro",
+    "base",
+    "global",
+    "init",
+    "chr",
+    "value",
+    "pop",
+    "import",
+    "include",
+    "request",
+    "{{",
+    "}}",
+    "config",
+    "=",
+    "lipsum",
+    "~",
+    "url_for",
+]
+
+
+def waf_words(s):
+    return [word for word in blacklist if word in s]
+
+
+def waf_pass(s):
+    return waf_words(s) == []
+
+
+@app.route("/", methods=["GET", "POST"])
+def index():
     name = request.args.get("name", "world")
-    template = '''
-        <!-- ?name= -->
-        <div class="center-content error">
-            <h1>Hello %s!<br/>Welcome To My Blog</h1>
-        </div> 
-    ''' %(name)
+    template = f"Hello, {name}"
 
     return render_template_string(template)
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0",port=5000)
+
+@app.route("/static_waf", methods=["GET", "POST"])
+def static_waf():
+    name = request.args.get("name", "world")
+    if not waf_pass(name):
+        return "Nope"
+    template = f"Hello, {name}"
+    return render_template_string(template)
+
+
+@app.route("/dynamic_waf", methods=["GET", "POST"])
+def dynamic_waf():
+    name = request.args.get("name", "world")
+    if not waf_pass(name):
+        return waf_words(name)[0]
+    template = f"Hello, {name}"
+    return render_template_string(template)
+
+
+@app.route("/weird_waf", methods=["GET", "POST"])
+def weird_waf():
+    name = request.args.get("name", "world")
+    if not waf_pass(name) and len(name) < 10 and random.random() < 0.9:
+        return "Naidesu"
+    template = f"Hello, {name}"
+    return render_template_string(template)
+
+
+@app.route("/reversed_waf", methods=["GET", "POST"])
+def reversed_waf():
+    name = request.args.get("name", "world")[::-1]
+    if not waf_pass(name):
+        return "Nope"
+    template = f"Hello, {name}"
+    return render_template_string(template)
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
