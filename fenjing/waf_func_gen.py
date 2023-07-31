@@ -28,6 +28,22 @@ render_error_keywords = [
 ]
 
 
+def grouped_payloads(size=3) -> List[str]:
+    """将所有payload按照size个一组拼接在一起
+    即：['a', 'b', 'c', 'd'] -> ['ab', 'cd']
+
+    Args:
+        size (int, optional): 拼接的size. Defaults to 3.
+
+    Returns:
+        List[str]: 拼接结果
+    """
+    return [
+        "".join(dangerous_keywords[i : i + size])  # flake8: noqa
+        for i in range(0, len(dangerous_keywords), size)
+    ]
+
+
 class WafFuncGen:
     """
     根据指定的Submitter(表单submitter或者路径submitter)生成对应的WAF函数
@@ -52,13 +68,11 @@ class WafFuncGen:
         Returns:
             List[int]: payload被waf后页面对应的hash
         """
-        composed_test_keywords = [
-            "".join(dangerous_keywords[i : i + 3])  # flake8: noqa
-            for i in range(0, len(dangerous_keywords), 3)
-        ]
-        test_keywords = composed_test_keywords
-        if self.detect_mode == DETECT_MODE_ACCURATE:
-            test_keywords += dangerous_keywords
+        test_keywords = (
+            grouped_payloads(2) + dangerous_keywords
+            if self.detect_mode == DETECT_MODE_ACCURATE
+            else grouped_payloads(4)
+        )
         hashes: List[int] = []
         for keyword in test_keywords:
             logger.info(
@@ -94,6 +108,7 @@ class WafFuncGen:
             False,
         )
 
+        # WAF函数，只有在payload一定可以通过WAF时才返回True
         @lru_cache(1000)
         def waf_func(value):
             nonlocal extra_content, extra_passed
@@ -108,16 +123,24 @@ class WafFuncGen:
                     return any(w in result.text for w in render_error_keywords)
                 # 产生回显
                 if extra_content in result.text:
+                    logger.debug("payload产生回显")
                     return True
-                # 页面的hash和waf页面的hash不相同
-                if hash(result.text) not in waf_hashes:
-                    return True
+
+                # 去除下方的规则，因为如果我们没有fuzz出所有的waf页面，而此时extra_content
+                # 不在waf页面中的话，我们应该更加保守地认为payload应该是被waf拦住了
+
+                # # 页面的hash和waf页面的hash不相同
+                # if hash(result.text) not in waf_hashes:
+                #     logger.debug("页面的hash和waf页面的hash不相同")
+                #     return True
                 # 页面的hash和waf的相同，但是用户要求检测模式为快速
                 # 因此我们选择直接返回False
                 if self.detect_mode == DETECT_MODE_FAST:
+                    logger.debug("快速模式直接返回False")
                     return False
                 # 如果extra_content之前检测过，则可以确定不是它产生的问题，返回False
                 if extra_passed:
+                    logger.debug("extra_content已经检查，直接返回False")
                     return False
                 # 检测是否是extra_content导致的WAF
                 # 如果是的话更换extra_content并重新检测
@@ -127,9 +150,11 @@ class WafFuncGen:
                     and extra_content_result.status_code != 500
                     and hash(extra_content_result.text) in waf_hashes
                 ):
+                    logger.debug("extra_content存在问题，重新检查")
                     extra_content = "".join(random.choices(string.ascii_lowercase, k=6))
                     continue
                 extra_passed = True
+                logger.debug("回显失败，返回False")
                 return False
             # 五次检测都失败，我们选择直接返回False
             return False
