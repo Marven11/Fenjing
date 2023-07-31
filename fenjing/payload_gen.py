@@ -1,3 +1,15 @@
+"""
+生成和要求相符合的表达式，如('a'+'b')
+生成过程为接受一个生成目标（如`(STRING, 'ab')`），遍历对应的生成规则expression_gen，利用waf函数
+递归检查生成规则是否符合，并最终生成一个字符串形式的表达式
+expression_gen：所有表达式生成规则
+    接受一个生成目标，并返回一个生成目标的列表
+    比如说接收(STRING, 'ab')，返回[(LITERAL, '"a"'), (LITERAL, '"b"')]
+    也就是将一个生成目标“展开成”一系列生成目标
+PayloadGen：将用户提供的生成目标一层层展开，并使用WAF检测展开后是否可以通过WAF，然后
+    根据展开结果返回相应的表达式。
+"""
+
 # pylint: skip-file
 # flake8: noqa
 
@@ -127,6 +139,10 @@ def hashable(o):
 
 
 class PayloadGenerator:
+    """生成一个表达式，如('a'+'b')
+    其会遍历对应的expression_gen，依次“展开”生成目标为一个生成目标的列表，递归地
+    将每一个元素转为payload，拼接在一起并使用WAF函数检测是否合法。
+    """
     def __init__(
         self,
         waf_func: Callable[[str], bool],
@@ -137,6 +153,7 @@ class PayloadGenerator:
         self.waf_func = waf_func
         self.context = context if context else {}
         self.cache = {}
+        # 给.generate_by_list的列表，指定每一个生成目标应该使用什么函数生成
         self.generate_funcs: List[
             Tuple[
                 Callable[[Target], bool],
@@ -171,6 +188,14 @@ class PayloadGenerator:
     def generate_by_list(
         self, targets: List[Target]
     ) -> Union[PayloadGeneratorResult, None]:
+        """根据一个生成目标的列表生成payload并使用WAF测试
+
+        Args:
+            targets (List[Target]): 生成目标的列表
+
+        Returns:
+            Union[PayloadGeneratorResult, None]: 生成结果，其包含payload和payload用到的上下文中的变量
+        """
         str_result, used_context = "", {}
         for target in targets:
             for checker, runner in self.generate_funcs:
@@ -190,16 +215,34 @@ class PayloadGenerator:
         return str_result, used_context
 
     def literal_generate(self, target: LiteralTarget) -> Union[PayloadGeneratorResult, None]:
+        """为literal类型的生成目标生成payload
+
+        Args:
+            target (LiteralTarget): 生成目标
+
+        Returns:
+            Union[PayloadGeneratorResult, None]: 生成结果 
+        """
         if self.detect_mode == DETECT_MODE_ACCURATE and not self.waf_func(target[1]):
             return None
         return (target[1], {})
 
     def unsatisfied_generate(self, target: UnsatisfiedTarget) -> None:
+        """直接拒绝类型为unsatisfied的生成目标
+        """
         return None
 
     def oneof_generate(
         self, target: OneofTarget
     ) -> Union[PayloadGeneratorResult, None]:
+        """生成类型为oneof的生成目标，遍历其中的每一个子目标并选择其中一个生成
+
+        Args:
+            target (OneofTarget): oneof生成目标，其中有多个生成目标列表
+
+        Returns:
+            Union[PayloadGeneratorResult, None]: 生成结果
+        """
         _, *alternative_targets = target
         for req in alternative_targets:
             ret = self.generate_by_list(req)
@@ -207,10 +250,27 @@ class PayloadGenerator:
                 return ret
         return None
 
-    def with_context_var_generate(self, target: WithContextVarTarget):
+    def with_context_var_generate(self, target: WithContextVarTarget) -> Union[PayloadGeneratorResult, None]:
+        """生成类型为with_context_var的生成目标，将其中包含的变量名加入到已经使用的变量中
+
+        Args:
+            target (WithContextVarTarget): 生成目标
+
+        Returns:
+            _type_: 生成结果
+        """
         return ("", {target[1]: self.context[target[1]]})
 
     def common_generate(self, gen_req: Target) -> Union[PayloadGeneratorResult, None]:
+        """为剩下所有类型的生成目标生成对应的payload, 遍历对应的expression_gen，拿到
+        对应的生成目标列表并尝试使用这个列表生成payload
+
+        Args:
+            gen_req (Target): 生成目标
+
+        Returns:
+            Union[PayloadGeneratorResult, None]: 生成结果
+        """
         gen_type, *args = gen_req
         if gen_type not in expression_gens or len(expression_gens[gen_type]) == 0:
             logger.error("Unknown type: %s", gen_type)
@@ -282,6 +342,15 @@ class PayloadGenerator:
         return None
 
     def generate(self, gen_type, *args) -> Union[str, None]:
+        """提供给用户的生成接口，接收一个生成目标的类型和参数
+
+        Args:
+            gen_type (str): 生成目标的类型
+            *args: 生成目标的参数
+
+        Returns:
+            Union[str, None]: 生成结果
+        """
         result = self.generate_by_list([(gen_type, *args)])
         if result is None:
             return None
@@ -291,6 +360,15 @@ class PayloadGenerator:
     def generate_with_used_context(
         self, gen_type, *args
     ) -> Union[PayloadGeneratorResult, None]:
+        """提供给用户的生成接口，接收一个生成目标的类型和参数
+
+        Args:
+            gen_type (str): 生成目标的类型
+            *args: 生成目标的参数
+
+        Returns:
+            Union[str, None]: 生成结果（包含使用的上下文变量）
+        """
         result = self.generate_by_list([(gen_type, *args)])
         if result is None:
             return None
