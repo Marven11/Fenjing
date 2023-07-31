@@ -47,6 +47,72 @@ def waf_pass(s):
     return waf_words(s) == []
 
 
+def lengthlimit1_waf_pass(s):
+    if len(s) > 155:
+        return False
+    blacklist = [
+        "[",
+        "]",
+    ]
+    for ban in blacklist:
+        if ban in s:
+            return False
+    return True
+
+
+def lengthlimit2_waf_pass(inp):
+    blacklist = [
+        "mro",
+        "url",
+        "join",
+        "attr",
+        "dict",
+        "()",
+        "init",
+        "import",
+        "os",
+        "system",
+        "lipsum",
+        "current_app",
+        "globals",
+        "subclasses",
+        "|",
+        "getitem",
+        "popen",
+        "read",
+        "ls",
+        "flag.txt",
+        "cycler",
+        "[]",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "=",
+        "+",
+        ":",
+        "update",
+        "config",
+        "self",
+        "class",
+        "%",
+        "#",
+    ]
+    for b in blacklist:
+        if b in inp:
+            return False
+    if len(inp) <= 70:
+        return True
+    if len(inp) > 70:
+        return False
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     name = request.args.get("name", "world")
@@ -86,6 +152,24 @@ def weird_waf():
 def reversed_waf():
     name = request.args.get("name", "world")[::-1]
     if not waf_pass(name):
+        return "Nope"
+    template = f"Hello, {name}"
+    return render_template_string(template)
+
+
+@app.route("/lengthlimit1_waf", methods=["GET", "POST"])
+def lengthlimit1_waf():
+    name = request.args.get("name", "world")
+    if not lengthlimit1_waf_pass(name):
+        return "Nope"
+    template = f"Hello, {name}"
+    return render_template_string(template)
+
+
+@app.route("/lengthlimit2_waf", methods=["GET", "POST"])
+def lengthlimit2_waf():
+    name = request.args.get("name", "world")
+    if not lengthlimit2_waf_pass(name):
         return "Nope"
     template = f"Hello, {name}"
     return render_template_string(template)

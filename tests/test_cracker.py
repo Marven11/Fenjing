@@ -30,7 +30,7 @@ class WrappedSubmitter(Submitter):
         return self.subm.submit(raw_payload)
 
 
-class CrackerTestBase(unittest.TestCase):
+class TestBase(unittest.TestCase):
     def setup_local_waf(self, blacklist):
         self.local_blacklist = blacklist
         self.subm = WrappedSubmitter(
@@ -73,7 +73,8 @@ class CrackerTestBase(unittest.TestCase):
         assert resp is not None
         self.assertIn("cracked! @m wr!tI1111ng s()th", resp.text)
 
-class CrackerTestEasy(CrackerTestBase):
+
+class TestEasy(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_local_waf(
@@ -89,8 +90,111 @@ class CrackerTestEasy(CrackerTestBase):
         )
 
 
+class TestHard1(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "'",
+                '"',
+                ".",
+                "_",
+                "import",
+                "request",
+                "url",
+                "\\x",
+                "os",
+                "system",
+                "\\u",
+            ]
+        )
 
-class CrackerTestHard(CrackerTestBase):
+
+class TestHard2(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "_",
+                "'",
+                '"',
+                ".",
+                "system",
+                "os",
+                "eval",
+                "exec",
+                "popen",
+                "subprocess",
+                "posix",
+                "builtins",
+                "namespace",
+                "open",
+                "read",
+                "\\",
+                "self",
+                "mro",
+                "base",
+                "global",
+                "init",
+                "/",
+                "00",
+                "chr",
+                "value",
+                "get",
+                "url",
+                "pop",
+                "import",
+                "include",
+                "request",
+                "{{",
+                "}}",
+                '"',
+                "config",
+                "=",
+            ]
+        )
+
+
+class TestHard3(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                '0"',
+                ".",
+                '"',
+                "system",
+                "eval",
+                "exec",
+                "popen",
+                "subprocess",
+                "posix",
+                "builtins",
+                "namespace",
+                "read",
+                "self",
+                "mro",
+                "base",
+                "global",
+                "init",
+                "chr",
+                "value",
+                "pop",
+                "import",
+                "include",
+                "request",
+                "{{",
+                "}}",
+                "config",
+                "=",
+                "lipsum",
+                "~",
+                "url_for",
+            ]
+        )
+
+
+class TestHard4(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_local_waf(
@@ -107,7 +211,6 @@ class CrackerTestHard(CrackerTestBase):
                 "os",
                 "import",
                 "x",
-                "url",
                 "globals",
                 "cycler",
                 "[",
@@ -122,28 +225,54 @@ class CrackerTestHard(CrackerTestBase):
         )
 
 
-class CrackerTestStaticWAF(CrackerTestBase):
+class TestStaticWAF(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/static_waf")
 
 
-class CrackerTestDynamicWAF(CrackerTestBase):
+class TestDynamicWAF(TestBase):
     def setUp(self):
         super().setUp()
         self.blacklist = None
         self.setup_remote_waf("/dynamic_waf")
 
 
-class CrackerTestWeirdWAF(CrackerTestBase):
+class TestWeirdWAF(TestBase):
     def setUp(self):
         super().setUp()
         self.blacklist = None
         self.setup_remote_waf("/weird_waf")
 
-class CrackerTestReversedWAF(CrackerTestBase):
+
+class TestReversedWAF(TestBase):
     def setUp(self):
         super().setUp()
         self.blacklist = None
         self.setup_remote_waf("/reversed_waf")
         self.subm.add_tamperer(lambda x: x[::-1])
+
+
+class TestLengthLimit1WAF(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.blacklist = None
+        self.setup_remote_waf("/lengthlimit1_waf")
+
+
+class TestLengthLimit2WAF(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.blacklist = None
+        self.setup_remote_waf("/lengthlimit2_waf")
+
+    def test_waf(self):
+        cracker = Cracker(self.subm)
+        result = cracker.crack_eval_args()
+        assert result is not None
+        full_payload_gen, subm, will_print = result
+        payload = "'fenjing'+'test'"
+        self.assertTrue(will_print)
+        resp = subm.submit(payload)
+        assert resp is not None
+        self.assertIn("fenjingtest", resp.text)
