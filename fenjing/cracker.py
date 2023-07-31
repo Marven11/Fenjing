@@ -177,14 +177,16 @@ class Cracker:
         payload_dict = {self.subm.target_field: payload}
         method = self.subm.form["method"]
         assert isinstance(method, str)
+        payload_param = random_fill(self.subm.form)
+        payload_param.update(payload_dict)
         new_subm = RequestSubmitter(
             url=self.subm.url,
             method=method,
             target_field=args_target_field,
-            params=random_fill(self.subm.form) | payload_dict
+            params=payload_param
             if method == "GET"
             else {},
-            data=random_fill(self.subm.form) | payload_dict if method != "GET" else {},
+            data=payload_param if method != "GET" else {},
             requester=self.subm.req,
         )
         if self.subm.tamperers:
