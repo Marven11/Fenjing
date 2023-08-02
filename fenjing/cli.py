@@ -46,6 +46,9 @@ LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT)
 logger = logging.getLogger("cli")
 
+class RunFailed(Exception):
+    """用于通知main和unit test运行失败的exception
+    """
 
 def cmd_exec_submitter(
     cmd: str, submitter: Submitter, full_payload_gen: FullPayloadGen
@@ -213,19 +216,19 @@ def get_config(
         found = True
     if not found:
         logger.warning("Test form failed...")
-        return
+        raise RunFailed()
     assert submitter is not None and full_payload_gen is not None
 
     payload, will_print = full_payload_gen.generate(CONFIG)
     if not payload:
         logger.error("The generator %s generating payload", colored("red", "failed"))
-        return
+        raise RunFailed()
     if not will_print:
         logger.error(
             "The generated payload %s respond config.",
             colored("red", "won't"),
         )
-        return
+        raise RunFailed()
     resp = submitter.submit(payload)
 
     print(resp.text if resp is not None else None)
@@ -305,7 +308,7 @@ def crack(
         found = True
     if not found:
         logger.warning("Test form failed...")
-        return
+        raise RunFailed()
     assert submitter is not None and result is not None
     if eval_args_payload:
         assert isinstance(result, tuple)
@@ -373,7 +376,7 @@ def crack_path(
     full_payload_gen = cracker.crack()
     if full_payload_gen is None:
         logger.warning("Test form failed...")
-        return
+        raise RunFailed()
     cmd_exec_func = partial(
         cmd_exec_submitter,
         submitter=submitter,
@@ -449,7 +452,7 @@ def scan(
                 print(cmd_exec_func(exec_cmd))
             return
     logger.warning("Scan failed...")
-
+    raise RunFailed()
 
 @main.command()
 @click.option("--host", "-h", default="127.0.0.1", help="需要监听的host, 默认为127.0.0.1")

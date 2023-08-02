@@ -1,4 +1,7 @@
-from .cli import main
+from .cli import main, RunFailed
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RunFailed:
+        exit(1)
