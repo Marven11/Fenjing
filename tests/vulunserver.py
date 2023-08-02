@@ -120,6 +120,12 @@ def index():
 
     return render_template_string(template)
 
+@app.route("/nonrespond", methods=["GET", "POST"])
+def nonrespond():
+    template = f"Hello, World!"
+
+    return render_template_string(template)
+
 
 @app.route("/static_waf", methods=["GET", "POST"])
 def static_waf():
