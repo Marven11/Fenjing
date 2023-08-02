@@ -116,13 +116,38 @@ def lengthlimit2_waf_pass(inp):
 @app.route("/", methods=["GET", "POST"])
 def index():
     name = request.args.get("name", "world")
-    template = f"Hello, {name}"
+    template = f"""
+Hello, {name}
+<form action="/" method="GET">
+<input type="text" name="name" id="">
+<input type="submit" value="">
+</form>
+"""
 
     return render_template_string(template)
+
 
 @app.route("/nonrespond", methods=["GET", "POST"])
 def nonrespond():
     template = f"Hello, World!"
+
+    return render_template_string(template)
+
+
+@app.route("/verifyheader", methods=["GET", "POST"])
+def verifyheader():
+    user_agent = request.headers.get("User-Agent", "")
+    custom_key = request.headers.get("Custom-Key", "")
+    cookie_data = request.cookies.get("data", "")
+
+    if "114514" not in user_agent:
+        return "I want 114514 browser!"
+    if "114514" not in custom_key:
+        return "Set Custom-Key as 114514!"
+    if "114514" not in cookie_data:
+        return "Set data as 114514 in cookie!"
+    name = request.args.get("name", "world")
+    template = f"Hello, {name}"
 
     return render_template_string(template)
 

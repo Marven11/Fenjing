@@ -5,16 +5,13 @@ import sys
 
 sys.path.append("..")
 import unittest
-import logging
 import os
-import subprocess
 
-from typing import Union
 import click
 
-import fenjing
-from fenjing import const, cli
+from fenjing import cli
 
+SLEEP_INTERVAL = 0.01
 VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
 
 
@@ -29,13 +26,33 @@ class TestCLI(unittest.TestCase):
         ctx.params.update(params)
         cli.crack.invoke(ctx)
 
+    def get_config_test(self, params):
+        ctx = click.Context(cli.get_config)
+        ctx.params = {
+            param.name: param.default
+            for param in cli.get_config.get_params(ctx)
+            if param.name != "help"
+        }
+        ctx.params.update(params)
+        cli.get_config.invoke(ctx)
+
+    def scan_test(self, params):
+        ctx = click.Context(cli.scan)
+        ctx.params = {
+            param.name: param.default
+            for param in cli.scan.get_params(ctx)
+            if param.name != "help"
+        }
+        ctx.params.update(params)
+        cli.scan.invoke(ctx)
+
     def test_crack_basic(self):
         for uri in [
             "",
             "/static_waf",
             "/dynamic_waf",
             "/weird_waf",
-            "/lengthlimit1_waf"
+            "/lengthlimit1_waf",
         ]:
             self.crack_test(
                 {
@@ -43,10 +60,9 @@ class TestCLI(unittest.TestCase):
                     "method": "GET",
                     "inputs": "name",
                     "exec_cmd": "ls /",
-                    "interval": 0.002
+                    "interval": SLEEP_INTERVAL,
                 }
             )
-
 
     def test_crack_notexist(self):
         try:
@@ -56,15 +72,14 @@ class TestCLI(unittest.TestCase):
                     "method": "GET",
                     "inputs": "name",
                     "exec_cmd": "ls /",
-                    "interval": 0.01,
-                    "detect_mode": "fast" 
+                    "interval": SLEEP_INTERVAL,
+                    "detect_mode": "fast",
                 }
             )
         except cli.RunFailed:
             return
         else:
             assert False
-
 
     def test_crack_nonrespond(self):
         try:
@@ -74,14 +89,28 @@ class TestCLI(unittest.TestCase):
                     "method": "GET",
                     "inputs": "name",
                     "exec_cmd": "ls /",
-                    "interval": 0.01,
-                    "detect_mode": "fast" 
+                    "interval": SLEEP_INTERVAL,
+                    "detect_mode": "fast",
                 }
             )
         except cli.RunFailed:
             return
         else:
             assert False
+
+    def test_crack_ua(self):
+        self.crack_test(
+            {
+                "url": VULUNSERVER_ADDR + "/verifyheader",
+                "method": "GET",
+                "inputs": "name",
+                "exec_cmd": "ls /",
+                "interval": SLEEP_INTERVAL,
+                "user_agent": "114514",
+                "header": ["Custom-Key: 114514"],
+                "cookies": "data=114514; ",
+            }
+        )
 
     def test_crack_fast(self):
         self.crack_test(
@@ -90,8 +119,8 @@ class TestCLI(unittest.TestCase):
                 "method": "GET",
                 "inputs": "name",
                 "exec_cmd": "ls /",
-                "interval": 0.01,
-                "detect_mode": "fast" 
+                "interval": SLEEP_INTERVAL,
+                "detect_mode": "fast",
             }
         )
 
@@ -102,7 +131,63 @@ class TestCLI(unittest.TestCase):
                 "method": "GET",
                 "inputs": "name",
                 "exec_cmd": "ls /",
-                "interval": 0.01,
-                "eval_args_payload": True
+                "interval": SLEEP_INTERVAL,
+                "eval_args_payload": True,
             }
         )
+
+    def test_crack_tamperer(self):
+        self.crack_test(
+            {
+                "url": VULUNSERVER_ADDR + "/reversed_waf",
+                "method": "GET",
+                "inputs": "name",
+                "exec_cmd": "ls /",
+                "interval": SLEEP_INTERVAL,
+                "tamper_cmd": "rev",
+            }
+        )
+
+    def test_get_config_basic(self):
+        self.get_config_test(
+            {
+                "url": VULUNSERVER_ADDR,
+                "method": "GET",
+                "inputs": "name",
+                "interval": SLEEP_INTERVAL,
+            }
+        )
+
+    def test_get_config_fast(self):
+        self.get_config_test(
+            {
+                "url": VULUNSERVER_ADDR,
+                "method": "GET",
+                "inputs": "name",
+                "interval": SLEEP_INTERVAL,
+                "detect_mode": "fast",
+            }
+        )
+
+    def test_scan_basic(self):
+        self.scan_test(
+            {
+                "url": VULUNSERVER_ADDR,
+                "interval": SLEEP_INTERVAL,
+                "exec_cmd": "ls /",
+            }
+        )
+
+    def test_scan_nonrespond(self):
+        try:
+            self.scan_test(
+                {
+                    "url": VULUNSERVER_ADDR + "/nonrespond",
+                    "interval": SLEEP_INTERVAL,
+                    "exec_cmd": "ls /",
+                }
+            )
+        except cli.RunFailed:
+            pass
+        else:
+            assert False
