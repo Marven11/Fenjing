@@ -4,7 +4,6 @@ sys.path.append("..")  # noqa
 
 import unittest
 import fenjing
-from flask import render_template_string
 
 
 from fenjing.payload_gen import PayloadGenerator
@@ -12,7 +11,6 @@ from fenjing import const
 import logging
 
 fenjing.payload_gen.logger.setLevel(logging.ERROR)
-logging.basicConfig(level=logging.INFO)
 
 
 def get_payload_gen(blacklist, context):

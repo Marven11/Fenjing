@@ -10,7 +10,6 @@ from fenjing.submitter import FormSubmitter  # noqa
 
 import fenjing
 import logging
-from flask import render_template_string
 import os
 
 from fenjing import FullPayloadGen, const
@@ -19,7 +18,6 @@ import random
 
 fenjing.full_payload_gen.logger.setLevel(logging.ERROR)
 fenjing.payload_gen.logger.setLevel(logging.ERROR)
-logging.basicConfig(level=logging.INFO)
 
 
 def get_full_payload_gen(
