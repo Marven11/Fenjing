@@ -107,10 +107,13 @@ class Cracker:
         Returns:
             bool: 是否产生回显
         """
-        content = "".join(random.choices(ascii_lowercase, k=6))
-        resp = self.subm.submit(content)
-        assert resp is not None
-        return content in resp.text
+        for _ in range(10):
+            content = random.choice(ascii_lowercase) * 6
+            resp = self.subm.submit(content)
+            assert resp is not None
+            if content in resp.text:
+                return True
+        return False
 
     def crack(self) -> Union[FullPayloadGen, None]:
         """开始进行攻击，生成一个执行shell命令的payload，测试并返回payload生成器
