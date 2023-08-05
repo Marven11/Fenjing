@@ -204,10 +204,6 @@ def static_waf2():
     return render_template_string("Here: {}".format(name))
 
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8899, debug=True)
-
-
 @app.route("/dynamic_waf", methods=["GET", "POST"])
 def dynamic_waf():
     name = request.args.get("name", "world")
