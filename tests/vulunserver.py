@@ -161,6 +161,53 @@ def static_waf():
     return render_template_string(template)
 
 
+@app.route("/static_waf2", methods=["GET"])
+def static_waf2():
+    # [安洵杯 2020]Normal SSTI，侵删
+    url_black_list = ["%1c", "%1d", "%1f", "%1e", "%20", "%2b", "%2c", "%3c", "%3e"]
+    black_list = [
+        ".",
+        "[",
+        "]",
+        "{{",
+        "=",
+        "_",
+        "'",
+        '""',
+        "\\x",
+        "request",
+        "config",
+        "session",
+        "url_for",
+        "g",
+        "get_flashed_messages",
+        "*",
+        "for",
+        "if",
+        "format",
+        "list",
+        "lower",
+        "slice",
+        "striptags",
+        "trim",
+        "xmlattr",
+        "tojson",
+        "set",
+        "=",
+        "chr",
+    ]
+    url = request.url
+    name = request.args.get("name", "")
+
+    if any(w in url for w in url_black_list) or any(w in name for w in black_list):
+        return "Nope"
+    return render_template_string("Here: {}".format(name))
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8899, debug=True)
+
+
 @app.route("/dynamic_waf", methods=["GET", "POST"])
 def dynamic_waf():
     name = request.args.get("name", "world")

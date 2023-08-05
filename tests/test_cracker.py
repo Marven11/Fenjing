@@ -231,6 +231,12 @@ class TestStaticWAF(TestBase):
         self.setup_remote_waf("/static_waf")
 
 
+class TestStaticWAF2(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_remote_waf("/static_waf2")
+
+
 class TestDynamicWAF(TestBase):
     def setUp(self):
         super().setUp()
