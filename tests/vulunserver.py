@@ -232,7 +232,13 @@ def reversed_waf():
     name = request.args.get("name", "world")[::-1]
     if not waf_pass(name):
         return "Nope"
-    template = f"Hello, {name}"
+    template = f"""
+Hello, {name}
+<form action="/reversed_waf" method="GET">
+<input type="text" name="name" id="">
+<input type="submit" value="">
+</form>
+"""
     return render_template_string(template)
 
 

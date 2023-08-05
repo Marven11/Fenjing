@@ -27,6 +27,16 @@ class TestCLI(unittest.TestCase):
         ctx.params.update(params)
         cli.crack.invoke(ctx)
 
+    def crack_path_test(self, params):
+        ctx = click.Context(cli.crack_path)
+        ctx.params = {
+            param.name: param.default
+            for param in cli.crack_path.get_params(ctx)
+            if param.name != "help"
+        }
+        ctx.params.update(params)
+        cli.crack_path.invoke(ctx)
+
     def get_config_test(self, params):
         ctx = click.Context(cli.get_config)
         ctx.params = {
@@ -149,6 +159,25 @@ class TestCLI(unittest.TestCase):
             }
         )
 
+    def test_crack_path_basic(self):
+        self.crack_path_test(
+            {
+                "url": VULUNSERVER_ADDR + "/crackpath/",
+                "interval": SLEEP_INTERVAL,
+                "exec_cmd": "ls /",
+            }
+        )
+
+    def test_crack_path_tamperer(self):
+        self.crack_path_test(
+            {
+                "url": VULUNSERVER_ADDR + "/crackpath/",
+                "interval": SLEEP_INTERVAL,
+                "exec_cmd": "ls /",
+                "tamper_cmd": "cat"
+            }
+        )
+
     def test_get_config_basic(self):
         self.get_config_test(
             {
@@ -192,3 +221,13 @@ class TestCLI(unittest.TestCase):
             pass
         else:
             assert False
+
+    def test_scan_tamperer(self):
+        self.scan_test(
+            {
+                "url": VULUNSERVER_ADDR + "/reversed_waf",
+                "interval": SLEEP_INTERVAL,
+                "exec_cmd": "ls /",
+                "tamper_cmd": "rev"
+            }
+        )
