@@ -10,13 +10,13 @@ import unittest
 import fenjing
 from typing import Union
 from fenjing.cracker import Cracker
-from fenjing.submitter import FormSubmitter, Submitter, HTTPResponse
-from fenjing import const
+from fenjing.submitter import FormSubmitter, PathSubmitter, Submitter, HTTPResponse
+from fenjing import const, waf_func_gen
 import logging
 import os
 
 VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
-
+waf_func_gen.logger.setLevel(logging.ERROR)
 
 class WrappedSubmitter(Submitter):
     def __init__(self, subm, blacklist):
@@ -59,12 +59,12 @@ class TestBase(unittest.TestCase):
     def test_waf(self):
         cracker = Cracker(self.subm)
         full_payload_gen = cracker.crack()
-        assert full_payload_gen is not None
+        assert full_payload_gen is not None, self.__class__.__name__
         payload, will_print = full_payload_gen.generate(
             const.OS_POPEN_READ,
             "echo 'cracked! @m wr!tI1111ng s()th' " + self.__class__.__name__,
         )
-        assert payload is not None  # 因为type hint无法认出.assertIsNotNone
+        assert payload is not None, self.__class__.__name__  # 因为type hint无法认出.assertIsNotNone
         self.assertTrue(will_print)
         if self.local_blacklist:
             for w in self.local_blacklist:
@@ -89,6 +89,14 @@ class TestEasy(TestBase):
             ]
         )
 
+
+class TestPath(TestBase):
+    def setUp(self):
+        self.local_blacklist = None
+        self.subm = PathSubmitter(
+            url=VULUNSERVER_ADDR + "/crackpath/",
+            requester=Requester(interval=0.01),
+        )
 
 class TestHard1(TestBase):
     def setUp(self):

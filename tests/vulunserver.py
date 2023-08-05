@@ -152,6 +152,11 @@ def verifyheader():
     return render_template_string(template)
 
 
+@app.route("/crackpath/<name>")
+def crackpath(name):
+    return render_template_string(f"Hello, {name}!")
+
+
 @app.route("/static_waf", methods=["GET", "POST"])
 def static_waf():
     name = request.args.get("name", "world")

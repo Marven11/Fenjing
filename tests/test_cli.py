@@ -1,6 +1,7 @@
 # pylint: skip-file
 # flake8: noqa
 
+import logging
 import sys
 
 sys.path.append("..")
@@ -9,11 +10,11 @@ import os
 
 import click
 
-from fenjing import cli
+from fenjing import cli, waf_func_gen
 
 SLEEP_INTERVAL = 0.01
 VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
-
+waf_func_gen.logger.setLevel(logging.ERROR)
 
 class TestCLI(unittest.TestCase):
     def crack_test(self, params):
