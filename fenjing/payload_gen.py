@@ -37,6 +37,7 @@ ContextVariable = Dict[str, Any]
 
 if sys.version_info >= (3, 8):
     from typing import Literal
+
     LiteralTarget = Tuple[Literal["literal"], str]
     UnsatisfiedTarget = Tuple[Literal["unsatisfied"],]
     OneofTarget = Tuple[Literal["oneof"], List["Target"]]
@@ -143,6 +144,7 @@ class PayloadGenerator:
     其会遍历对应的expression_gen，依次“展开”生成目标为一个生成目标的列表，递归地
     将每一个元素转为payload，拼接在一起并使用WAF函数检测是否合法。
     """
+
     def __init__(
         self,
         waf_func: Callable[[str], bool],
@@ -214,22 +216,23 @@ class PayloadGenerator:
             return None
         return str_result, used_context
 
-    def literal_generate(self, target: LiteralTarget) -> Union[PayloadGeneratorResult, None]:
+    def literal_generate(
+        self, target: LiteralTarget
+    ) -> Union[PayloadGeneratorResult, None]:
         """为literal类型的生成目标生成payload
 
         Args:
             target (LiteralTarget): 生成目标
 
         Returns:
-            Union[PayloadGeneratorResult, None]: 生成结果 
+            Union[PayloadGeneratorResult, None]: 生成结果
         """
         if self.detect_mode == DETECT_MODE_ACCURATE and not self.waf_func(target[1]):
             return None
         return (target[1], {})
 
     def unsatisfied_generate(self, target: UnsatisfiedTarget) -> None:
-        """直接拒绝类型为unsatisfied的生成目标
-        """
+        """直接拒绝类型为unsatisfied的生成目标"""
         return None
 
     def oneof_generate(
@@ -250,7 +253,9 @@ class PayloadGenerator:
                 return ret
         return None
 
-    def with_context_var_generate(self, target: WithContextVarTarget) -> Union[PayloadGeneratorResult, None]:
+    def with_context_var_generate(
+        self, target: WithContextVarTarget
+    ) -> Union[PayloadGeneratorResult, None]:
         """生成类型为with_context_var的生成目标，将其中包含的变量名加入到已经使用的变量中
 
         Args:
@@ -805,6 +810,7 @@ def gen_string_lower_c_joinerbatch(context):
         (LITERAL, ")|first|last)"),
     ]
 
+
 @expression_gen
 def gen_string_lower_c_namespacebatch(context):
     return [
@@ -892,6 +898,16 @@ def gen_string_percent_lower_c_cycler(context):
 @expression_gen
 def gen_string_many_percent_lower_c_multiply(context, count: int):
     return [(STRING_PERCENT_LOWER_C,), (LITERAL, "*"), (INTEGER, count)]
+
+
+@expression_gen
+def gen_string_many_percent_lower_c_literal1(context, count: int):
+    return [(LITERAL, "'"), (LITERAL, "%c" * count), (LITERAL, "'")]
+
+
+@expression_gen
+def gen_string_many_percent_lower_c_literal2(context, count: int):
+    return [(LITERAL, '"'), (LITERAL, "%c" * count), (LITERAL, '"')]
 
 
 @expression_gen
