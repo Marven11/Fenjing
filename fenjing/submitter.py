@@ -224,7 +224,9 @@ class PathSubmitter(BaseSubmitter):
             requester (Requester): Requester实例
         """
         super().__init__(callback)
-
+        if not url.endswith("/"):
+            logger.warning("PathSubmitter get a url that's not ends with '/', appending it.")
+            url += "/"
         self.url = url
         self.req = requester
 
