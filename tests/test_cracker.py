@@ -18,6 +18,7 @@ import os
 VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
 waf_func_gen.logger.setLevel(logging.ERROR)
 
+
 class WrappedSubmitter(Submitter):
     def __init__(self, subm, blacklist):
         super().__init__()
@@ -64,7 +65,9 @@ class TestBase(unittest.TestCase):
             const.OS_POPEN_READ,
             "echo 'cracked! @m wr!tI1111ng s()th' " + self.__class__.__name__,
         )
-        assert payload is not None, self.__class__.__name__  # 因为type hint无法认出.assertIsNotNone
+        assert (
+            payload is not None
+        ), self.__class__.__name__  # 因为type hint无法认出.assertIsNotNone
         self.assertTrue(will_print)
         if self.local_blacklist:
             for w in self.local_blacklist:
@@ -90,6 +93,178 @@ class TestEasy(TestBase):
         )
 
 
+class TestStringOct(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "lipsum",
+                "x",
+                "u",
+                "''",
+                '""',
+                "+",
+                "~",
+                "%",
+                "globals",
+                "class",
+                "mro",
+                "base",
+                ":",
+                "lower",
+            ]
+        )
+
+
+class TestStringHex(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "lipsum",
+                "\\1",
+                "u",
+                "''",
+                '""',
+                "+",
+                "~",
+                "%",
+                "globals",
+                "class",
+                "mro",
+                "base",
+                ":",
+                "lower",
+            ]
+        )
+
+
+class TestStringUnicodeHex(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "lipsum",
+                "\\1",
+                "x",
+                "''",
+                '""',
+                "+",
+                "~",
+                "%",
+                "globals",
+                "class",
+                "mro",
+                "base",
+                ":",
+                "lower",
+            ]
+        )
+
+
+class TestStringLower1(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "lipsum",
+                "\\1",
+                "u",
+                "x",
+                "''",
+                '""',
+                "+",
+                "~",
+                "%",
+                "globals",
+                "class",
+                "mro",
+                "base",
+                ":",
+                ".",
+            ]
+        )
+
+
+class TestStringLower1(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "lipsum",
+                "\\1",
+                "u",
+                "x",
+                "''",
+                '""',
+                "+",
+                "~",
+                "%",
+                "globals",
+                "class",
+                "mro",
+                "base",
+                ":",
+                "|",
+            ]
+        )
+
+
+class TestIntegerAdd(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "\\1",
+                "'",
+                '"',
+                "~",
+                ".",
+                "[",
+                "dict",
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "-",
+                "*"
+            ]
+        )
+
+
+class TestIntegerSub(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "\\1",
+                "'",
+                '"',
+                "~",
+                ".",
+                "[",
+                "dict",
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "+",
+            ]
+        )
+
+
 class TestPath(TestBase):
     def setUp(self):
         self.local_blacklist = None
@@ -97,6 +272,7 @@ class TestPath(TestBase):
             url=VULUNSERVER_ADDR + "/crackpath/",
             requester=Requester(interval=0.01),
         )
+
 
 class TestHard1(TestBase):
     def setUp(self):

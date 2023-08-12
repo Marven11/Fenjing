@@ -1138,37 +1138,6 @@ def gen_string_2(context: dict, value: str):
     return [(LITERAL, '"{}"'.format("".join(chars)))]
 
 
-@expression_gen
-def gen_string_x1(context: dict, value: str):
-    if any(ord(c) >= 128 for c in value):
-        return [(UNSATISFIED,)]
-    target = "".join("\\x" + hex(ord(c))[2:] for c in value)
-    return [(LITERAL, '"{}"'.format(target))]
-
-
-@expression_gen
-def gen_string_x2(context: dict, value: str):
-    if any(ord(c) >= 128 for c in value):
-        return [(UNSATISFIED,)]
-    target = "".join("\\x" + hex(ord(c))[2:] for c in value)
-    return [(LITERAL, "'{}'".format(target))]
-
-
-@expression_gen
-def gen_string_u1(context: dict, value: str):
-    if any(ord(c) >= 128 for c in value):
-        return [(UNSATISFIED,)]
-    target = "".join("\\u00" + hex(ord(c))[2:] for c in value)
-    return [(LITERAL, "'{}'".format(target))]
-
-
-@expression_gen
-def gen_string_u2(context: dict, value: str):
-    if any(ord(c) >= 128 for c in value):
-        return [(UNSATISFIED,)]
-    target = "".join("\\u00" + hex(ord(c))[2:] for c in value)
-    return [(LITERAL, "'{}'".format(target))]
-
 
 @expression_gen
 def gen_string_context(context: dict, value: str):
@@ -1214,6 +1183,137 @@ def gen_string_twostringconcat2(context: dict, value: str):
             ],
         ),
     ]
+
+
+
+@expression_gen
+def gen_string_removedunder(context: dict, value: str):
+    if not re.match("^__[A_Za-z0-9_]+__$", value):
+        return [(UNSATISFIED,)]
+    return [
+        (STRING_UNDERLINE,),
+        (LITERAL, "*"),
+        (INTEGER, 2),
+        (STRING_STRING_CONCAT,),
+        (STRING, value[2:-2]),
+        (STRING_STRING_CONCAT,),
+        (STRING_UNDERLINE,),
+        (LITERAL, "*"),
+        (INTEGER, 2),
+    ]
+
+
+
+# 以下规则生成的payload显著长于原string
+
+@expression_gen
+def gen_string_x1(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\x" + hex(ord(c))[2:] for c in value)
+    return [(LITERAL, '"{}"'.format(target))]
+
+
+@expression_gen
+def gen_string_x2(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\x" + hex(ord(c))[2:] for c in value)
+    return [(LITERAL, "'{}'".format(target))]
+
+
+@expression_gen
+def gen_string_u1(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\u00" + hex(ord(c))[2:] for c in value)
+    return [(LITERAL, "'{}'".format(target))]
+
+
+@expression_gen
+def gen_string_u2(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\u00" + hex(ord(c))[2:] for c in value)
+    return [(LITERAL, "'{}'".format(target))]
+
+
+@expression_gen
+def gen_string_o1(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\" + oct(ord(c))[2:] for c in value)
+    return [(LITERAL, "'{}'".format(target))]
+
+
+@expression_gen
+def gen_string_o2(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\" + oct(ord(c))[2:] for c in value)
+    return [(LITERAL, "'{}'".format(target))]
+
+
+@expression_gen
+def gen_string_reverse1(context: dict, value: str):
+    chars = [c if c != "'" else "\\'" for c in value]
+    return [(LITERAL, "'{}'[::-1]".format("".join(chars[::-1])))]
+
+
+@expression_gen
+def gen_string_reverse2(context: dict, value: str):
+    chars = [c if c != '"' else '\\"' for c in value]
+    return [(LITERAL, '"{}"[::-1]'.format("".join(chars[::-1])))]
+
+
+@expression_gen
+def gen_string_lower1(context: dict, value: str):
+    if value.upper().lower() != value:
+        return [(UNSATISFIED,)]
+    chars = [c if c != "'" else "\\'" for c in value.upper()]
+    return [(LITERAL, "'{}'.lower()".format("".join(chars)))]
+
+
+@expression_gen
+def gen_string_lower2(context: dict, value: str):
+    if value.upper().lower() != value:
+        return [(UNSATISFIED,)]
+    chars = [c if c != '"' else '\\"' for c in value.upper()]
+    return [(LITERAL, '"{}".lower()'.format("".join(chars)))]
+
+
+@expression_gen
+def gen_string_lower3(context: dict, value: str):
+    if value.upper().lower() != value:
+        return [(UNSATISFIED,)]
+    chars = [c if c != "'" else "\\'" for c in value.upper()]
+    return [(LITERAL, "'{}'.lower( )".format("".join(chars)))]
+
+
+@expression_gen
+def gen_string_lower4(context: dict, value: str):
+    if value.upper().lower() != value:
+        return [(UNSATISFIED,)]
+    chars = [c if c != '"' else '\\"' for c in value.upper()]
+    return [(LITERAL, '"{}".lower( )'.format("".join(chars)))]
+
+
+@expression_gen
+def gen_string_lowerfilter1(context: dict, value: str):
+    if value.upper().lower() != value:
+        return [(UNSATISFIED,)]
+    chars = [c if c != "'" else "\\'" for c in value.upper()]
+    return [(LITERAL, "'{}'|lower".format("".join(chars)))]
+
+
+@expression_gen
+def gen_string_lowerfilter2(context: dict, value: str):
+    if value.upper().lower() != value:
+        return [(UNSATISFIED,)]
+    chars = [c if c != '"' else '\\"' for c in value.upper()]
+    return [(LITERAL, '"{}"|lower'.format("".join(chars)))]
+
+
 
 
 @expression_gen
@@ -1262,23 +1362,6 @@ def gen_string_chars(context: dict, value: str):
         (LITERAL, ")"),
     )
     return ans
-
-
-@expression_gen
-def gen_string_removedunder(context: dict, value: str):
-    if not re.match("^__[A_Za-z0-9_]+__$", value):
-        return [(UNSATISFIED,)]
-    return [
-        (STRING_UNDERLINE,),
-        (LITERAL, "*"),
-        (INTEGER, 2),
-        (STRING_STRING_CONCAT,),
-        (STRING, value[2:-2]),
-        (STRING_STRING_CONCAT,),
-        (STRING_UNDERLINE,),
-        (LITERAL, "*"),
-        (INTEGER, 2),
-    ]
 
 
 @expression_gen
