@@ -1,0 +1,23 @@
+name: Update Star Charts
+
+on:
+  schedule:
+    - cron: '42 */12 * * *'
+permissions:
+  contents: write
+
+jobs:
+  update:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Update Star Charts
+      env: 
+        VULUNSERVER_ADDR: "http://127.0.0.1:5000"
+      run: | 
+        wget -O assets/stars.svg https://starchart.cc/Marven11/Fenjing.svg
+
+
