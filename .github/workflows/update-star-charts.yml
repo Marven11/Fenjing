@@ -2,22 +2,26 @@ name: Update Star Charts
 
 on:
   schedule:
-    - cron: '42 */12 * * *'
+    - cron: "42 */8 * * *"
+  push:
+    branches:
+      - main
+      - dev
 permissions:
   contents: write
 
 jobs:
   update:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-
-    - name: Update Star Charts
-      env: 
-        VULUNSERVER_ADDR: "http://127.0.0.1:5000"
-      run: | 
-        wget -O assets/stars.svg https://starchart.cc/Marven11/Fenjing.svg
-
-
+      - name: Switch to another branch
+        uses: actions/checkout@v3
+      - name: Switch to another branch
+        run: git checkout images
+      - name: Update Star Charts
+        run: |
+          wget -O assets/stars.svg https://starchart.cc/Marven11/Fenjing.svg
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add . && git commit -m 'Update: '"$(date)" && git push
