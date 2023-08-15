@@ -1,4 +1,0 @@
-include VERSION
-include requirements.txt
-recursive-include fenjing/templates *
-recursive-include fenjing/static *
