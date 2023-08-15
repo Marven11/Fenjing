@@ -274,4 +274,4 @@ if __name__ == "__main__":
 
 ## Stars
 
-[![Stargazers over time](assets/stars.svg)](https://starchart.cc/Marven11/Fenjing)
+[![Stargazers over time](https://github.com/Marven11/Fenjing/raw/images/assets/stars.svg))](https://starchart.cc/Marven11/Fenjing)
