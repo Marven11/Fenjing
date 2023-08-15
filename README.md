@@ -3,12 +3,12 @@
 > Bypass the WAF without knowing WAF
 
 
-[![Run tests](https://github.com/Marven11/Fenjing/actions/workflows/run-tests.yml/badge.svg)](https://github.com/Marven11/Fenjing/actions/workflows/run-tests.yml)
-[![Upload Python Package](https://github.com/Marven11/Fenjing/actions/workflows/python-publish.yml/badge.svg)](https://github.com/Marven11/Fenjing/actions/workflows/python-publish.yml)
-[![codecov](https://codecov.io/gh/Marven11/Fenjing/branch/main/graph/badge.svg?token=DLP7OH52P3)](https://codecov.io/gh/Marven11/Fenjing)
-[![Downloads](https://static.pepy.tech/badge/fenjing)](https://pepy.tech/project/fenjing)
-[![Downloads](https://static.pepy.tech/badge/fenjing/month)](https://pepy.tech/project/fenjing)
-![Static Badge](https://img.shields.io/badge/license-MPL2.0-blue)
+[![Run tests](https://github.com/Marven11/Fenjing/raw/images/assets/run-tests.svg)](https://github.com/Marven11/Fenjing/actions/workflows/run-tests.yml)
+[![Upload Python Package](https://github.com/Marven11/Fenjing/raw/images/assets/python-package.svg)](https://github.com/Marven11/Fenjing/actions/workflows/python-publish.yml)
+[![codecov](https://github.com/Marven11/Fenjing/raw/images/assets/codecov.svg)](https://codecov.io/gh/Marven11/Fenjing)
+[![Downloads](https://github.com/Marven11/Fenjing/raw/images/assets/downloads.svg)](https://pepy.tech/project/fenjing)
+[![Downloads](https://github.com/Marven11/Fenjing/raw/images/assets/downloads-monthly.svg)](https://pepy.tech/project/fenjing)
+![Static Badge](https://github.com/Marven11/Fenjing/raw/images/assets/license.svg)
 
 焚靖是一个针对CTF比赛中Jinja SSTI绕过WAF的全自动脚本，可以自动攻击给定的网站或接口。
 

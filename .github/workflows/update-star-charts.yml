@@ -13,15 +13,27 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
-
     steps:
       - name: Switch to another branch
         uses: actions/checkout@v3
-      - name: Switch to another branch
-        run: git checkout images
+        with:
+          ref: "images"
+
       - name: Update Star Charts
         run: |
           wget -O assets/stars.svg https://starchart.cc/Marven11/Fenjing.svg
+          wget -O assets/run-tests.svg https://github.com/Marven11/Fenjing/actions/workflows/run-tests.yml/badge.svg
+          wget -O assets/python-package.svg https://github.com/Marven11/Fenjing/actions/workflows/python-publish.yml/badge.svg
+          wget -O assets/codecov.svg https://codecov.io/gh/Marven11/Fenjing/branch/main/graph/badge.svg?token=DLP7OH52P3
+          wget -O assets/downloads.svg https://static.pepy.tech/badge/fenjing
+          wget -O assets/downloads-monthly.svg https://static.pepy.tech/badge/fenjing/month
+          wget -O assets/license.svg https://img.shields.io/badge/license-MPL2.0-blue
+      - name: Commit
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add . && git commit -m 'Update: '"$(date)" && git push
