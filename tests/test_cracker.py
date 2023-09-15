@@ -17,7 +17,7 @@ import os
 
 VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
 waf_func_gen.logger.setLevel(logging.ERROR)
-
+SLEEP_INTERVAL = os.environ.get("SLEEP_INTERVAL", 0.01)
 
 class WrappedSubmitter(Submitter):
     def __init__(self, subm, blacklist):
@@ -39,7 +39,7 @@ class TestBase(unittest.TestCase):
                 url=VULUNSERVER_ADDR,
                 form=get_form(action="/", inputs=["name"], method="GET"),
                 target_field="name",
-                requester=Requester(interval=0.01),
+                requester=Requester(interval=SLEEP_INTERVAL),
             ),
             self.local_blacklist,
         )
@@ -50,7 +50,7 @@ class TestBase(unittest.TestCase):
             url=VULUNSERVER_ADDR,
             form=get_form(action=remote_uri, inputs=["name"], method="GET"),
             target_field="name",
-            requester=Requester(interval=0.01),
+            requester=Requester(interval=SLEEP_INTERVAL),
         )
 
     def setUp(self):
@@ -74,7 +74,7 @@ class TestBase(unittest.TestCase):
                 self.assertNotIn(w, payload)
         resp = self.subm.submit(payload)
         assert resp is not None
-        self.assertIn("cracked! @m wr!tI1111ng s()th", resp.text)
+        self.assertIn("cracked! @m wr!tI1111ng s()th", resp.text, resp.text)
 
 
 class TestEasy(TestBase):
@@ -270,7 +270,7 @@ class TestPath(TestBase):
         self.local_blacklist = None
         self.subm = PathSubmitter(
             url=VULUNSERVER_ADDR + "/crackpath/",
-            requester=Requester(interval=0.01),
+            requester=Requester(interval=SLEEP_INTERVAL),
         )
 
 
@@ -466,3 +466,8 @@ class TestLengthLimit2WAF(TestBase):
         resp = subm.submit(payload)
         assert resp is not None
         self.assertIn("fenjingtest", resp.text)
+
+class TestReplacedWAF(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_remote_waf("/replace_waf")

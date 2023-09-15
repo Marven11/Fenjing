@@ -259,6 +259,17 @@ def lengthlimit2_waf():
     template = f"Hello, {name}"
     return render_template_string(template)
 
+@app.route("/replace_waf", methods=["GET", "POST"])
+def replace_waf():
+    name = request.args.get("name", "world")
+    words = waf_words(name)
+    for word in words:
+        if len(word) >= 3:
+            name = name.replace(word, "")
+    print(name)
+    template = f"Hello, {name}"
+    return render_template_string(template)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
