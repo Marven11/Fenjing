@@ -229,7 +229,7 @@ class WafFuncGen:
         Returns:
             List[str]: 所有可能被替换的keyword
         """
-        extra = "".join(random.choices(string.ascii_lowercase, k=6))
+        extra = "".join(random.choices(string.ascii_lowercase, k=4))
         test_payloads = (
             dangerous_keywords
             if self.detect_mode == DETECT_MODE_ACCURATE
@@ -237,6 +237,9 @@ class WafFuncGen:
         )
         keywords = []
         for payload_raw in test_payloads:
+            # 如果extra的开头或结尾和payload的相同，被替换后可能会因为错误拼合导致检测失效
+            while extra[0] == payload_raw[0] or extra[-1] == payload_raw[-1]:
+                extra = "".join(random.choices(string.ascii_lowercase, k=4))
             payload = extra + payload_raw + extra
             logger.info(
                 "Testing dangerous keyword %s",
