@@ -17,7 +17,7 @@ import os
 
 VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
 waf_func_gen.logger.setLevel(logging.ERROR)
-SLEEP_INTERVAL = os.environ.get("SLEEP_INTERVAL", 0.01)
+SLEEP_INTERVAL = float(os.environ.get("SLEEP_INTERVAL", 0.01))
 
 class WrappedSubmitter(Submitter):
     def __init__(self, subm, blacklist):
