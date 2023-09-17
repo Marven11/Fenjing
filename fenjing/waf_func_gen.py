@@ -44,6 +44,20 @@ def grouped_payloads(size=3, sep="") -> List[str]:
         for i in range(0, len(dangerous_keywords), size)
     ]
 
+def removeprefix_compat(text: str, prefix: str) -> str:
+    """兼容python 3.9及以下的removeprefix函数
+
+    Args:
+        text (str): text
+        prefix (str): 需要去除的prefix
+
+    Returns:
+        str: 处理结果
+    """
+    if text.startswith(prefix):
+        return text[len(prefix):]
+    return text
+
 
 def get_next_p(b: str) -> List[int]:
     """KMP算法中，获取字符串B的next数组的算法过程
@@ -140,8 +154,9 @@ def find_pieces(resp_text, payload):
     payload_unmatched_before = payload_unmatched[
         : max_answer_pos_unmatched - max_answer_unmatched + 1
     ]
-    resp_text_next = resp_text_unmatched.removeprefix(payload_unmatched_before)
-    payload_next = payload_unmatched.removeprefix(payload_unmatched_before)
+    resp_text_next = removeprefix_compat(resp_text_unmatched, payload_unmatched_before)
+    payload_next = removeprefix_compat(payload_unmatched, payload_unmatched_before)
+
     assert len(resp_text_next) < len(resp_text) and len(payload_next) < len(payload)
     return [
         payload_unmatched_before,
