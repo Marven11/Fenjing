@@ -14,6 +14,7 @@ from .const import (
     DEFAULT_USER_AGENT,
     CONFIG,
     DETECT_MODE_ACCURATE,
+    REPLACED_KEYWORDS_STRATEGY_IGNORE,
 )
 from .colorize import colored, set_enable_coloring
 from .cracker import Cracker
@@ -156,6 +157,7 @@ def do_crack_form_pre(
     form: Form,
     requester: Requester,
     detect_mode: str,
+    replaced_keyword_strategy: str,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[FullPayloadGen, Submitter], None]:
     """攻击一个表单并获得结果
@@ -180,7 +182,11 @@ def do_crack_form_pre(
         if tamper_cmd:
             tamperer = shell_tamperer(tamper_cmd)
             submitter.add_tamperer(tamperer)
-        cracker = Cracker(submitter=submitter, detect_mode=detect_mode)
+        cracker = Cracker(
+            submitter=submitter,
+            detect_mode=detect_mode,
+            replaced_keyword_strategy=replaced_keyword_strategy,
+        )
         full_payload_gen = cracker.crack()
         if full_payload_gen:
             return full_payload_gen, submitter
@@ -192,6 +198,7 @@ def do_crack_form_eval_args_pre(
     form: Form,
     requester: Requester,
     detect_mode: str,
+    replaced_keyword_strategy: str,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[Submitter, bool], None]:
     """攻击一个表单并获得结果，但是将payload放在GET/POST参数中提交
@@ -216,7 +223,11 @@ def do_crack_form_eval_args_pre(
         if tamper_cmd:
             tamperer = shell_tamperer(tamper_cmd)
             submitter.add_tamperer(tamperer)
-        cracker = Cracker(submitter=submitter, detect_mode=detect_mode)
+        cracker = Cracker(
+            submitter=submitter,
+            detect_mode=detect_mode,
+            replaced_keyword_strategy=replaced_keyword_strategy,
+        )
         result = cracker.crack_eval_args()
         if result:
             _, submitter, will_print = result
@@ -225,7 +236,11 @@ def do_crack_form_eval_args_pre(
 
 
 def do_crack_path_pre(
-    url: str, requester: Requester, detect_mode: str, tamper_cmd: Union[str, None]
+    url: str,
+    requester: Requester,
+    detect_mode: str,
+    replaced_keyword_strategy: str,
+    tamper_cmd: Union[str, None],
 ) -> Union[Tuple[FullPayloadGen, Submitter], None]:
     """攻击一个路径并获得payload生成器
 
@@ -242,7 +257,11 @@ def do_crack_path_pre(
     if tamper_cmd:
         tamperer = shell_tamperer(tamper_cmd)
         submitter.add_tamperer(tamperer)
-    cracker = Cracker(submitter=submitter, detect_mode=detect_mode)
+    cracker = Cracker(
+        submitter=submitter,
+        detect_mode=detect_mode,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+    )
     full_payload_gen = cracker.crack()
     if full_payload_gen is None:
         return None
@@ -332,6 +351,11 @@ def main():
 @click.option(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
 )
+@click.option(
+    "--replaced-keyword-strategy",
+    default=REPLACED_KEYWORDS_STRATEGY_IGNORE,
+    help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
+)
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
@@ -344,6 +368,7 @@ def get_config(
     inputs: str,
     interval: float,
     detect_mode: str,
+    replaced_keyword_strategy: str,
     user_agent: str,
     header: tuple,
     cookies: str,
@@ -366,7 +391,9 @@ def get_config(
         headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
         proxy=proxy,
     )
-    result = do_crack_form_pre(url, form, requester, detect_mode, tamper_cmd)
+    result = do_crack_form_pre(
+        url, form, requester, detect_mode, replaced_keyword_strategy, tamper_cmd
+    )
     if not result:
         logger.warning("Test form failed...")
         raise RunFailed()
@@ -387,6 +414,11 @@ def get_config(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
 )
 @click.option(
+    "--replaced-keyword-strategy",
+    default=REPLACED_KEYWORDS_STRATEGY_IGNORE,
+    help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
+)
+@click.option(
     "--eval-args-payload",
     default=False,
     is_flag=True,
@@ -405,6 +437,7 @@ def crack(
     exec_cmd: str,
     interval: float,
     detect_mode: str,
+    replaced_keyword_strategy: str,
     eval_args_payload: bool,
     user_agent: str,
     header: tuple,
@@ -429,7 +462,9 @@ def crack(
         proxy=proxy,
     )
     if not eval_args_payload:
-        result = do_crack_form_pre(url, form, requester, detect_mode, tamper_cmd)
+        result = do_crack_form_pre(
+            url, form, requester, detect_mode, replaced_keyword_strategy, tamper_cmd
+        )
         if not result:
             logger.warning("Test form failed...")
             raise RunFailed()
@@ -437,7 +472,7 @@ def crack(
         do_crack(full_payload_gen, submitter, exec_cmd)
     else:
         result = do_crack_form_eval_args_pre(
-            url, form, requester, detect_mode, tamper_cmd
+            url, form, requester, detect_mode, replaced_keyword_strategy, tamper_cmd
         )
         if not result:
             logger.warning("Test form failed...")
@@ -453,6 +488,11 @@ def crack(
 @click.option(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
 )
+@click.option(
+    "--replaced-keyword-strategy",
+    default=REPLACED_KEYWORDS_STRATEGY_IGNORE,
+    help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
+)
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
@@ -463,6 +503,7 @@ def crack_path(
     exec_cmd: str,
     interval: float,
     detect_mode: str,
+    replaced_keyword_strategy: str,
     user_agent: str,
     header: tuple,
     cookies: str,
@@ -484,6 +525,7 @@ def crack_path(
         url,
         requester,
         detect_mode,
+        replaced_keyword_strategy,
         tamper_cmd,
     )
     if not result:
@@ -500,6 +542,11 @@ def crack_path(
 @click.option(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="检测模式，可为accurate或fast"
 )
+@click.option(
+    "--replaced-keyword-strategy",
+    default=REPLACED_KEYWORDS_STRATEGY_IGNORE,
+    help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
+)
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
@@ -510,6 +557,7 @@ def scan(
     exec_cmd,
     interval,
     detect_mode,
+    replaced_keyword_strategy,
     user_agent,
     header,
     cookies,
@@ -532,7 +580,14 @@ def scan(
         for form in forms
     )
     for page_url, form in url_forms:
-        result = do_crack_form_pre(page_url, form, requester, detect_mode, tamper_cmd)
+        result = do_crack_form_pre(
+            page_url,
+            form,
+            requester,
+            detect_mode,
+            replaced_keyword_strategy,
+            tamper_cmd,
+        )
         if not result:
             continue
         full_payload_gen, submitter = result

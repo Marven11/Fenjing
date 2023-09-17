@@ -11,7 +11,14 @@ from collections import Counter, namedtuple
 from functools import lru_cache
 from typing import Dict, Callable, Tuple, Union, List
 
-from .const import DETECT_MODE_ACCURATE, DETECT_MODE_FAST, DANGEROUS_KEYWORDS
+from .const import (
+    DETECT_MODE_ACCURATE,
+    DETECT_MODE_FAST,
+    DANGEROUS_KEYWORDS,
+    REPLACED_KEYWORDS_STRATEGY_AVOID,
+    REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING,
+    REPLACED_KEYWORDS_STRATEGY_IGNORE,
+)
 from .colorize import colored
 from .submitter import Submitter
 
@@ -44,6 +51,7 @@ def grouped_payloads(size=3, sep="") -> List[str]:
         for i in range(0, len(dangerous_keywords), size)
     ]
 
+
 def removeprefix_compat(text: str, prefix: str) -> str:
     """兼容python 3.9及以下的removeprefix函数
 
@@ -55,7 +63,7 @@ def removeprefix_compat(text: str, prefix: str) -> str:
         str: 处理结果
     """
     if text.startswith(prefix):
-        return text[len(prefix):]
+        return text[len(prefix) :]
     return text
 
 
@@ -113,7 +121,7 @@ def kmp(a: str, b: str) -> Tuple[int, Union[int, None]]:
 
         if j == len(b) - 1:
             j = -1
-        logger.debug(f"{i}, {c}, {j}")
+        logger.debug("%d, %s, %d", i, c, j)
     return max_answer, max_answer_pos
 
 
@@ -130,7 +138,7 @@ def find_pieces(resp_text, payload):
     assert len(resp_text) < 1e5 and len(payload) < 1e5  # perf limit
     logger.debug("find_pieces(%s, %s)", resp_text[:20], payload[:20])
     max_answer, max_answer_pos = kmp(resp_text, payload)
-    logger.debug(f"{max_answer}, {max_answer_pos}")
+    logger.debug("%d, %s", max_answer, str(max_answer_pos))
     if max_answer <= 2 or max_answer_pos is None:
         logger.debug("max answer too low")
         return []
@@ -174,12 +182,14 @@ class WafFuncGen:
         submitter: Submitter,
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
+        replaced_keyword_strategy: str = REPLACED_KEYWORDS_STRATEGY_IGNORE,
     ):
         self.subm = submitter
         self.callback: Callable[[str, Dict], None] = (
             callback if callback else (lambda x, y: None)
         )
         self.detect_mode = detect_mode
+        self.replaced_keyword_strategy = replaced_keyword_strategy
 
     def waf_page_hash(self):
         """使用危险的payload测试对应的input，得到一系列响应后，求出响应中最常见的几个hash
@@ -214,6 +224,11 @@ class WafFuncGen:
         return [k for k, v in Counter(hashes).items() if v >= 2]
 
     def replaced_keyword(self) -> List[str]:
+        """检测出所有可能被替换的keyword
+
+        Returns:
+            List[str]: 所有可能被替换的keyword
+        """
         extra = "".join(random.choices(string.ascii_lowercase, k=6))
         test_payloads = (
             dangerous_keywords
@@ -289,9 +304,8 @@ class WafFuncGen:
         """
         replaced_keyword = self.replaced_keyword()
         waf_hashes = self.waf_page_hash()
-        # self.subm.add_tamperer(
-        #     lambda s: self.doubletapping(s, replaced_keyword)
-        # )
+        if self.replaced_keyword_strategy == REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING:
+            self.subm.add_tamperer(lambda s: self.doubletapping(s, replaced_keyword))
 
         # 随着检测payload一起提交的附加内容
         # content: 内容本身，passed: 内容是否确认可以通过waf
@@ -306,7 +320,10 @@ class WafFuncGen:
             nonlocal extra_content, extra_passed, replaced_keyword
             payload = extra_content + value
             for _ in range(5):
-                if any(w in payload for w in replaced_keyword):
+                if (
+                    self.replaced_keyword_strategy == REPLACED_KEYWORDS_STRATEGY_AVOID
+                    and any(w in payload for w in replaced_keyword)
+                ):
                     return False
                 result = self.subm.submit(payload)
                 if result is None:
@@ -326,7 +343,11 @@ class WafFuncGen:
                 if replaced_list:
                     logger.info("发现了新的关键词替换：%s", colored("yellow", repr(replaced_list)))
                     replaced_keyword += replaced_list
-                    return False
+                    # 如果策略为“忽略”则返回True, 否则返回False
+                    return (
+                        self.replaced_keyword_strategy
+                        == REPLACED_KEYWORDS_STRATEGY_IGNORE
+                    )
                 # 去除下方的规则，因为如果我们没有fuzz出所有的waf页面，而此时extra_content
                 # 不在waf页面中的话，我们应该更加保守地认为payload应该是被waf拦住了
 

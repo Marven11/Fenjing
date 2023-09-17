@@ -19,6 +19,7 @@ from .const import (
     LITERAL,
     OS_POPEN_READ,
     DETECT_MODE_ACCURATE,
+    REPLACED_KEYWORDS_STRATEGY_IGNORE,
 )
 from .waf_func_gen import WafFuncGen
 from .full_payload_gen import FullPayloadGen
@@ -31,6 +32,7 @@ class Cracker:
     """
     针对某个网站进行攻击
     """
+
     test_cmd = "echo f3n  j1ng;"
     test_eval = "'f'+str(3)+'n j'+str(1)+\"ng\""
     test_result = "f3n j1ng"
@@ -40,6 +42,7 @@ class Cracker:
         submitter: Submitter,
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
+        replaced_keyword_strategy: str = REPLACED_KEYWORDS_STRATEGY_IGNORE,
     ):
         self.detect_mode = detect_mode
         self.subm = submitter
@@ -48,7 +51,10 @@ class Cracker:
             callback if callback else (lambda x, y: None)
         )
         self.waf_func_gen = WafFuncGen(
-            submitter, callback=callback, detect_mode=detect_mode
+            submitter,
+            callback=callback,
+            detect_mode=detect_mode,
+            replaced_keyword_strategy=replaced_keyword_strategy,
         )
 
     @property
@@ -87,7 +93,7 @@ class Cracker:
 
         Args:
             payload (str): 用于测试的payload
-            subm (Submitter): 
+            subm (Submitter):
                 用于提交payload的submitter, 可能和self中的submitter不同
 
         Returns:
@@ -153,7 +159,7 @@ class Cracker:
         新的submitter会填充GET参数x、提交并返回结果。
 
         Returns:
-            Union[Tuple[FullPayloadGen, Submitter, bool], None]: 
+            Union[Tuple[FullPayloadGen, Submitter, bool], None]:
                 产生的payload生成器，提交器，以及是否会产生回显
         """
         logger.info("Cracking with request GET args...")
@@ -186,9 +192,7 @@ class Cracker:
             url=self.subm.url,
             method=method,
             target_field=args_target_field,
-            params=payload_param
-            if method == "GET"
-            else {},
+            params=payload_param if method == "GET" else {},
             data=payload_param if method != "GET" else {},
             requester=self.subm.req,
         )

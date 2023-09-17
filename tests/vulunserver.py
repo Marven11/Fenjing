@@ -266,7 +266,6 @@ def replace_waf():
     for word in words:
         if len(word) >= 3:
             name = name.replace(word, "")
-    print(name)
     template = f"Hello, {name}"
     return render_template_string(template)
 

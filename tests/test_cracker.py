@@ -19,6 +19,7 @@ VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
 waf_func_gen.logger.setLevel(logging.ERROR)
 SLEEP_INTERVAL = float(os.environ.get("SLEEP_INTERVAL", 0.01))
 
+
 class WrappedSubmitter(Submitter):
     def __init__(self, subm, blacklist):
         super().__init__()
@@ -55,10 +56,11 @@ class TestBase(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
+        self.cracker_other_opts = {}
         self.setup_local_waf(["."])
 
     def test_waf(self):
-        cracker = Cracker(self.subm)
+        cracker = Cracker(self.subm, **self.cracker_other_opts)
         full_payload_gen = cracker.crack()
         assert full_payload_gen is not None, self.__class__.__name__
         payload, will_print = full_payload_gen.generate(
@@ -233,7 +235,7 @@ class TestIntegerAdd(TestBase):
                 "8",
                 "9",
                 "-",
-                "*"
+                "*",
             ]
         )
 
@@ -267,6 +269,7 @@ class TestIntegerSub(TestBase):
 
 class TestPath(TestBase):
     def setUp(self):
+        super().setUp()
         self.local_blacklist = None
         self.subm = PathSubmitter(
             url=VULUNSERVER_ADDR + "/crackpath/",
@@ -467,7 +470,16 @@ class TestLengthLimit2WAF(TestBase):
         assert resp is not None
         self.assertIn("fenjingtest", resp.text)
 
-class TestReplacedWAF(TestBase):
+
+class TestReplacedWAFAvoid(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/replace_waf")
+        self.cracker_other_opts = {"replaced_keyword_strategy": "avoid"}
+
+
+class TestReplacedWAFDoubleTapping(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_remote_waf("/replace_waf")
+        self.cracker_other_opts = {"replaced_keyword_strategy": "doubletapping"}

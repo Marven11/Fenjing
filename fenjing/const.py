@@ -80,6 +80,12 @@ APICODE_WRONG_INPUT = 401
 DETECT_MODE_FAST = "fast"
 DETECT_MODE_ACCURATE = "accurate"
 
+# 在WAF替换危险keywords时的策略
+
+REPLACED_KEYWORDS_STRATEGY_AVOID = "avoid"  # 避免使用这些keywords
+REPLACED_KEYWORDS_STRATEGY_IGNORE = "ignore"  # 忽略检测出的keywords并继续使用
+REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING = "doubletapping"  # 对payload使用doubletapping
+
 DANGEROUS_KEYWORDS = [
     '"',
     "%",
