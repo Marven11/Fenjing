@@ -188,29 +188,6 @@ class TestStringLower1(TestBase):
         )
 
 
-class TestStringLower1(TestBase):
-    def setUp(self):
-        super().setUp()
-        self.setup_local_waf(
-            [
-                "lipsum",
-                "\\1",
-                "u",
-                "x",
-                "''",
-                '""',
-                "+",
-                "~",
-                "%",
-                "globals",
-                "class",
-                "mro",
-                "base",
-                ":",
-                "|",
-            ]
-        )
-
 
 class TestIntegerAdd(TestBase):
     def setUp(self):
@@ -483,3 +460,10 @@ class TestReplacedWAFDoubleTapping(TestBase):
         super().setUp()
         self.setup_remote_waf("/replace_waf")
         self.cracker_other_opts = {"replaced_keyword_strategy": "doubletapping"}
+
+class TestJinjaEnv(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_remote_waf("/jinja_env_waf")
+        self.cracker_other_opts = {"environment": "jinja"}
+

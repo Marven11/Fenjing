@@ -16,6 +16,7 @@ from .const import (
     CALLBACK_PREPARE_FULLPAYLOADGEN,
     CALLBACK_GENERATE_FULLPAYLOAD,
     DETECT_MODE_ACCURATE,
+    ENVIRONMENT_FLASK,
 )
 
 logger = logging.getLogger("full_payload_gen")
@@ -83,6 +84,7 @@ class FullPayloadGen:
         ],
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
+        environment: str = ENVIRONMENT_FLASK,
     ):
         self.__slot__ = [
             "waf_func",
@@ -103,6 +105,7 @@ class FullPayloadGen:
         self.outer_pattern, self.will_print = None, None
         self.payload_gen = None
         self.detect_mode = detect_mode
+        self.environment = environment
 
     @property
     def callback(self):
@@ -149,6 +152,7 @@ class FullPayloadGen:
             self.context,
             self.callback,
             detect_mode=self.detect_mode,
+            environment=self.environment
         )
         self.prepared = True
         self.callback(

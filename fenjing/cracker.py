@@ -15,6 +15,7 @@ from .colorize import colored
 from .const import (
     ATTRIBUTE,
     CHAINED_ATTRIBUTE_ITEM,
+    ENVIRONMENT_FLASK,
     EVAL,
     LITERAL,
     OS_POPEN_READ,
@@ -43,6 +44,7 @@ class Cracker:
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
         replaced_keyword_strategy: str = REPLACED_KEYWORDS_STRATEGY_IGNORE,
+        environment: str = ENVIRONMENT_FLASK,
     ):
         self.detect_mode = detect_mode
         self.subm = submitter
@@ -56,7 +58,7 @@ class Cracker:
             detect_mode=detect_mode,
             replaced_keyword_strategy=replaced_keyword_strategy,
         )
-
+        self.environment = environment
     @property
     def callback(self):
         """Callback函数
@@ -130,7 +132,7 @@ class Cracker:
         logger.info("Cracking...")
         waf_func = self.waf_func_gen.generate()
         full_payload_gen = FullPayloadGen(
-            waf_func, callback=None, detect_mode=self.detect_mode
+            waf_func, callback=None, detect_mode=self.detect_mode, environment=self.environment
         )
         payload, will_print = full_payload_gen.generate(OS_POPEN_READ, self.test_cmd)
         if payload is None:

@@ -9,6 +9,7 @@ LITERAL = "literal"
 UNSATISFIED = "unsatisfied"
 ONEOF = "oneof"
 WITH_CONTEXT_VAR = "with_context_var"
+FLASK_CONTEXT_VAR = "flask_context_var"
 ZERO = "zero"
 POSITIVE_INTEGER = "positive_integer"
 INTEGER = "integer"
@@ -34,34 +35,6 @@ MODULE_OS = "module_os"
 OS_POPEN_OBJ = "os_popen_obj"
 OS_POPEN_READ = "os_popen_read"
 
-GEN_TYPES = [
-    "literal",
-    "unsatisfied",
-    "zero",
-    "positive_integer",
-    "integer",
-    "string_string_concat",
-    "string_percent",
-    "string_percent_lower_c",
-    "string_underline",
-    "string_lower_c",
-    "string_many_percent_lower_c",
-    "string_many_format_c",
-    "char",
-    "string",
-    "formular_sum",
-    "attribute",
-    "item",
-    "class_attribute",
-    "chained_attribute_item",
-    "eval_func",
-    "eval",
-    "config",
-    "module_os",
-    "os_popen_obj",
-    "os_popen_read",
-]
-
 # callback函数的参数
 
 CALLBACK_PREPARE_FULLPAYLOADGEN = "prepare_fullpayloadgen"
@@ -79,6 +52,11 @@ APICODE_WRONG_INPUT = 401
 
 DETECT_MODE_FAST = "fast"
 DETECT_MODE_ACCURATE = "accurate"
+
+# 模板的执行环境：flask或者普通的Jinja
+
+ENVIRONMENT_FLASK = "flask"
+ENVIRONMENT_JINJA = "jinja"
 
 # 在WAF替换危险keywords时的策略
 

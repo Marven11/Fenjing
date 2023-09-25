@@ -3,6 +3,7 @@
 import random
 
 from flask import Flask, request, render_template_string
+from jinja2 import Template
 
 app = Flask(__name__)
 blacklist = [
@@ -268,6 +269,15 @@ def replace_waf():
             name = name.replace(word, "")
     template = f"Hello, {name}"
     return render_template_string(template)
+
+@app.route("/jinja_env_waf", methods=["GET", "POST"])
+def jinja_env_waf():
+    name = request.args.get("name", "world")
+    if not waf_pass(name):
+        return "Nope"
+    template = Template(f"Hello, {name}")
+    # return render_template_string(template)
+    return template.render()
 
 
 if __name__ == "__main__":

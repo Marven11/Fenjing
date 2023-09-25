@@ -42,6 +42,7 @@ if sys.version_info >= (3, 8):
     UnsatisfiedTarget = Tuple[Literal["unsatisfied"],]
     OneofTarget = Tuple[Literal["oneof"], List["Target"]]
     WithContextVarTarget = Tuple[Literal["with_context_var"], str]
+    FlaskContextVarTarget = Tuple[Literal["flask_context_var"], str]
     ZeroTarget = Tuple[Literal["zero"],]
     PositiveIntegerTarget = Tuple[Literal["positive_integer"], int]
     IntegerTarget = Tuple[Literal["integer"], int]
@@ -72,6 +73,7 @@ if sys.version_info >= (3, 8):
         UnsatisfiedTarget,
         OneofTarget,
         WithContextVarTarget,
+        FlaskContextVarTarget,
         ZeroTarget,
         PositiveIntegerTarget,
         IntegerTarget,
@@ -102,6 +104,7 @@ else:
     UnsatisfiedTarget = Tuple
     OneofTarget = Tuple
     WithContextVarTarget = Tuple
+    FlaskContextVarTarget = Tuple
     Target = Tuple
 
 
@@ -148,9 +151,10 @@ class PayloadGenerator:
     def __init__(
         self,
         waf_func: Callable[[str], bool],
-        context: Union[Dict, None],
+        context: Union[Dict, None] = None,
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
+        environment: str = ENVIRONMENT_FLASK,
     ):
         self.waf_func = waf_func
         self.context = context if context else {}
@@ -174,6 +178,10 @@ class PayloadGenerator:
                 self.with_context_var_generate,
             ),
             (
+                (lambda target: target[0] == FLASK_CONTEXT_VAR),
+                self.flask_context_var_generate,
+            ),
+            (
                 (lambda target: hashable(target) and target in self.cache),
                 (lambda target: self.cache[target]),
             ),
@@ -184,9 +192,9 @@ class PayloadGenerator:
         if detect_mode == DETECT_MODE_FAST:
             for k in gen_weight_default:
                 self.used_count[k] += gen_weight_default[k]
-
+        self.environment = environment
         self.callback = callback if callback else (lambda x, y: None)
-
+    
     def generate_by_list(
         self, targets: List[Target]
     ) -> Union[PayloadGeneratorResult, None]:
@@ -265,6 +273,21 @@ class PayloadGenerator:
             _type_: 生成结果
         """
         return ("", {target[1]: self.context[target[1]]})
+
+    def flask_context_var_generate(
+        self, target: FlaskContextVarTarget
+    ) -> Union[PayloadGeneratorResult, None]:
+        """生成类型为flask_context_var_generate的生成目标，将其中包含的变量名加入到已经使用的变量中
+
+        Args:
+            target (FlaskContextVarTarget): 生成目标
+
+        Returns:
+            _type_: 生成结果
+        """
+        if self.environment != ENVIRONMENT_FLASK:
+            return None
+        return (target[1], {})
 
     def common_generate(self, gen_req: Target) -> Union[PayloadGeneratorResult, None]:
         """为剩下所有类型的生成目标生成对应的payload, 遍历对应的expression_gen，拿到
@@ -1619,7 +1642,7 @@ def gen_import_func_g(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
-            (LITERAL, "g"),
+            (FLASK_CONTEXT_VAR, "g"),
             (ATTRIBUTE, "pop"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
@@ -1677,7 +1700,7 @@ def gen_eval_func_g(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
-            (LITERAL, "g"),
+            (FLASK_CONTEXT_VAR, "g"),
             (ATTRIBUTE, "pop"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
@@ -1743,10 +1766,12 @@ def gen_eval_normal(context, eval_param):
 
 # ---
 
+# 获取flask配置的生成规则
+
 
 @expression_gen
-def gen_config_literal(context):
-    return [(LITERAL, "config")]
+def gen_config_flask_context_var(context):
+    return [(FLASK_CONTEXT_VAR, "config")]
 
 
 @expression_gen

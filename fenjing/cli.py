@@ -10,6 +10,7 @@ from functools import partial
 import click
 
 from .const import (
+    ENVIRONMENT_FLASK,
     OS_POPEN_READ,
     DEFAULT_USER_AGENT,
     CONFIG,
@@ -158,6 +159,7 @@ def do_crack_form_pre(
     requester: Requester,
     detect_mode: str,
     replaced_keyword_strategy: str,
+    environment: str,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[FullPayloadGen, Submitter], None]:
     """攻击一个表单并获得结果
@@ -186,6 +188,7 @@ def do_crack_form_pre(
             submitter=submitter,
             detect_mode=detect_mode,
             replaced_keyword_strategy=replaced_keyword_strategy,
+            environment=environment,
         )
         full_payload_gen = cracker.crack()
         if full_payload_gen:
@@ -199,6 +202,7 @@ def do_crack_form_eval_args_pre(
     requester: Requester,
     detect_mode: str,
     replaced_keyword_strategy: str,
+    environment: str,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[Submitter, bool], None]:
     """攻击一个表单并获得结果，但是将payload放在GET/POST参数中提交
@@ -227,6 +231,7 @@ def do_crack_form_eval_args_pre(
             submitter=submitter,
             detect_mode=detect_mode,
             replaced_keyword_strategy=replaced_keyword_strategy,
+            environment=environment,
         )
         result = cracker.crack_eval_args()
         if result:
@@ -240,6 +245,7 @@ def do_crack_path_pre(
     requester: Requester,
     detect_mode: str,
     replaced_keyword_strategy: str,
+    environment: str,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[FullPayloadGen, Submitter], None]:
     """攻击一个路径并获得payload生成器
@@ -356,6 +362,11 @@ def main():
     default=REPLACED_KEYWORDS_STRATEGY_IGNORE,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
+@click.option(
+    "--environment",
+    default=ENVIRONMENT_FLASK,
+    help="模板的执行环境，默认为flask的render_template_string函数",
+)
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
@@ -369,6 +380,7 @@ def get_config(
     interval: float,
     detect_mode: str,
     replaced_keyword_strategy: str,
+    environment: str,
     user_agent: str,
     header: tuple,
     cookies: str,
@@ -392,7 +404,13 @@ def get_config(
         proxy=proxy,
     )
     result = do_crack_form_pre(
-        url, form, requester, detect_mode, replaced_keyword_strategy, tamper_cmd
+        url,
+        form,
+        requester,
+        detect_mode,
+        replaced_keyword_strategy,
+        environment,
+        tamper_cmd,
     )
     if not result:
         logger.warning("Test form failed...")
@@ -419,6 +437,11 @@ def get_config(
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
+    "--environment",
+    default=ENVIRONMENT_FLASK,
+    help="模板的执行环境，默认为flask的render_template_string函数",
+)
+@click.option(
     "--eval-args-payload",
     default=False,
     is_flag=True,
@@ -438,6 +461,7 @@ def crack(
     interval: float,
     detect_mode: str,
     replaced_keyword_strategy: str,
+    environment: str,
     eval_args_payload: bool,
     user_agent: str,
     header: tuple,
@@ -463,7 +487,13 @@ def crack(
     )
     if not eval_args_payload:
         result = do_crack_form_pre(
-            url, form, requester, detect_mode, replaced_keyword_strategy, tamper_cmd
+            url,
+            form,
+            requester,
+            detect_mode,
+            replaced_keyword_strategy,
+            environment,
+            tamper_cmd,
         )
         if not result:
             logger.warning("Test form failed...")
@@ -472,7 +502,13 @@ def crack(
         do_crack(full_payload_gen, submitter, exec_cmd)
     else:
         result = do_crack_form_eval_args_pre(
-            url, form, requester, detect_mode, replaced_keyword_strategy, tamper_cmd
+            url,
+            form,
+            requester,
+            detect_mode,
+            replaced_keyword_strategy,
+            environment,
+            tamper_cmd,
         )
         if not result:
             logger.warning("Test form failed...")
@@ -493,6 +529,11 @@ def crack(
     default=REPLACED_KEYWORDS_STRATEGY_IGNORE,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
+@click.option(
+    "--environment",
+    default=ENVIRONMENT_FLASK,
+    help="模板的执行环境，默认为flask的render_template_string函数",
+)
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
@@ -504,6 +545,7 @@ def crack_path(
     interval: float,
     detect_mode: str,
     replaced_keyword_strategy: str,
+    environment: str,
     user_agent: str,
     header: tuple,
     cookies: str,
@@ -526,6 +568,7 @@ def crack_path(
         requester,
         detect_mode,
         replaced_keyword_strategy,
+        environment,
         tamper_cmd,
     )
     if not result:
@@ -547,6 +590,11 @@ def crack_path(
     default=REPLACED_KEYWORDS_STRATEGY_IGNORE,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
+@click.option(
+    "--environment",
+    default=ENVIRONMENT_FLASK,
+    help="模板的执行环境，默认为flask的render_template_string函数",
+)
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
@@ -558,6 +606,7 @@ def scan(
     interval,
     detect_mode,
     replaced_keyword_strategy,
+    environment,
     user_agent,
     header,
     cookies,
@@ -586,6 +635,7 @@ def scan(
             requester,
             detect_mode,
             replaced_keyword_strategy,
+            environment,
             tamper_cmd,
         )
         if not result:
