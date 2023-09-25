@@ -39,6 +39,7 @@ def get_outer_pattern(
         ("{{}}", "{{PAYLOAD}}", True),
         ("{%print()%}", "{%print(PAYLOAD)%}", True),
         ("{%if()%}{%endif%}", "{%if(PAYLOAD)%}{%endif%}", False),
+        ("{%for x in ((),)%}x{%endfor%}", "{%for x in ((PAYLOAD),)%}x{%endfor%}", False),
         ("{% set x= %}", "{% set x=PAYLOAD %}", False),
     ]
     for test_payload, outer_pattern, will_print in outer_payloads:
