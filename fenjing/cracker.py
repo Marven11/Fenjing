@@ -118,7 +118,7 @@ class Cracker:
         for _ in range(10):
             content = random.choice(ascii_lowercase) * 6
             resp = self.subm.submit(content)
-            assert resp is not None
+            assert resp is not None, "Submit failed"
             if content in resp.text:
                 return True
         return False

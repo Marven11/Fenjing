@@ -338,7 +338,7 @@ def do_get_config(full_payload_gen: FullPayloadGen, submitter: Submitter) -> boo
         )
         return False
     resp = submitter.submit(payload)
-    assert resp is not None
+    assert resp is not None, "Submit failed"
     print(resp.text)
     return True
 

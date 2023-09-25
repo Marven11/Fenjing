@@ -274,11 +274,12 @@ class WafFuncGen:
                 else:
                     keywords += payload_replaced_keyword
         keywords = list(set(keywords))
-        logger.info(
-            "These keywords might get %s: %s",
-            colored("yellow", "replaced", bold=True),
-            colored("yellow", repr(keywords)),
-        )
+        if keywords:
+            logger.info(
+                "These keywords might get %s: %s",
+                colored("yellow", "replaced", bold=True),
+                colored("yellow", repr(keywords)),
+            )
         return keywords
 
     def doubletapping(self, payload: str, keywords: List[str]):

@@ -44,7 +44,13 @@ def get_outer_pattern(
     for test_payload, outer_pattern, will_print in outer_payloads:
         if waf_func(test_payload):
             return outer_pattern, will_print
-    logger.warning("LOTS OF THINGS is being waf, NOTHING FOR YOU!")
+        else:
+            logger.warning("Test pattern %s failed", colored("blue", outer_pattern))
+    logger.warning(
+        "Every pattern we know is %s There is %s we can generate anything!",
+        colored("red", "BANNED!", bold=True),
+        colored("red", "Noway", bold=True),
+    )
     return None, None
 
 
@@ -152,7 +158,7 @@ class FullPayloadGen:
             self.context,
             self.callback,
             detect_mode=self.detect_mode,
-            environment=self.environment
+            environment=self.environment,
         )
         self.prepared = True
         self.callback(

@@ -7,6 +7,8 @@ import time
 
 import requests
 
+from fenjing.colorize import colored
+
 from .const import DEFAULT_USER_AGENT
 
 logger = logging.getLogger("requester")
@@ -53,14 +55,29 @@ class Requester:
 
         if "timeout" not in kwargs:
             kwargs["timeout"] = self.timeout
+        resp = None
         try:
             resp = self.session.request(**kwargs)
         except Exception as exception:  # pylint: disable=W0718
-            logging.warning("Exception found when requesting: %s", type(exception))
-            logging.debug(traceback.format_exc())
+            logger.warning("Request failed with exception: %s", type(exception))
+            logger.debug(traceback.format_exc())
             return None
         if resp.status_code in self.retry_status:
+            logger.warning(
+                "%s: status code is %s, try to sleep +1s",
+                colored("yellow", "Rate limit", bold=True),
+                colored("yellow", str(resp.status_code)),
+            )
+            logger.warning(
+                "You might want to use `--interval` option to set request interval."
+            )
+            time.sleep(1)
             return None
+        if resp.status_code not in [200, 500]:
+            logger.warning(
+                "Not expected status code: %s ... continue anyway",
+                colored("yellow", str(resp.status_code)),
+            )
 
         self.last_request_time = time.perf_counter()
         return resp
@@ -71,8 +88,8 @@ class Requester:
         Returns:
             Union[Response, None]: 响应
         """
-        for _ in range(self.retry_times - 1):
+        for _ in range(self.retry_times):
             resp = self.request_once(**kwargs)
             if resp is not None:
                 return resp
-        return self.request_once(**kwargs)
+        return None
