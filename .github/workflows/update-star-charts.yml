@@ -3,10 +3,10 @@ name: Update Star Charts
 on:
   schedule:
     - cron: "42 */8 * * *"
-  push:
-    branches:
-      - main
-      - dev
+  # push:
+  #   branches:
+  #     - main
+  #     - dev
 permissions:
   contents: write
 
