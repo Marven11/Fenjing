@@ -1708,6 +1708,32 @@ def gen_eval_func_g(context):
         )
     ]
 
+@expression_gen
+def gen_eval_func_g(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (FLASK_CONTEXT_VAR, "g"),
+            (ATTRIBUTE, "get"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "eval"),
+        )
+    ]
+
+
+@expression_gen
+def gen_eval_func_session(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (FLASK_CONTEXT_VAR, "session"),
+            (ATTRIBUTE, "get"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "eval"),
+        )
+    ]
 
 @expression_gen
 def gen_eval_func_lipsum(context):
@@ -1749,6 +1775,18 @@ def gen_eval_func_namespace(context):
         )
     ]
 
+@expression_gen
+def gen_eval_func_request(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (FLASK_CONTEXT_VAR, "request"),
+            (ATTRIBUTE, "close"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "eval"),
+        )
+    ]
 
 # ---
 
