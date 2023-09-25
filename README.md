@@ -24,7 +24,8 @@
 - 使用精确模式全面分析网站或使用快速模式减少不必要的网络请求
 - 支持攻击对应的HTML表单或HTML路径
 - 使用Shell指令对要发送的payload进行编码
-- \[试验性功能\]使用`--eval-args-payload`将payload放进GET参数中提交，有效降低payload长度
+- 使用`--eval-args-payload`将payload放进GET参数中提交，有效降低payload长度
+- 使用`--replaced-keyword-strategy`进行自动双写
 - 方便的网页界面/命令行界面
 
 ## 快速上手
@@ -148,23 +149,15 @@ docker run -it --net host fenjing webui
   - 参数大致上和crack相同
 
 一些特殊的选项：
-- `--eval-args-payload`：试验性选项，将payload放在GET参数x中提交
+- `--eval-args-payload`：将payload放在GET参数x中提交
 - `--detect-mode`：检测模式，可为accurate或fast
-  - 默认为accurate
-  - 在开始尝试触发WAF, 获取WAF页面对应hash时：
-    - accurate模式会一个接一个地发送尽可能多的payload
-    - fast模式会将多个payload组合在一起发送，
-  - 在生成payload时：
-    - accurate模式会先从最简单的方法试起
-    - fast模式会先尝试使用复杂但通常更能绕过WAF的方法
-- `--tamper-cmd`：编码payload
-  - 某些情况下，目标会先将用户输入进行base64解码后再渲染
-  - tamper-cmd可以在payload发出前先调用shell指令对payload进行编码，从而处理上述情况
+- `--environment`：指定模板的渲染环境，默认认为模板在flask中的`render_template_string`中渲染
+- `--tamper-cmd`：在payload发出前编码
   - 例如：
     - `--tamper-cmd 'rev'`：将payload反转后再发出
     - `--tamper-cmd 'base64'`：将payload进行base64编码后发出
     - `--tamper-cmd 'base64 | rev'`：将payload进行base64编码并反转后再发出
-  - 更多例子可以参考[examples.md](examples.md)
+- 详细解释见[examples.md](examples.md)
 
 
 ```

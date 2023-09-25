@@ -26,12 +26,30 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
 - 只需要提供路径的前缀即可
 
 通用设置
-- 指定分析模式`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --detect-mode fast`
 - 指定请求间隔：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --interval 0.1`
 - 指定请求时使用的UA：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --user-agent 'Aaa/1.1'`
 - 指定Header：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --header 'Aaa: Bbb' --header 'Ccc: Ddd'`
 - 指定Cookie：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --cookie 'name1=value1; name2=value2'`
 - 指定代理：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --proxy 'http://127.0.0.1:7890'`
+- 指定分析模式
+    - `--detect-mode`：检测模式，可为accurate或fast
+    - 示例：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --detect-mode fast`
+    - 在开始尝试触发WAF, 获取WAF页面对应hash时：
+        - accurate模式会一个接一个地发送尽可能多的payload
+        - fast模式会将多个payload组合在一起发送，
+    - 在生成payload时：
+        - accurate模式会先从最简单的方法试起
+        - fast模式会先尝试使用复杂但通常更能绕过WAF的方法
+- 指定WAF替换危险关键字时的行为：
+    - 使用`--replaced-keyword-strategy`选项
+    - `avoid`: 避免使用会被WAF替换的关键字
+    - `doubletapping`: 进行双写（如`class`变成`clclassass`）
+    - `ignore`: 忽略，认为WAF不会对这些关键字做任何事
+    - `python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --replaced-keyword-strategy doubletapping`
+- 指定模板渲染环境
+    - 使用`--environment`选项
+    - `flask`: （默认）模板在`render_template_string`等flask提供的函数中渲染，此时会使用`g`, `config`等flask提供的变量生成payload
+    - `jinja`: 模板使用jinja内置的`Template`编译并渲染，相关代码类似`Template(s).render()`，此时避免使用任何普通jinja环境之外提供的变量生成payload
 
 ### Tamper Cmd的使用
 
