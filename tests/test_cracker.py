@@ -440,7 +440,7 @@ class TestLengthLimit2WAF(TestBase):
         cracker = Cracker(self.subm)
         result = cracker.crack_eval_args()
         assert result is not None
-        full_payload_gen, subm, will_print = result
+        subm, will_print = result
         payload = "'fenjing'+'test'"
         self.assertTrue(will_print)
         resp = subm.submit(payload)

