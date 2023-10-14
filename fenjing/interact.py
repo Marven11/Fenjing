@@ -20,7 +20,7 @@ completer = NestedCompleter.from_nested_dict(
         "@help": {"eval", "get-config", "ls", "cat"},
     }
 )
-style = style_from_pygments_cls(get_style_by_name("lightbulb"))
+style = style_from_pygments_cls(get_style_by_name("inkpot"))
 
 INTERACTIVE_MODE_HELP_LONG = """\
 <orange><b>Interactive Console</b></orange>:
