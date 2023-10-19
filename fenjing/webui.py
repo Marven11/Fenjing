@@ -133,7 +133,7 @@ class CrackTaskThread(threading.Thread):
                 self.success = True
                 break
             continue
-        if not self.full_payload_gen:
+        if not self.success:
             self.messages.append(f"WAF绕过失败")
 
 
