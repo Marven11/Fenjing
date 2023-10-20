@@ -59,6 +59,7 @@ context_payloads_all: ContextPayloads = {
     + "dict(globals=x)|join+((({}|select()|trim|list)[24]))*2][((({}|select()"
     + "|trim|list)[24]))*2+dict(builtins=x)|join+((({}|select()|trim|list"
     + ")[24]))*2][dict(chr=x)|join](37))%}": {"percc": "%"},
+    "{%set perccc=({0:1}|safe).replace((1|safe).rjust(2),cycler.__name__|batch(3)|first|last).format(37)%}": {"perccc": "%"}
 }
 
 

@@ -20,13 +20,12 @@ fenjing.full_payload_gen.logger.setLevel(logging.ERROR)
 fenjing.payload_gen.logger.setLevel(logging.ERROR)
 
 
-def get_full_payload_gen(
-    blacklist, detect_mode=fenjing.const.DETECT_MODE_ACCURATE
-):
+def get_full_payload_gen(blacklist, detect_mode=fenjing.const.DETECT_MODE_ACCURATE):
     return FullPayloadGen(
         lambda x: all(word not in x for word in blacklist),
         detect_mode=detect_mode,
     )
+
 
 VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
 
@@ -45,6 +44,7 @@ class FullPayloadGenTestCaseSimple(unittest.TestCase):
             target_field="name",
             requester=Requester(interval=0.01),
         )
+
     def test_string(self):
         strings = [
             "123",
@@ -168,6 +168,33 @@ class FullPayloadGenTestCaseHard2(FullPayloadGenTestCaseSimple):
         self.full_payload_gen = get_full_payload_gen(self.blacklist)
 
 
+class FullPayloadGenTestCaseSubs(FullPayloadGenTestCaseSimple):
+    def setUp(self) -> None:
+        super().setUp()
+        self.blacklist = [
+            "+",
+            "~",
+            "_",
+            '"',
+            "'",
+            "sum",
+            "dict",
+            "length",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+        ]
+        self.full_payload_gen = get_full_payload_gen(self.blacklist)
+
+
+class FullPayloadGenTestCaseMul(FullPayloadGenTestCaseSimple):
+    def setUp(self) -> None:
+        super().setUp()
+        self.blacklist = ["-", "~", "__", '"', "'", "sum", "dict", "length", "0", "1", "2", "3", "4"]
+        self.full_payload_gen = get_full_payload_gen(self.blacklist)
+
 class FullPayloadGenTestCaseRandom(FullPayloadGenTestCaseSimple):
     def setUp(self) -> None:
         super().setUp()
@@ -228,4 +255,3 @@ class FullPayloadGenTestCaseRandom(FullPayloadGenTestCaseSimple):
             )
             for blacklist in self.blacklists
         ]
-
