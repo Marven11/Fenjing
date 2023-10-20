@@ -182,7 +182,7 @@ class WafFuncGen:
         submitter: Submitter,
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
-        replaced_keyword_strategy: str = REPLACED_KEYWORDS_STRATEGY_IGNORE,
+        replaced_keyword_strategy: str = REPLACED_KEYWORDS_STRATEGY_AVOID,
     ):
         self.subm = submitter
         self.callback: Callable[[str, Dict], None] = (

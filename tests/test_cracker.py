@@ -437,7 +437,7 @@ class TestLengthLimit2WAF(TestBase):
         self.setup_remote_waf("/lengthlimit2_waf")
 
     def test_waf(self):
-        cracker = Cracker(self.subm)
+        cracker = Cracker(self.subm, environment="flask")
         result = cracker.crack_eval_args()
         assert result is not None
         subm, will_print = result

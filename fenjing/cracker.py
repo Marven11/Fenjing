@@ -15,7 +15,7 @@ from .colorize import colored
 from .const import (
     ATTRIBUTE,
     CHAINED_ATTRIBUTE_ITEM,
-    ENVIRONMENT_FLASK,
+    ENVIRONMENT_JINJA,
     LITERAL,
     STRING,
     CONFIG,
@@ -59,7 +59,7 @@ class Cracker:
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
         replaced_keyword_strategy: str = REPLACED_KEYWORDS_STRATEGY_IGNORE,
-        environment: str = ENVIRONMENT_FLASK,
+        environment: str = ENVIRONMENT_JINJA,
     ):
         self.detect_mode = detect_mode
         self.subm = submitter
@@ -186,7 +186,7 @@ class Cracker:
         ), "Currently onlu FormSubmitter is supported"
         waf_func = self.waf_func_gen.generate()
         full_payload_gen = FullPayloadGen(
-            waf_func, callback=None, detect_mode=self.detect_mode
+            waf_func, callback=None, detect_mode=self.detect_mode, environment=self.environment
         )
         payload, will_print = full_payload_gen.generate(
             EVAL,

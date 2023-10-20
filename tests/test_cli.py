@@ -144,6 +144,7 @@ class TestCLI(unittest.TestCase):
                 "exec_cmd": "ls /",
                 "interval": SLEEP_INTERVAL,
                 "eval_args_payload": True,
+                "environment": "flask"
             }
         )
 

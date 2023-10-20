@@ -154,7 +154,7 @@ class PayloadGenerator:
         context: Union[Dict, None] = None,
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
-        environment: str = ENVIRONMENT_FLASK,
+        environment: str = ENVIRONMENT_JINJA,
     ):
         self.waf_func = waf_func
         self.context = context if context else {}

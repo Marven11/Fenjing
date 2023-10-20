@@ -5,20 +5,20 @@ import logging
 import time
 
 from urllib.parse import urlparse
-from typing import Callable, List, Dict, Tuple, Union
+from typing import List, Dict, Tuple, Union
 from functools import partial
 
 import click
 
 from .const import (
-    ENVIRONMENT_FLASK,
+    ENVIRONMENT_JINJA,
     OS_POPEN_READ,
     CONFIG,
     EVAL,
+    REPLACED_KEYWORDS_STRATEGY_AVOID,
     STRING,
     DEFAULT_USER_AGENT,
     DETECT_MODE_ACCURATE,
-    REPLACED_KEYWORDS_STRATEGY_IGNORE,
 )
 from .colorize import colored, set_enable_coloring
 from .cracker import Cracker, EvalArgsModePayloadGen
@@ -361,12 +361,12 @@ def main():
 )
 @click.option(
     "--replaced-keyword-strategy",
-    default=REPLACED_KEYWORDS_STRATEGY_IGNORE,
+    default=REPLACED_KEYWORDS_STRATEGY_AVOID,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
-    default=ENVIRONMENT_FLASK,
+    default=ENVIRONMENT_JINJA,
     help="模板的执行环境，默认为flask的render_template_string函数",
 )
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
@@ -440,12 +440,12 @@ def get_config(
 )
 @click.option(
     "--replaced-keyword-strategy",
-    default=REPLACED_KEYWORDS_STRATEGY_IGNORE,
+    default=REPLACED_KEYWORDS_STRATEGY_AVOID,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
-    default=ENVIRONMENT_FLASK,
+    default=ENVIRONMENT_JINJA,
     help="模板的执行环境，默认为flask的render_template_string函数",
 )
 @click.option(
@@ -533,12 +533,12 @@ def crack(
 )
 @click.option(
     "--replaced-keyword-strategy",
-    default=REPLACED_KEYWORDS_STRATEGY_IGNORE,
+    default=REPLACED_KEYWORDS_STRATEGY_AVOID,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
-    default=ENVIRONMENT_FLASK,
+    default=ENVIRONMENT_JINJA,
     help="模板的执行环境，默认为flask的render_template_string函数",
 )
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
@@ -594,12 +594,12 @@ def crack_path(
 )
 @click.option(
     "--replaced-keyword-strategy",
-    default=REPLACED_KEYWORDS_STRATEGY_IGNORE,
+    default=REPLACED_KEYWORDS_STRATEGY_AVOID,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
-    default=ENVIRONMENT_FLASK,
+    default=ENVIRONMENT_JINJA,
     help="模板的执行环境，默认为flask的render_template_string函数",
 )
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
