@@ -112,13 +112,32 @@ input[type="submit"]:hover {
             <input type="text" id="interval" name="interval" value="0.1" />
             <br /><br />
 
+            <label for="detect_mode">分析模式:</label>
+            <select id="detect_mode" name="detect_mode">
+                <option value="accurate">精确</option>
+                <option value="fast">快速</option>
+            </select>
+
+            <label for="environment">模板渲染环境:</label>
+            <select id="environment" name="environment">
+                <option value="jinja">jinja内部</option>
+                <option value="flask">flask内部(如render_template_string函数)</option>
+            </select>
+
+            <label for="replaced_keyword_strategy">关键字被替换时:</label>
+            <select id="replaced_keyword_strategy" name="replaced_keyword_strategy">
+                <option value="avoid">避免使用会被替换的关键字</option>
+                <option value="ignore">忽略所有会被替换的关键字</option>
+                <option value="doubletapping">对这些关键字进行双写</option>
+            </select>
+
             <input type="hidden" name="type" value="crack" />
             <input type="submit" value="开始分析">
 
         </form>
 
         <form id="createInteractiveTaskForm">
-            <textarea name="taskMessage" id="taskMessage" cols="100" rows="22" readonly></textarea>
+            <textarea name="taskMessage" id="taskMessage" cols="100" rows="40" readonly></textarea>
             <textarea name="taskFlashMessage" id="taskFlashMessage" cols="100" rows="3" readonly></textarea>
             <input type="text" id="cmd" name="cmd" placeholder="uname -a" />
             <input type="hidden" name="type" value="interactive" />

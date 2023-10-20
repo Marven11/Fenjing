@@ -101,12 +101,24 @@ class CallBackLogger:
 
 
 class CrackTaskThread(threading.Thread):
-    def __init__(self, taskid, url, form: Form, interval):
+    def __init__(
+        self,
+        taskid,
+        url,
+        form: Form,
+        interval,
+        detect_mode,
+        environment,
+        replaced_keyword_strategy,
+    ):
         super().__init__()
         self.success = False
         self.taskid = taskid
         self.form = form
         self.url = url
+        self.detect_mode = detect_mode
+        self.environment = environment
+        self.replaced_keyword_strategy = replaced_keyword_strategy
         self.flash_messages = []
         self.messages = []
         self.callback = CallBackLogger(self.flash_messages, self.messages)
@@ -124,7 +136,13 @@ class CrackTaskThread(threading.Thread):
                 self.requester,
                 self.callback,
             )
-            self.cracker = Cracker(self.submitter, self.callback)
+            self.cracker = Cracker(
+                self.submitter,
+                self.callback,
+                detect_mode=self.detect_mode,
+                environment=self.environment,
+                replaced_keyword_strategy=self.replaced_keyword_strategy,
+            )
             if not self.cracker.has_respond():
                 continue
             self.full_payload_gen = self.cracker.crack()
@@ -177,7 +195,16 @@ def index():
     return render_template("index.html")
 
 
-def create_crack_task(url, method, inputs, action, interval):
+def create_crack_task(
+    url,
+    method,
+    inputs,
+    action,
+    interval,
+    detect_mode,
+    environment,
+    replaced_keyword_strategy,
+):
     assert url != "" and inputs != "", "wrong param"
     form = get_form(
         action=action or urlparse(url).path,
@@ -185,7 +212,15 @@ def create_crack_task(url, method, inputs, action, interval):
         inputs=inputs.split(","),
     )
     taskid = uuid.uuid4().hex
-    task = CrackTaskThread(taskid, url, form, float(interval))
+    task = CrackTaskThread(
+        taskid,
+        url,
+        form,
+        interval=float(interval),
+        detect_mode=detect_mode,
+        environment=environment,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+    )
     task.daemon = True
     task.start()
     tasks[taskid] = task
@@ -228,7 +263,10 @@ def create_task():
             request.form["method"],
             request.form["inputs"],
             request.form["action"],
-            request.form["interval"],
+            interval=request.form["interval"],
+            detect_mode=request.form["detect_mode"],
+            environment=request.form["environment"],
+            replaced_keyword_strategy=request.form["replaced_keyword_strategy"],
         )
         return jsonify({"code": APICODE_OK, "taskid": taskid})
     elif task_type == "interactive":
