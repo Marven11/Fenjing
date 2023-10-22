@@ -38,8 +38,9 @@ class EvalArgsModePayloadGen:
         if gen_type == OS_POPEN_READ:
             return f"__import__('os').popen({repr(args[0])}).read()", self.will_print
         elif gen_type == EVAL:
-            assert args[0] == STRING, "Only eval string is supported"
-            return f"eval({repr(args[1])})", self.will_print
+            req = args[0]
+            assert req[0] == STRING, "Only eval string is supported but inputs is " + repr(req)
+            return f"eval({repr(req[1])})", self.will_print
         elif gen_type == CONFIG:
             return "[v.config for v in sys.modules['__main__'].__dict__.values() if isinstance(v, sys.modules['flask'].Flask)][0]", self.will_print
         return None, None
