@@ -110,7 +110,8 @@ else:
 
 ExpressionGeneratorReturn = TypeVar("ExpressionGeneratorReturn", bound=List[Target])
 ExpressionGenerator = Callable[..., ExpressionGeneratorReturn]
-PayloadGeneratorResult = Tuple[str, ContextVariable]
+TargetAndSubTargets = List[Tuple[Target, List[Target]]]
+PayloadGeneratorResult = Tuple[str, ContextVariable, Union[TargetAndSubTargets, None]]
 
 expression_gens: DefaultDict[str, List[ExpressionGenerator]] = defaultdict(list)
 logger = logging.getLogger("payload_gen")
@@ -206,7 +207,7 @@ class PayloadGenerator:
         Returns:
             Union[PayloadGeneratorResult, None]: 生成结果，其包含payload和payload用到的上下文中的变量
         """
-        str_result, used_context = "", {}
+        str_result, used_context, tree = "", {}, []
         for target in targets:
             for checker, runner in self.generate_funcs:
                 if not checker(target):
@@ -214,15 +215,19 @@ class PayloadGenerator:
                 result = runner(target)
                 if result is None:
                     return None
-                s, c = result
+                s, c, subs = result
                 str_result += s
                 used_context.update(c)
+                tree.append((
+                    target,
+                    subs
+                ))
                 break
             else:
                 raise Exception("it shouldn't runs this line")
         if not self.waf_func(str_result):
             return None
-        return str_result, used_context
+        return str_result, used_context, tree
 
     def literal_generate(
         self, target: LiteralTarget
@@ -237,7 +242,7 @@ class PayloadGenerator:
         """
         if self.detect_mode == DETECT_MODE_ACCURATE and not self.waf_func(target[1]):
             return None
-        return (target[1], {})
+        return (target[1], {}, None)
 
     def unsatisfied_generate(self, target: UnsatisfiedTarget) -> None:
         """直接拒绝类型为unsatisfied的生成目标"""
@@ -272,7 +277,7 @@ class PayloadGenerator:
         Returns:
             _type_: 生成结果
         """
-        return ("", {target[1]: self.context[target[1]]})
+        return ("", {target[1]: self.context[target[1]]}, None)
 
     def flask_context_var_generate(
         self, target: FlaskContextVarTarget
@@ -287,7 +292,7 @@ class PayloadGenerator:
         """
         if self.environment != ENVIRONMENT_FLASK:
             return None
-        return (target[1], {})
+        return (target[1], {}, None)
 
     def common_generate(self, gen_req: Target) -> Union[PayloadGeneratorResult, None]:
         """为剩下所有类型的生成目标生成对应的payload, 遍历对应的expression_gen，拿到
@@ -382,10 +387,10 @@ class PayloadGenerator:
         result = self.generate_by_list([(gen_type, *args)])
         if result is None:
             return None
-        s, c = result
+        s, _, _ = result
         return s
 
-    def generate_with_used_context(
+    def generate_detailed(
         self, gen_type, *args
     ) -> Union[PayloadGeneratorResult, None]:
         """提供给用户的生成接口，接收一个生成目标的类型和参数
@@ -395,13 +400,12 @@ class PayloadGenerator:
             *args: 生成目标的参数
 
         Returns:
-            Union[str, None]: 生成结果（包含使用的上下文变量）
+            Union[PayloadGeneratorResult, None]: 生成结果（包含使用的上下文变量）
         """
         result = self.generate_by_list([(gen_type, *args)])
         if result is None:
             return None
-        s, c = result
-        return s, c
+        return result
 
 
 def generate(
@@ -1013,18 +1017,18 @@ def gen_char_literal2(context, c):
 @expression_gen
 def gen_char_select(context, c):
     char_patterns = {
-        # "((dict|trim|list)[INDEX])": {
-        #     1: "c",
-        #     2: "l",
-        #     3: "a",
-        #     4: "s",
-        #     5: "s",
-        #     6: " ",
-        #     8: "d",
-        #     9: "i",
-        #     10: "c",
-        #     11: "t",
-        # },
+        "((dict|trim|list)[INDEX])": {
+            1: "c",
+            2: "l",
+            3: "a",
+            4: "s",
+            5: "s",
+            6: " ",
+            8: "d",
+            9: "i",
+            10: "c",
+            11: "t",
+        },
         "(({}|select()|trim|list)[INDEX])": {
             1: "g",
             2: "e",

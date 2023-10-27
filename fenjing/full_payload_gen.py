@@ -215,12 +215,12 @@ class FullPayloadGen:
 
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
 
-        ret = self.payload_gen.generate_with_used_context(gen_type, *args)
+        ret = self.payload_gen.generate_detailed(gen_type, *args)
 
         if ret is None:
             logger.warning("Bypassing WAF Failed.")
             return None, None
-        inner_payload, used_context = ret
+        inner_payload, used_context, _ = ret #TODO: 利用语法树信息
         context_payload = "".join(
             filter_by_used_context(self.context_payload, used_context).keys()
         )
