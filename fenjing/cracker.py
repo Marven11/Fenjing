@@ -165,11 +165,12 @@ class Cracker:
             environment=self.environment,
             waf_expr_func=waf_expr_func
         )
-        payload, will_print, tree = full_payload_gen.generate_with_tree(
+        result = full_payload_gen.generate_with_tree(
             OS_POPEN_READ, self.test_cmd
         )
-        if payload is None:
+        if result is None:
             return None
+        payload, will_print, tree = result
         test_result = self.test_payload(payload, will_print)
         return full_payload_gen, will_print, test_result, tree
 
