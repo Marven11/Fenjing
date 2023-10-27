@@ -171,6 +171,13 @@ def find_pieces(resp_text, payload):
     ] + find_pieces(resp_text_next, payload_next)
 
 
+
+
+def combine_waf(waf_funcs):
+    def new_waf_func(s):
+        return all(waf(s) for waf in waf_funcs)
+    return new_waf_func
+
 class WafFuncGen:
     """
     根据指定的Submitter(表单submitter或者路径submitter)生成对应的WAF函数

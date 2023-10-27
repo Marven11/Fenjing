@@ -142,6 +142,32 @@ def hashable(o):
     except Exception:
         return False
 
+def unparse(tree):
+    content = ""
+    for target, subtree in tree:
+        if target[0] == LITERAL:
+            content += target[1]
+        elif target[0] == ONEOF:
+            content += unparse(subtree)
+        elif target[0] == FLASK_CONTEXT_VAR:
+            content += target[1]
+        elif subtree:
+            content += unparse(subtree)
+    return content
+
+def iter_subtree(tree):
+    for target, subtree in tree:
+        # 需要跳过literal等, 因为其可能不是一个表达式而是一个或者多个token
+        if subtree and (target[0] not in ["literal", "oneof", "string_string_concat", ]):
+            yield from iter_subtree(subtree)
+    yield unparse(tree), tree
+
+def find_bad_exprs(tree, is_expr_bad_func):
+    nodes = []
+    for payload_unparsed, targetlist in iter_subtree(tree):
+        if is_expr_bad_func(payload_unparsed):
+            nodes.append((payload_unparsed, targetlist))
+    return nodes
 
 class PayloadGenerator:
     """生成一个表达式，如('a'+'b')
@@ -156,8 +182,9 @@ class PayloadGenerator:
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
         environment: str = ENVIRONMENT_JINJA,
+        waf_expr_func: Union[Callable[[str], bool], None] = None
     ):
-        self.waf_func = waf_func
+        self.waf_func = waf_func if waf_expr_func is None else (lambda x: waf_func(x) and waf_expr_func(x))
         self.context = context if context else {}
         self.cache = {}
         # 给.generate_by_list的列表，指定每一个生成目标应该使用什么函数生成
@@ -240,8 +267,8 @@ class PayloadGenerator:
         Returns:
             Union[PayloadGeneratorResult, None]: 生成结果
         """
-        if self.detect_mode == DETECT_MODE_ACCURATE and not self.waf_func(target[1]):
-            return None
+        # if self.detect_mode == DETECT_MODE_ACCURATE and not self.waf_func(target[1]):
+        #     return None
         return (target[1], {}, None)
 
     def unsatisfied_generate(self, target: UnsatisfiedTarget) -> None:

