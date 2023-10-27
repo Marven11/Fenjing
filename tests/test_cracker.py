@@ -467,3 +467,9 @@ class TestJinjaEnv(TestBase):
         self.setup_remote_waf("/jinja_env_waf")
         self.cracker_other_opts = {"environment": "jinja"}
 
+class TestFix500(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_remote_waf("/jinja_env_waf")
+        self.cracker_other_opts = {"environment": "flask"}
+

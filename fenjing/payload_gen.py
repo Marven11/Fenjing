@@ -1942,42 +1942,6 @@ def gen_config_self(context):
 
 # ---
 
-# 貌似muodule os 不一定在globals里。。。
-
-# @expression_gen
-# def gen_module_os_gpop(context):
-#     return [
-#         (
-#             CHAINED_ATTRIBUTE_ITEM,
-#             (FLASK_CONTEXT_VAR, "g"),
-#             (ATTRIBUTE, "pop"),
-#             (ATTRIBUTE, "__globals__"),
-#             (ITEM, "os"),
-#         )
-#     ]
-
-# @expression_gen
-# def gen_module_os_gget(context):
-#     return [
-#         (
-#             CHAINED_ATTRIBUTE_ITEM,
-#             (FLASK_CONTEXT_VAR, "g"),
-#             (ATTRIBUTE, "get"),
-#             (ATTRIBUTE, "__globals__"),
-#             (ITEM, "os"),
-#         )
-#     ]
-
-# @expression_gen
-# def gen_module_os_urlfor(context):
-#     return [
-#         (
-#             CHAINED_ATTRIBUTE_ITEM,
-#             (FLASK_CONTEXT_VAR, "url_for"),
-#             (ATTRIBUTE, "__globals__"),
-#             (ITEM, "os"),
-#         )
-#     ]
 
 @expression_gen
 def gen_module_os_import(context):
@@ -1999,6 +1963,9 @@ def gen_module_os_eval(context):
     ]
 
 
+# 有500修正了，可以大胆加规则
+
+
 @expression_gen
 def gen_module_os_config(context):
     return [
@@ -2006,6 +1973,42 @@ def gen_module_os_config(context):
             CHAINED_ATTRIBUTE_ITEM,
             (CONFIG,),
             (CLASS_ATTRIBUTE, "__init__"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "os"),
+        )
+    ]
+
+
+@expression_gen
+def gen_module_os_gpop(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (FLASK_CONTEXT_VAR, "g"),
+            (ATTRIBUTE, "pop"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "os"),
+        )
+    ]
+
+@expression_gen
+def gen_module_os_gget(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (FLASK_CONTEXT_VAR, "g"),
+            (ATTRIBUTE, "get"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "os"),
+        )
+    ]
+
+@expression_gen
+def gen_module_os_urlfor(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (FLASK_CONTEXT_VAR, "url_for"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "os"),
         )
