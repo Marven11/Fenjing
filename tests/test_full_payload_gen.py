@@ -168,6 +168,57 @@ class FullPayloadGenTestCaseHard2(FullPayloadGenTestCaseSimple):
         self.full_payload_gen = get_full_payload_gen(self.blacklist)
 
 
+class FullPayloadGenTestCaseStringFormat1(FullPayloadGenTestCaseSimple):
+    def setUp(self) -> None:
+        super().setUp()
+        self.blacklist = [
+            "_",
+            "'",
+            '"',
+            ".",
+            "system",
+            "os",
+            "eval",
+            "exec",
+            "popen",
+            "subprocess",
+            "posix",
+            "builtins",
+            "namespace",
+            "open",
+            "read",
+            "\\",
+            "=",
+            "%"
+        ]
+        self.full_payload_gen = get_full_payload_gen(self.blacklist)
+
+class FullPayloadGenTestCaseStringFormat2(FullPayloadGenTestCaseSimple):
+    def setUp(self) -> None:
+        super().setUp()
+        self.blacklist = [
+            "_",
+            "'",
+            '"',
+            ".",
+            "system",
+            "os",
+            "eval",
+            "exec",
+            "popen",
+            "subprocess",
+            "posix",
+            "builtins",
+            "namespace",
+            "open",
+            "read",
+            "\\",
+            "=",
+            "%",
+            "|format"
+        ]
+        self.full_payload_gen = get_full_payload_gen(self.blacklist)
+
 class FullPayloadGenTestCaseSubs(FullPayloadGenTestCaseSimple):
     def setUp(self) -> None:
         super().setUp()
