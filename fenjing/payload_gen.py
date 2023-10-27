@@ -1013,18 +1013,18 @@ def gen_char_literal2(context, c):
 @expression_gen
 def gen_char_select(context, c):
     char_patterns = {
-        "((dict|trim|list)[INDEX])": {
-            1: "c",
-            2: "l",
-            3: "a",
-            4: "s",
-            5: "s",
-            6: " ",
-            8: "d",
-            9: "i",
-            10: "c",
-            11: "t",
-        },
+        # "((dict|trim|list)[INDEX])": {
+        #     1: "c",
+        #     2: "l",
+        #     3: "a",
+        #     4: "s",
+        #     5: "s",
+        #     6: " ",
+        #     8: "d",
+        #     9: "i",
+        #     10: "c",
+        #     11: "t",
+        # },
         "(({}|select()|trim|list)[INDEX])": {
             1: "g",
             2: "e",
@@ -1911,6 +1911,42 @@ def gen_config_self(context):
 
 # ---
 
+# 貌似muodule os 不一定在globals里。。。
+
+# @expression_gen
+# def gen_module_os_gpop(context):
+#     return [
+#         (
+#             CHAINED_ATTRIBUTE_ITEM,
+#             (FLASK_CONTEXT_VAR, "g"),
+#             (ATTRIBUTE, "pop"),
+#             (ATTRIBUTE, "__globals__"),
+#             (ITEM, "os"),
+#         )
+#     ]
+
+# @expression_gen
+# def gen_module_os_gget(context):
+#     return [
+#         (
+#             CHAINED_ATTRIBUTE_ITEM,
+#             (FLASK_CONTEXT_VAR, "g"),
+#             (ATTRIBUTE, "get"),
+#             (ATTRIBUTE, "__globals__"),
+#             (ITEM, "os"),
+#         )
+#     ]
+
+# @expression_gen
+# def gen_module_os_urlfor(context):
+#     return [
+#         (
+#             CHAINED_ATTRIBUTE_ITEM,
+#             (FLASK_CONTEXT_VAR, "url_for"),
+#             (ATTRIBUTE, "__globals__"),
+#             (ITEM, "os"),
+#         )
+#     ]
 
 @expression_gen
 def gen_module_os_import(context):
