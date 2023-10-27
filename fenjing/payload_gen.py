@@ -1205,12 +1205,12 @@ def gen_string_twostringconcat(context: dict, value: str):
     if len(value) <= 2 or len(value) > 20:
         return [(UNSATISFIED,)]
     return [
-        (LITERAL, "'"),  # test quotes first
+        # (LITERAL, "'"),  # ONEOF should output a valid expression
         (
             ONEOF,
             *[
                 [
-                    (LITERAL, "{}'".format(value[:i].replace("'", "\\'"))),
+                    (LITERAL, "'{}'".format(value[:i].replace("'", "\\'"))),
                     (LITERAL, "'{}'".format(value[i:].replace("'", "\\'"))),
                 ]
                 for i in range(1, len(value) - 1)
@@ -1224,12 +1224,12 @@ def gen_string_twostringconcat2(context: dict, value: str):
     if len(value) <= 2 or len(value) > 20:
         return [(UNSATISFIED,)]
     return [
-        (LITERAL, '"'),  # test quotes first
+        (LITERAL, '"'),  # ONEOF should output a valid expression
         (
             ONEOF,
             *[
                 [
-                    (LITERAL, '{}"'.format(value[:i].replace('"', '\\"'))),
+                    (LITERAL, '"{}"'.format(value[:i].replace('"', '\\"'))),
                     (LITERAL, '"{}"'.format(value[i:].replace('"', '\\"'))),
                 ]
                 for i in range(1, len(value) - 1)
