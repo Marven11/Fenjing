@@ -43,7 +43,7 @@ python -m fenjing webui
 
 ```shell
 docker pull marven11/fenjing
-docker run --net host -it marven11/fenjing webui
+docker run -p 11451:11451 -it marven11/fenjing webui -h 0.0.0.0
 ```
 
 ### 手动安装
@@ -59,7 +59,7 @@ python -m fenjing webui
 
 ```shell
 docker build -t fenjing .
-docker run -it --net host fenjing webui
+docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
 ```
 
 ## 特性
@@ -166,70 +166,70 @@ Usage: python -m fenjing scan [OPTIONS]
   扫描指定的网站
 
 Options:
-  -u, --url TEXT       需要扫描的URL
-  -e, --exec-cmd TEXT  成功后执行的shell指令，不填则进入交互模式
-  --interval FLOAT     每次请求的间隔
-  --detect-mode TEXT   检测模式，可为accurate或fast
-  --user-agent TEXT    请求时使用的User Agent
-  --header TEXT        请求时使用的Headers
-  --cookies TEXT       请求时使用的Cookie
-  --proxy TEXT         请求时使用的代理
-  --tamper-cmd TEXT    在发送payload之前进行编码的命令，默认不进行额外操作
-  --help               Show this message and exit.
+  -u, --url TEXT                  需要扫描的URL
+  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则进入交互模式
+  --interval FLOAT                每次请求的间隔
+  --detect-mode TEXT              检测模式，可为accurate或fast
+  --replaced-keyword-strategy TEXT
+                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
+  --environment TEXT              模板的执行环境，默认为flask的render_template_string函数
+  --user-agent TEXT               请求时使用的User Agent
+  --header TEXT                   请求时使用的Headers
+  --cookies TEXT                  请求时使用的Cookie
+  --proxy TEXT                    请求时使用的代理
+  --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --help                          Show this message and exit.
 
 Usage: python -m fenjing crack [OPTIONS]
 
   攻击指定的表单
 
 Options:
-  -u, --url TEXT       form所在的URL
-  -a, --action TEXT    form的action，默认为当前路径
-  -m, --method TEXT    form的提交方式，默认为POST
-  -i, --inputs TEXT    form的参数，以逗号分隔
-  -e, --exec-cmd TEXT  成功后执行的shell指令，不填则成功后进入交互模式
-  --interval FLOAT     每次请求的间隔
-  --detect-mode TEXT   分析模式，可为accurate或fast
-  --user-agent TEXT    请求时使用的User Agent
-  --header TEXT        请求时使用的Headers
-  --cookies TEXT       请求时使用的Cookie
-  --proxy TEXT         请求时使用的代理
-  --tamper-cmd TEXT    在发送payload之前进行编码的命令，默认不进行额外操作
-  --help               Show this message and exit.
-
-Usage: python -m fenjing get-config [OPTIONS]
-
-  攻击指定的表单，并获得目标服务器的flask config
-
-Options:
-  -u, --url TEXT      form所在的URL
-  -a, --action TEXT   form的action，默认为当前路径
-  -m, --method TEXT   form的提交方式，默认为POST
-  -i, --inputs TEXT   form的参数，以逗号分隔
-  --interval FLOAT    每次请求的间隔
-  --detect-mode TEXT  分析模式，可为accurate或fast
-  --user-agent TEXT   请求时使用的User Agent
-  --header TEXT       请求时使用的Headers
-  --cookies TEXT      请求时使用的Cookie
-  --proxy TEXT        请求时使用的代理
-  --tamper-cmd TEXT   在发送payload之前进行编码的命令，默认不进行额外操作
-  --help              Show this message and exit.
+  -u, --url TEXT                  form所在的URL
+  -a, --action TEXT               form的action，默认为当前路径
+  -m, --method TEXT               form的提交方式，默认为POST
+  -i, --inputs TEXT               form的参数，以逗号分隔
+  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则成功后进入交互模式
+  --interval FLOAT                每次请求的间隔
+  --detect-mode TEXT              分析模式，可为accurate或fast
+  --replaced-keyword-strategy TEXT
+                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
+  --environment TEXT              模板的执行环境，默认为flask的render_template_string函数
+  --eval-args-payload             [试验性]是否在GET参数中传递Eval payload
+  --user-agent TEXT               请求时使用的User Agent
+  --header TEXT                   请求时使用的Headers
+  --cookies TEXT                  请求时使用的Cookie
+  --proxy TEXT                    请求时使用的代理
+  --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --help                          Show this message and exit.
 
 Usage: python -m fenjing crack-path [OPTIONS]
 
   攻击指定的路径
 
 Options:
-  -u, --url TEXT       需要攻击的URL
-  -e, --exec-cmd TEXT  成功后执行的shell指令，不填则成功后进入交互模式
-  --interval FLOAT     每次请求的间隔
-  --detect-mode TEXT   分析模式，可为accurate或fast
-  --user-agent TEXT    请求时使用的User Agent
-  --header TEXT        请求时使用的Headers
-  --cookies TEXT       请求时使用的Cookie
-  --proxy TEXT         请求时使用的代理
-  --tamper-cmd TEXT    在发送payload之前进行编码的命令，默认不进行额外操作
-  --help               Show this message and exit.
+  -u, --url TEXT                  需要攻击的URL
+  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则成功后进入交互模式
+  --interval FLOAT                每次请求的间隔
+  --detect-mode TEXT              分析模式，可为accurate或fast
+  --replaced-keyword-strategy TEXT
+                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
+  --environment TEXT              模板的执行环境，默认为flask的render_template_string函数
+  --user-agent TEXT               请求时使用的User Agent
+  --header TEXT                   请求时使用的Headers
+  --cookies TEXT                  请求时使用的Cookie
+  --proxy TEXT                    请求时使用的代理
+  --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --help                          Show this message and exit.
 
+Usage: python -m fenjing webui [OPTIONS]
+
+  启动webui
+
+Options:
+  -h, --host TEXT     需要监听的host, 默认为127.0.0.1
+  -p, --port INTEGER  需要监听的端口, 默认为11451
+  --help              Show this message and exit.
 ```
 
 ### 作为python库使用
