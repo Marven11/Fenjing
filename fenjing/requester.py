@@ -4,11 +4,11 @@
 import logging
 import traceback
 import time
+from urllib.parse import parse_qs
 
 import requests
 
 from fenjing.colorize import colored
-
 from .const import DEFAULT_USER_AGENT
 
 logger = logging.getLogger("requester")
@@ -26,6 +26,8 @@ class Requester:
         retry_status=(429,),
         user_agent=DEFAULT_USER_AGENT,
         headers=None,
+        extra_params_querystr=None,
+        extra_data_querystr=None,
         proxy=None,
     ):
         self.interval = interval
@@ -36,9 +38,17 @@ class Requester:
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": user_agent})
         self.last_request_time = 0
+        self.extra_params = {}
+        self.extra_data = {}
 
         if headers:
             self.session.headers.update(headers)
+
+        if extra_params_querystr:
+            self.extra_params = parse_qs(extra_params_querystr)
+
+        if extra_data_querystr:
+            self.extra_data = parse_qs(extra_data_querystr)
 
         if proxy:
             self.session.proxies = {"http": proxy, "https": proxy}
@@ -88,6 +98,19 @@ class Requester:
         Returns:
             Union[Response, None]: 响应
         """
+        if self.extra_params:
+            params = self.extra_params.copy()
+            params.update(kwargs.get("params", {}))
+            kwargs["params"] = params
+        if self.extra_data:
+            if kwargs["method"] not in ("POST", "PUT", "DELETE", "PATCH"):
+                logger.warning(
+                    "Method %s might not need a request body, still adding extra data anyway.",
+                    kwargs["method"],
+                )
+            data = self.extra_data.copy()
+            data.update(kwargs.get("data", {}))
+            kwargs["data"] = data
         for _ in range(self.retry_times):
             resp = self.request_once(**kwargs)
             if resp is not None:

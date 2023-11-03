@@ -457,6 +457,8 @@ def get_config(
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
+@click.option("--extra-params", default=None, help="请求时的额外GET参数，如a=1&b=2")
+@click.option("--extra-data", default=None, help="请求时的额外POST参数，如a=1&b=2")
 @click.option("--proxy", default="", help="请求时使用的代理")
 @click.option("--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作")
 def crack(
@@ -473,6 +475,8 @@ def crack(
     user_agent: str,
     header: tuple,
     cookies: str,
+    extra_params: str,
+    extra_data: str,
     proxy: str,
     tamper_cmd: str,
 ):
@@ -490,6 +494,8 @@ def crack(
         interval=interval,
         user_agent=user_agent,
         headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
+        extra_params_querystr=extra_params,
+        extra_data_querystr=extra_data,
         proxy=proxy,
     )
     if not eval_args_payload:
@@ -544,6 +550,8 @@ def crack(
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
+@click.option("--extra-params", default=None, help="请求时的额外GET参数，如a=1&b=2")
+@click.option("--extra-data", default=None, help="请求时的额外POST参数，如a=1&b=2")
 @click.option("--proxy", default="", help="请求时使用的代理")
 @click.option("--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作")
 def crack_path(
@@ -556,6 +564,8 @@ def crack_path(
     user_agent: str,
     header: tuple,
     cookies: str,
+    extra_params: str,
+    extra_data: str,
     proxy: str,
     tamper_cmd: str,
 ):
@@ -568,6 +578,8 @@ def crack_path(
         interval=interval,
         user_agent=user_agent,
         headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
+        extra_params_querystr=extra_params,
+        extra_data_querystr=extra_data,
         proxy=proxy,
     )
     result = do_crack_path_pre(
@@ -605,6 +617,8 @@ def crack_path(
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
 @click.option("--cookies", default="", help="请求时使用的Cookie")
+@click.option("--extra-params", default=None, help="请求时的额外GET参数，如a=1&b=2")
+@click.option("--extra-data", default=None, help="请求时的额外POST参数，如a=1&b=2")
 @click.option("--proxy", default="", help="请求时使用的代理")
 @click.option("--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作")
 def scan(
@@ -617,6 +631,8 @@ def scan(
     user_agent,
     header,
     cookies,
+    extra_params,
+    extra_data,
     proxy,
     tamper_cmd: str,
 ):
@@ -628,6 +644,8 @@ def scan(
         interval=interval,
         user_agent=user_agent,
         headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
+        extra_params_querystr=extra_params,
+        extra_data_querystr=extra_data,
         proxy=proxy,
     )
     url_forms = (

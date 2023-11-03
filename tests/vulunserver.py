@@ -279,6 +279,12 @@ def jinja_env_waf():
     # return render_template_string(template)
     return template.render()
 
+@app.route("/crackpath-extra/<name>")
+def crackpath_extra(name):
+    isdebug = request.args.get("debug") is not None
+    if isdebug:
+        return render_template_string(f"Hello, {name}!")
+    return "Error: Not debug"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

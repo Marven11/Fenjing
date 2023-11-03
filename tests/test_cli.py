@@ -179,6 +179,16 @@ class TestCLI(unittest.TestCase):
             }
         )
 
+    def test_crack_path_extra(self):
+        self.crack_path_test(
+            {
+                "url": VULUNSERVER_ADDR + "/crackpath-extra/",
+                "interval": SLEEP_INTERVAL,
+                "extra_params": "debug=1",
+                "exec_cmd": "ls /",
+            }
+        )
+
     def test_get_config_basic(self):
         self.get_config_test(
             {
