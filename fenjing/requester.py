@@ -69,7 +69,7 @@ class Requester:
         try:
             resp = self.session.request(**kwargs)
         except Exception as exception:  # pylint: disable=W0718
-            logger.warning("Request failed with exception: %s", type(exception))
+            logger.warning("Request failed with exception: %s", repr(exception))
             logger.debug(traceback.format_exc())
             return None
         if resp.status_code in self.retry_status:
