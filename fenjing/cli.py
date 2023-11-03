@@ -268,6 +268,7 @@ def do_crack_path_pre(
         submitter=submitter,
         detect_mode=detect_mode,
         replaced_keyword_strategy=replaced_keyword_strategy,
+        environment=environment,
     )
     full_payload_gen = cracker.crack()
     if full_payload_gen is None:
