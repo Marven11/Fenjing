@@ -19,7 +19,7 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
 - 也可以指定多个input：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name,email`
 - 指定攻击成功后执行的命令
     - 不指定则进入交互模式
-    - `python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name` --exec-cmd 'ls /'
+    - `python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --exec-cmd 'ls /'`
 
 攻击对应的路径：
 - `python -m fenjing crack-path --url 'http://xxx.xxx/hello/'`
@@ -31,6 +31,8 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
 - 指定Header：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --header 'Aaa: Bbb' --header 'Ccc: Ddd'`
 - 指定Cookie：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --cookie 'name1=value1; name2=value2'`
 - 指定代理：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --proxy 'http://127.0.0.1:7890'`
+- 指定额外的GET参数：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --extra-params 'a=1&b=2'`
+- 指定额外的POST参数：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --extra-data 'a=1&b=2'`
 - 指定分析模式
     - `--detect-mode`：检测模式，可为accurate或fast
     - 示例：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --detect-mode fast`
