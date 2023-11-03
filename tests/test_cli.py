@@ -219,6 +219,15 @@ class TestCLI(unittest.TestCase):
             }
         )
 
+    def test_scan_burstparam(self):
+        self.scan_test(
+            {
+                "url": VULUNSERVER_ADDR + "/scan_burstkeywords",
+                "interval": SLEEP_INTERVAL,
+                "exec_cmd": "ls /",
+            }
+        )
+
     def test_scan_nonrespond(self):
         try:
             self.scan_test(

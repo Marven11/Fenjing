@@ -158,6 +158,16 @@ def crackpath(name):
     return render_template_string(f"Hello, {name}!")
 
 
+@app.route("/scan_burstkeywords", methods=["GET", "POST"])
+def scan_burstkeywords():
+    name = request.args.get("name")
+    if not name:
+        return "Tell me your name with GET param!"
+    if not waf_pass(name):
+        return "Nope"
+    template = f"Hello, {name}"
+    return render_template_string(template)
+
 @app.route("/static_waf", methods=["GET", "POST"])
 def static_waf():
     name = request.args.get("name", "world")

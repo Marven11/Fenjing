@@ -655,6 +655,7 @@ def scan(
         for form in forms
     )
     for page_url, form in url_forms:
+        logger.warning("Scan form: %s", colored("blue", repr(form)))
         result = do_crack_form_pre(
             page_url,
             form,
