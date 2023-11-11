@@ -391,14 +391,14 @@ class PayloadGenerator:
                 self.cache[gen_req] = ret
             self.used_count[gen.__name__] += 1
             return ret
-
-        logger.info(
-            "{failed} generating {gen_type}({args_repl}), it might not be an issue.".format(
-                failed=colored("red", "failed"),
-                gen_type=gen_type,
-                args_repl=", ".join(repr(arg) for arg in args),
+        if gen_type not in (CHAINED_ATTRIBUTE_ITEM, ATTRIBUTE, ITEM):
+            logger.info(
+                "{failed} generating {gen_type}({args_repl}), it might not be an issue.".format(
+                    failed=colored("red", "failed"),
+                    gen_type=gen_type,
+                    args_repl=", ".join(repr(arg) for arg in args),
+                )
             )
-        )
         return None
 
     def generate(self, gen_type, *args) -> Union[str, None]:
