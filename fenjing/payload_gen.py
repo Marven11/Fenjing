@@ -451,7 +451,7 @@ def gen_string_string_concat_plus(context: dict) -> List[LiteralTarget]:
 
 
 @expression_gen
-def gen_string_string_concat_wave(context: dict):
+def gen_string_string_concat_tilde(context: dict):
     return [(LITERAL, "~")]
 
 
