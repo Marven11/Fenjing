@@ -188,7 +188,6 @@ class TestStringLower1(TestBase):
         )
 
 
-
 class TestIntegerAdd(TestBase):
     def setUp(self):
         super().setUp()
@@ -389,6 +388,66 @@ class TestHard4(TestBase):
         )
 
 
+class TestHard5(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "_",
+                "\\",
+                "'",
+                '"',
+                "request",
+                "+",
+                "class",
+                "init",
+                "arg",
+                "config",
+                "app",
+                "self",
+                "cd",
+                "chr",
+                "request",
+                "url",
+                "builtins",
+                "globals",
+                "base",
+                "pop",
+                "import",
+                "popen",
+                "getitem",
+                "subclasses",
+                "/",
+                "flashed",
+                "os",
+                "open",
+                "read",
+                "count",
+                "*",
+                "38",
+                "124",
+                "47",
+                "59",
+                "99",
+                "100",
+                "cat",
+                "~",
+                ":",
+                "not",
+                "0",
+                "-",
+                "ord",
+                "37",
+                "94",
+                "96",
+                "[",
+                "]",
+                "index",
+                "length",
+            ]
+        )
+
+
 class TestStaticWAF(TestBase):
     def setUp(self):
         super().setUp()
@@ -461,15 +520,16 @@ class TestReplacedWAFDoubleTapping(TestBase):
         self.setup_remote_waf("/replace_waf")
         self.cracker_other_opts = {"replaced_keyword_strategy": "doubletapping"}
 
+
 class TestJinjaEnv(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/jinja_env_waf")
         self.cracker_other_opts = {"environment": "jinja"}
 
+
 class TestFix500(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/jinja_env_waf")
         self.cracker_other_opts = {"environment": "flask"}
-

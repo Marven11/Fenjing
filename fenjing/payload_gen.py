@@ -608,10 +608,50 @@ def gen_positive_integer_dictlength(context: dict, value: int):
 def gen_positive_integer_length(context: dict, value: int):
     return [(LITERAL, "(({},)|length)".format(",".join("x" * value)))]
 
+@expression_gen
+def gen_positive_integer_wordcount(context: dict, value: int):
+    return [(LITERAL, "(({},)|wordcount)".format(",".join("x" * value)))]
+
 
 @expression_gen
 def gen_positive_integer_length2(context: dict, value: int):
     return [(LITERAL, "(({},).__len__( ))".format(",".join("x" * value)))]
+
+
+@expression_gen
+def gen_positive_integer_numbersum1(context: dict, value: int):
+    if value < 5:
+        return [(UNSATISFIED, )]
+    alternative = []
+    for i in range(min(40, value-1), 3, -1):
+        inner = "+".join([str(i)] * (value // i) + [str(value % i)])
+        alternative.append([(LITERAL, "({})".format(inner))])
+    return [
+        (ONEOF, *alternative)
+    ]
+
+
+@expression_gen
+def gen_positive_integer_numbersum2(context: dict, value: int):
+    if value < 5:
+        return [(UNSATISFIED, )]
+    alternative = []
+    for i in range(min(40, value-1), 3, -1):
+        inner = ",".join([str(i)] * (value // i) + [str(value % i)])
+        alternative.append([(LITERAL, "(({})|sum)".format(inner))])
+    return [
+        (ONEOF, *alternative)
+    ]
+
+@expression_gen
+def gen_positive_integer_onesum1(context: dict, value: int):
+    return [(LITERAL, "({})".format("+".join(["1"] * value)))]
+
+
+@expression_gen
+def gen_positive_integer_onesum2(context: dict, value: int):
+    return [(LITERAL, "(({},)|sum)".format(",".join(["1"] * value)))]
+
 
 
 @expression_gen
@@ -782,13 +822,40 @@ def gen_string_percent_namespace(context):
 
 
 @expression_gen
+def gen_string_percent_dictbatch(context):
+    # "{{((dict(dict(dict(a=1)|tojson|batch(2))|batch(2))|join,dict(c=1)|join,dict()|trim|last)|join).format((9,9,9,9,1)|sum)}}"
+    whatever_onedigit_number = (
+        ONEOF,
+        *[
+            [(INTEGER, i)]
+            for i in range(1, 10)
+        ]
+    )
+    return [
+        (
+            LITERAL,
+            "((dict(dict(dict(a=",
+        ),
+        whatever_onedigit_number,
+        (LITERAL, ")|tojson|batch("),
+        (INTEGER, 2),
+        (LITERAL, "))|batch("),
+        (INTEGER, 2),
+        (LITERAL, "))|join,"),
+        (STRING_LOWERC, ),
+        (LITERAL, ",dict()|trim|last)|join).format("),
+        (INTEGER, 37),
+        (LITERAL, ")"),
+    ]
+
+@expression_gen
 def gen_string_percent_lipsumcomplex(context):
     return [
         (LITERAL, "(lipsum[(lipsum|escape|batch("),
         (INTEGER, 22),
         (LITERAL, ")|list|first|last)*"),
         (INTEGER, 2),
-        (LITERAL, "+dict(globals=x)|join+(lipsum|escape|batch("),
+        (LITERAL, "+dict(glo=x,bals=x)|join+(lipsum|escape|batch("),
         (INTEGER, 22),
         (LITERAL, ")|list|first|last)*"),
         (INTEGER, 2),
@@ -796,11 +863,11 @@ def gen_string_percent_lipsumcomplex(context):
         (INTEGER, 22),
         (LITERAL, ")|list|first|last)*"),
         (INTEGER, 2),
-        (LITERAL, "+dict(builtins=x)|join+(lipsum|escape|batch("),
+        (LITERAL, "+dict(bui=x,ltins=x)|join+(lipsum|escape|batch("),
         (INTEGER, 22),
         (LITERAL, ")|list|first|last)*"),
         (INTEGER, 2),
-        (LITERAL, "][dict(chr=x)|join]("),
+        (LITERAL, "][dict(c=x,hr=x)|join]("),
         (INTEGER, 37),
         (LITERAL, "))"),
     ]
@@ -873,6 +940,48 @@ def gen_string_lower_c_namespacebatch(context):
         (LITERAL, ")|first|last)"),
     ]
 
+# range|trim|batch(2)|first|last
+
+@expression_gen
+def gen_string_lower_c_classbatch(context):
+    alternatives =  [
+        [
+            (LITERAL, f"({class_obj}|{tostring_filter}"),
+            (LITERAL, "|batch("),
+            (INTEGER, 2),
+            (LITERAL, ")|first|last)"),
+        ]
+        for class_obj in [
+            "range",
+            "cycler",
+            "joiner",
+            "namespace",
+        ]
+        for tostring_filter in [
+            "trim",
+            "string"
+        ]
+    ]
+
+@expression_gen
+def gen_string_lower_c_classbatch2(context):
+    alternatives =  [
+        [
+            (LITERAL, f"({class_obj}|{tostring_filter})["),
+            (INTEGER, 2),
+            (LITERAL, "]"),
+        ]
+        for class_obj in [
+            "range",
+            "cycler",
+            "joiner",
+            "namespace",
+        ]
+        for tostring_filter in [
+            "trim",
+            "string"
+        ]
+    ]
 
 # ---
 
@@ -955,6 +1064,21 @@ def gen_string_many_percent_lower_c_multiply(context, count: int):
 
 
 @expression_gen
+def gen_string_many_percent_lower_c_nulljoin(context, count: int):
+    # ((x,x,x)|join('%c'))
+    return [
+        (LITERAL, "(("),
+    ] + [
+        (LITERAL, "x,")
+        for _ in range(count+1)
+    ] + [
+        (LITERAL, ")|join("),
+        (STRING_PERCENT_LOWER_C, ),
+        (LITERAL, "))")
+    ]
+
+
+@expression_gen
 def gen_string_many_percent_lower_c_literal1(context, count: int):
     return [(LITERAL, "'"), (LITERAL, "%c" * count), (LITERAL, "'")]
 
@@ -979,6 +1103,24 @@ def gen_string_many_percent_lower_c_concat(context, count: int):
     ]
     return [item for lst in l for item in lst]
 
+
+@expression_gen
+def gen_string_many_percent_lower_c_join(context, count: int):
+    l = [
+        [
+            (LITERAL, "(("),
+            (STRING_PERCENT_LOWER_C,),
+        ]
+        if i == 0
+        else [
+            (LITERAL, ","),
+            (STRING_PERCENT_LOWER_C,),
+        ]
+        for i in range(count)
+    ] + [
+        [(LITERAL, ")|join)")]
+    ]
+    return [item for lst in l for item in lst]
 
 # ---
 
@@ -1040,6 +1182,14 @@ def gen_char_literal1(context, c):
 def gen_char_literal2(context, c):
     return [(LITERAL, f'"{c}"' if c != '"' else '"\\""')]
 
+@expression_gen
+def gen_char_underline(context, c):
+    return [(UNSATISFIED, )] if c != "_" else [(STRING_UNDERLINE, )]
+
+@expression_gen
+def gen_char_percent(context, c):
+    return [(UNSATISFIED, )] if c != "%" else [(STRING_PERCENT, )]
+
 
 @expression_gen
 def gen_char_select(context, c):
@@ -1051,10 +1201,24 @@ def gen_char_select(context, c):
             4: "s",
             5: "s",
             6: " ",
+            7: "'",
             8: "d",
             9: "i",
             10: "c",
             11: "t",
+        },
+        "(dict|trim|list|batch(INDEX)|first|last)": {
+            2: "c",
+            3: "l",
+            4: "a",
+            5: "s",
+            6: "s",
+            7: " ",
+            8: "'",
+            9: "d",
+            10: "i",
+            11: "c",
+            12: "t",
         },
         "(({}|select()|trim|list)[INDEX])": {
             1: "g",
@@ -1094,6 +1258,44 @@ def gen_char_select(context, c):
             35: "a",
             36: "t",
         },
+        "({}|select()|trim|list|batch(INDEX)|first|last)": {
+            2: "g",
+            3: "e",
+            4: "n",
+            5: "e",
+            6: "r",
+            7: "a",
+            8: "t",
+            9: "o",
+            10: "r",
+            11: " ",
+            12: "o",
+            13: "b",
+            14: "j",
+            15: "e",
+            16: "c",
+            17: "t",
+            18: " ",
+            19: "s",
+            20: "e",
+            21: "l",
+            22: "e",
+            23: "c",
+            24: "t",
+            25: "_",
+            26: "o",
+            27: "r",
+            28: "_",
+            29: "r",
+            30: "e",
+            31: "j",
+            32: "e",
+            33: "c",
+            34: "t",
+            35: " ",
+            36: "a",
+            37: "t",
+        },
         "((lipsum|trim|list)[INDEX])": {
             1: "f",
             2: "u",
@@ -1132,13 +1334,56 @@ def gen_char_select(context, c):
             35: "x",
             36: "7",
         },
+        "(lipsum|trim|list|batch(INDEX)|first|last)": {
+            2: "f",
+            3: "u",
+            4: "n",
+            5: "c",
+            6: "t",
+            7: "i",
+            8: "o",
+            9: "n",
+            10: " ",
+            11: "g",
+            12: "e",
+            13: "n",
+            14: "e",
+            15: "r",
+            16: "a",
+            17: "t",
+            18: "e",
+            19: "_",
+            20: "l",
+            21: "o",
+            22: "r",
+            23: "e",
+            24: "m",
+            25: "_",
+            26: "i",
+            27: "p",
+            28: "s",
+            29: "u",
+            30: "m",
+            31: " ",
+            32: "a",
+            33: "t",
+            34: " ",
+            35: "0",
+            36: "x",
+            37: "7",
+        },
         "((()|trim|list)[INDEX])": {0: "(", 1: ")"},
     }
+    matches = []
     for pattern, d in char_patterns.items():
         for index, value in d.items():
             if value == c:
-                return [(LITERAL, pattern.replace("INDEX", str(index)))]
-    return [(UNSATISFIED,)]
+                matches.append(
+                    [(LITERAL, pattern.replace("INDEX", str(index)))]
+                )
+    if not matches:
+        return [(UNSATISFIED,)]
+    return [(ONEOF, *matches)]
 
 
 @expression_gen
@@ -1402,17 +1647,6 @@ def gen_string_concat3(context: dict, value: str):
     ]
 
 
-@expression_gen
-def gen_string_chars(context: dict, value: str):
-    ans: List[Any] = [(LITERAL, "("), (CHAR, value[0])]
-    for c in value[1:]:
-        ans.append((STRING_STRING_CONCAT,))
-        ans.append((CHAR, c))
-    ans.append(
-        (LITERAL, ")"),
-    )
-    return ans
-
 
 @expression_gen
 def gen_string_dictjoin(context: dict, value: str):
@@ -1533,6 +1767,31 @@ def gen_string_formatfunc3(context: dict, value: str):
         (LITERAL, "))"),
     ]
     return req
+
+
+@expression_gen
+def gen_string_chars(context: dict, value: str):
+    ans: List[Any] = [(LITERAL, "("), (CHAR, value[0])]
+    for c in value[1:]:
+        ans.append((STRING_STRING_CONCAT,))
+        ans.append((CHAR, c))
+    ans.append(
+        (LITERAL, ")"),
+    )
+    return ans
+
+
+@expression_gen
+def gen_string_chars2(context: dict, value: str):
+    ans: List[Any] = [(LITERAL, "(("), (CHAR, value[0])]
+    for c in value[1:]:
+        ans.append((LITERAL, ","))
+        ans.append((CHAR, c))
+    ans.append(
+        (LITERAL, ")|join)"),
+    )
+    return ans
+
 
 
 # ---

