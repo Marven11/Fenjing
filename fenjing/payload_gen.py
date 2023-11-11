@@ -810,6 +810,10 @@ def gen_string_percent_lipsum2(context):
 
 
 @expression_gen
+def gen_string_percent_lipsum3(context):
+    return [(LITERAL, "(lipsum.__globals__.__builtins__.chr(37))")]
+
+@expression_gen
 def gen_string_percent_namespace(context):
     return [
         (
@@ -890,6 +894,34 @@ def gen_string_percent_urlencodelong(context):
         )
     ]
 
+# (dict(((0,1),(0,1)))|replace(1|center|first,x)|replace(1,'c')).format(37)
+@expression_gen
+def gen_string_percent_replaceformat(context):
+    return [
+        (
+            LITERAL,
+            "(dict(((0,1),(0,1)))|replace(1|center|first,x)|replace(1,",
+        ),
+        (STRING_LOWERC, ),
+        (LITERAL, ")).format("),
+        (INTEGER, 37),
+        (LITERAL, ")"),
+
+    ]
+
+# (dict(((2,3),(2,3)))|replace(1|center|first,x)|replace(3,'c')).format(2,2,37)
+@expression_gen
+def gen_string_percent_replaceformat2(context):
+    return [
+        (
+            LITERAL,
+            "(dict(((2,3),(2,3)))|replace(1|center|first,x)|replace(3,",
+        ),
+        (STRING_LOWERC, ),
+        (LITERAL, ")).format(2,2,"),
+        (INTEGER, 37),
+        (LITERAL, ")"),
+    ]
 
 # ---
 
@@ -1042,6 +1074,19 @@ def gen_string_percent_lower_c_tuplejoin(context):
         (LITERAL, ")|join)"),
     ]
 
+@expression_gen
+def gen_string_percent_lower_c_replaceconcat(context):
+    # ('c'|replace(x|trim,'%',1))
+    return [
+        (LITERAL, "("),
+        (STRING_LOWERC,),
+        (LITERAL, "|replace(x|trim,"),
+        (STRING_PERCENT,),
+        (LITERAL, ","),
+        (INTEGER, 1),
+        (LITERAL, "))")
+    ]
+
 
 @expression_gen
 def gen_string_percent_lower_c_cycler(context):
@@ -1061,6 +1106,19 @@ def gen_string_percent_lower_c_cycler(context):
 @expression_gen
 def gen_string_many_percent_lower_c_multiply(context, count: int):
     return [(STRING_PERCENT_LOWER_C,), (LITERAL, "*"), (INTEGER, count)]
+
+
+
+@expression_gen
+def gen_string_many_percent_lower_c_replacespace(context, count: int):
+    # (x|center(2)|replace(x|center|first,'%c'))
+    return [
+        (LITERAL, "(x|center("),
+        (INTEGER, count),
+        (LITERAL, ")|replace(x|center|first,"),
+        (STRING_PERCENT_LOWER_C, ),
+        (LITERAL, "))"),
+    ]
 
 
 @expression_gen

@@ -389,6 +389,7 @@ class TestHard4(TestBase):
 
 
 class TestHard5(TestBase):
+    # geekgame2023 hlf_2
     def setUp(self):
         super().setUp()
         self.setup_local_waf(
@@ -447,6 +448,66 @@ class TestHard5(TestBase):
             ]
         )
 
+class TestHard6(TestBase):
+    # geekgame2023 hlf_2 extended
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "_",
+                "\\",
+                "'",
+                '"',
+                "request",
+                "+",
+                "class",
+                "init",
+                "arg",
+                "config",
+                "app",
+                "self",
+                "cd",
+                "chr",
+                "request",
+                "url",
+                "builtins",
+                "globals",
+                "base",
+                "pop",
+                "import",
+                "popen",
+                "getitem",
+                "subclasses",
+                "/",
+                "flashed",
+                "os",
+                "open",
+                "read",
+                "count",
+                "*",
+                "38",
+                "124",
+                "47",
+                "59",
+                "99",
+                "100",
+                "cat",
+                "~",
+                ":",
+                "not",
+                "0",
+                "-",
+                "ord",
+                "37",
+                "94",
+                "96",
+                "[",
+                "]",
+                "index",
+                "length",
+                "join"
+            ]
+        )
 
 class TestStaticWAF(TestBase):
     def setUp(self):
