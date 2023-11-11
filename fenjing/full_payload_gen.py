@@ -207,10 +207,11 @@ class FullPayloadGen:
         """
         if not self.prepared:
             raise RuntimeError("Please run .do_prepare() first")
-        if check_waf and self.waf_func(payload):
+        if check_waf and not self.waf_func(payload):
             return False
         self.context_payload[payload] = context_vars
         self.context = context_payloads_to_context(self.context_payload)
+        self.payload_gen.context = self.context
         return True
 
     def generate_with_tree(
