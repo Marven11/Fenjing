@@ -765,6 +765,99 @@ def gen_integer_subtract(context: dict, value: int):
 
 
 @expression_gen
+def gen_string_lower_c_literal1(context):
+    return [(LITERAL, "'c'")]
+
+
+@expression_gen
+def gen_string_lower_c_literal2(context):
+    return [(LITERAL, '"c"')]
+
+
+@expression_gen
+def gen_string_lower_c_joindict(context):
+    return [(LITERAL, "(dict(c=x)|join)")]
+
+
+@expression_gen
+def gen_string_lower_c_lipsumurlencode(context):
+    return [(LITERAL, "(lipsum|pprint|first|urlencode|last|lower)")]
+
+
+@expression_gen
+def gen_string_lower_c_lipsumbatch(context):
+    return [
+        (LITERAL, "(lipsum|escape|batch("),
+        (INTEGER, 8),
+        (LITERAL, ")|first|last)"),
+    ]
+
+
+@expression_gen
+def gen_string_lower_c_joinerbatch(context):
+    return [
+        (LITERAL, "(joiner|string|batch("),
+        (INTEGER, 2),
+        (LITERAL, ")|first|last)"),
+    ]
+
+
+@expression_gen
+def gen_string_lower_c_namespacebatch(context):
+    return [
+        (LITERAL, "(namespace|escape|batch("),
+        (INTEGER, 36),
+        (LITERAL, ")|first|last)"),
+    ]
+
+# range|trim|batch(2)|first|last
+
+@expression_gen
+def gen_string_lower_c_classbatch(context):
+    alternatives =  [
+        [
+            (LITERAL, f"({class_obj}|{tostring_filter}"),
+            (LITERAL, "|batch("),
+            (INTEGER, 2),
+            (LITERAL, ")|first|last)"),
+        ]
+        for class_obj in [
+            "range",
+            "cycler",
+            "joiner",
+            "namespace",
+        ]
+        for tostring_filter in [
+            "trim",
+            "string"
+        ]
+    ]
+    return [(ONEOF, *alternatives)]
+
+
+@expression_gen
+def gen_string_lower_c_classbatch2(context):
+    alternatives =  [
+        [
+            (LITERAL, f"({class_obj}|e"),
+            (LITERAL, "|batch("),
+            (INTEGER, 5),
+            (LITERAL, ")|first|last)"),
+        ]
+        for class_obj in [
+            "range",
+            "cycler",
+            "joiner",
+            "namespace",
+        ]
+    ]
+    return [(ONEOF, *alternatives)]
+
+
+# ---
+
+
+@expression_gen
 def gen_string_percent_literal1(context):
     return [(LITERAL, "'%'")]
 
@@ -944,97 +1037,6 @@ def gen_string_percent_replaceformat2(context):
         (LITERAL, ")"),
     ]
 
-# ---
-
-
-@expression_gen
-def gen_string_lower_c_literal1(context):
-    return [(LITERAL, "'c'")]
-
-
-@expression_gen
-def gen_string_lower_c_literal2(context):
-    return [(LITERAL, '"c"')]
-
-
-@expression_gen
-def gen_string_lower_c_joindict(context):
-    return [(LITERAL, "(dict(c=x)|join)")]
-
-
-@expression_gen
-def gen_string_lower_c_lipsumurlencode(context):
-    return [(LITERAL, "(lipsum|pprint|first|urlencode|last|lower)")]
-
-
-@expression_gen
-def gen_string_lower_c_lipsumbatch(context):
-    return [
-        (LITERAL, "(lipsum|escape|batch("),
-        (INTEGER, 8),
-        (LITERAL, ")|first|last)"),
-    ]
-
-
-@expression_gen
-def gen_string_lower_c_joinerbatch(context):
-    return [
-        (LITERAL, "(joiner|string|batch("),
-        (INTEGER, 2),
-        (LITERAL, ")|first|last)"),
-    ]
-
-
-@expression_gen
-def gen_string_lower_c_namespacebatch(context):
-    return [
-        (LITERAL, "(namespace|escape|batch("),
-        (INTEGER, 36),
-        (LITERAL, ")|first|last)"),
-    ]
-
-# range|trim|batch(2)|first|last
-
-@expression_gen
-def gen_string_lower_c_classbatch(context):
-    alternatives =  [
-        [
-            (LITERAL, f"({class_obj}|{tostring_filter}"),
-            (LITERAL, "|batch("),
-            (INTEGER, 2),
-            (LITERAL, ")|first|last)"),
-        ]
-        for class_obj in [
-            "range",
-            "cycler",
-            "joiner",
-            "namespace",
-        ]
-        for tostring_filter in [
-            "trim",
-            "string"
-        ]
-    ]
-    return [(ONEOF, *alternatives)]
-
-
-@expression_gen
-def gen_string_lower_c_classbatch2(context):
-    alternatives =  [
-        [
-            (LITERAL, f"({class_obj}|e"),
-            (LITERAL, "|batch("),
-            (INTEGER, 5),
-            (LITERAL, ")|first|last)"),
-        ]
-        for class_obj in [
-            "range",
-            "cycler",
-            "joiner",
-            "namespace",
-        ]
-    ]
-    return [(ONEOF, *alternatives)]
 
 # ---
 
