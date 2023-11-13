@@ -340,6 +340,7 @@ class PayloadGenerator:
         if self.detect_mode == DETECT_MODE_FAST:
             gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         for gen in gens:
+            logger.debug("Using gen rule: %s", gen.__name__)
             gen_ret: List[Target] = gen(self.context, *args)
             ret = self.generate_by_list(gen_ret)
             if ret is None:
@@ -1014,6 +1015,7 @@ def gen_string_lower_c_classbatch(context):
             "string"
         ]
     ]
+    return [(ONEOF, *alternatives)]
 
 
 @expression_gen
@@ -1032,26 +1034,7 @@ def gen_string_lower_c_classbatch2(context):
             "namespace",
         ]
     ]
-
-@expression_gen
-def gen_string_lower_c_classbatch2(context):
-    alternatives =  [
-        [
-            (LITERAL, f"({class_obj}|{tostring_filter})["),
-            (INTEGER, 2),
-            (LITERAL, "]"),
-        ]
-        for class_obj in [
-            "range",
-            "cycler",
-            "joiner",
-            "namespace",
-        ]
-        for tostring_filter in [
-            "trim",
-            "string"
-        ]
-    ]
+    return [(ONEOF, *alternatives)]
 
 # ---
 
