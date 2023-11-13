@@ -791,18 +791,6 @@ def gen_string_percent_urlencode2(context):
     return [(LITERAL, "({}|escape|urlencode|first)")]
 
 
-@expression_gen
-def gen_string_percent_lipsum(context):
-    return [
-        (
-            LITERAL,
-            "(lipsum[(lipsum|escape|batch(22)|list|first|last)*2"
-            + "+dict(globals=x)|join+(lipsum|escape|batch(22)|list|first|last)*2]"
-            + "[(lipsum|escape|batch(22)|list|first|last)*2+dict(builtins=x)"
-            + "|join+(lipsum|escape|batch(22)|list|first|last)*2][dict(chr=x)|join](37))",
-        )
-    ]
-
 
 @expression_gen
 def gen_string_percent_lipsum2(context):
@@ -812,6 +800,24 @@ def gen_string_percent_lipsum2(context):
 @expression_gen
 def gen_string_percent_lipsum3(context):
     return [(LITERAL, "(lipsum.__globals__.__builtins__.chr(37))")]
+
+# ((12).__mod__.__doc__|batch(12)|first|last)
+
+@expression_gen
+def gen_string_percent_moddoc(context):
+    return [
+        (LITERAL, "("),
+        (ONEOF, 
+            [(LITERAL, "(1).__mod__.__doc__")],
+            [(LITERAL, "((1)|attr(dict(__mod__=1)|first)|attr(dict(__doc__=1)|first))")],
+            [(LITERAL, "((1)|attr(dict(__m=1,od__=1)|join)|attr(dict(__d=1,oc__=1)|join))")],
+        ),
+        (ONEOF, 
+            [(LITERAL, "[11]")],
+            [(LITERAL, "|batch(12)|first|last")],
+        ),
+        (LITERAL, ")")
+    ]
 
 @expression_gen
 def gen_string_percent_namespace(context):
@@ -851,6 +857,20 @@ def gen_string_percent_dictbatch(context):
         (INTEGER, 37),
         (LITERAL, ")"),
     ]
+
+@expression_gen
+def gen_string_percent_lipsum(context):
+    return [
+        (
+            LITERAL,
+            "(lipsum[(lipsum|escape|batch(22)|list|first|last)*2"
+            + "+dict(globals=x)|join+(lipsum|escape|batch(22)|list|first|last)*2]"
+            + "[(lipsum|escape|batch(22)|list|first|last)*2+dict(builtins=x)"
+            + "|join+(lipsum|escape|batch(22)|list|first|last)*2][dict(chr=x)|join](37))",
+        )
+    ]
+
+
 
 @expression_gen
 def gen_string_percent_lipsumcomplex(context):
@@ -992,6 +1012,24 @@ def gen_string_lower_c_classbatch(context):
         for tostring_filter in [
             "trim",
             "string"
+        ]
+    ]
+
+
+@expression_gen
+def gen_string_lower_c_classbatch2(context):
+    alternatives =  [
+        [
+            (LITERAL, f"({class_obj}|e"),
+            (LITERAL, "|batch("),
+            (INTEGER, 5),
+            (LITERAL, ")|first|last)"),
+        ]
+        for class_obj in [
+            "range",
+            "cycler",
+            "joiner",
+            "namespace",
         ]
     ]
 
