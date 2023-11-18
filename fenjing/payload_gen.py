@@ -512,6 +512,14 @@ def gen_zero_4(context: dict):
     return [(LITERAL, "({}|urlencode|count)")]
 
 
+@expression_gen
+def gen_zero_5(context: dict):
+    return [(LITERAL, "''.__len__( )")]
+
+@expression_gen
+def gen_zero_6(context: dict):
+    return [(LITERAL, "\"\".__len__( )")]
+
 # ---
 
 
@@ -560,28 +568,9 @@ def gen_positive_integer_sum(context: dict, value: int):
 
 
 @expression_gen
-def gen_positive_integer_recurdivided(context: dict, value: int):
-    if value <= 6:
-        return [(UNSATISFIED,)]
-    lst = [(LITERAL, "+"), (POSITIVE_INTEGER, value % 6)] if value % 6 != 0 else []
-    return (
-        [
-            (LITERAL, "("),
-            (POSITIVE_INTEGER, value // 6),
-            (LITERAL, "*"),
-            (POSITIVE_INTEGER, 6),
-        ]
-        + lst
-        + [
-            (LITERAL, ")"),
-        ]
-    )
-
-
-@expression_gen
 def gen_positive_integer_recurmulitiply(context: dict, value: int):
     xs = [x for x in range(3, value // 2) if value % x == 0]
-    if xs == []:
+    if xs == [] or value < 50:
         return [(UNSATISFIED,)]
     return [
         (
@@ -598,6 +587,29 @@ def gen_positive_integer_recurmulitiply(context: dict, value: int):
             ],
         )
     ]
+
+
+@expression_gen
+def gen_positive_integer_recurmultiply2(context: dict, value: int):
+    if value <= 50:
+        return [(UNSATISFIED,)]
+    alternatives = []
+    for i in range(9, 3, -1):
+        lst = [(LITERAL, "+"), (POSITIVE_INTEGER, value % i)] if value % i != 0 else []
+        alternative = ([
+                (LITERAL, "("),
+                (POSITIVE_INTEGER, value // i),
+                (LITERAL, "*"),
+                (POSITIVE_INTEGER, i),
+            ]
+            + lst
+            + [
+                (LITERAL, ")"),
+            ])
+        alternatives.append(alternative)
+    if not alternatives:
+        return [(UNSATISFIED, )]
+    return [(ONEOF, *alternatives)]
 
 
 @expression_gen
@@ -903,6 +915,8 @@ def gen_string_percent_moddoc(context):
         (LITERAL, "("),
         (ONEOF, 
             [(LITERAL, "(1).__mod__.__doc__")],
+            [(LITERAL, "(( ).__len__( )).__mod__.__doc__")],
+            [(LITERAL, "([ ].__len__( )).__mod__.__doc__")],
             [(LITERAL, "((1)|attr(dict(__mod__=1)|first)|attr(dict(__doc__=1)|first))")],
             [(LITERAL, "((1)|attr(dict(__m=1,od__=1)|join)|attr(dict(__d=1,oc__=1)|join))")],
         ),
@@ -1033,6 +1047,25 @@ def gen_string_percent_replaceformat2(context):
         ),
         (STRING_LOWERC, ),
         (LITERAL, ")).format(2,2,"),
+        (INTEGER, 37),
+        (LITERAL, ")"),
+    ]
+
+
+# ({1:1}|trim|replace(1,x|trim)|replace(x|center|first,"c")).format(37)
+
+@expression_gen
+def gen_string_percent_replaceformat3(context):
+    return [
+        (ONEOF, *[
+            [(
+                LITERAL,
+                "({NUM:NUM}|trim|replace(NUM,x|trim)|replace(x|center|first,".replace("NUM", str(i)),
+            )]
+            for i in range(0, 10)
+        ]),
+        (STRING_LOWERC, ),
+        (LITERAL, ")).format("),
         (INTEGER, 37),
         (LITERAL, ")"),
     ]
