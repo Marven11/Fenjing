@@ -511,6 +511,21 @@ def gen_zero_3(context: dict):
 def gen_zero_4(context: dict):
     return [(LITERAL, "({}|urlencode|count)")]
 
+@expression_gen
+def gen_zero_emptylength(context: dict):
+    empty_things = [
+        (LITERAL, "''"),
+        (LITERAL, '""'),
+        (LITERAL, "()"),
+        (LITERAL, "( )"),
+        (LITERAL, "[]"),
+        (LITERAL, "{}"),
+    ]
+    get_length = [
+        (LITERAL, ".__len__()"),
+        (LITERAL, ".__len__( )"),
+    ]
+    return [(ONEOF, empty_things), (ONEOF, get_length)]
 
 @expression_gen
 def gen_zero_5(context: dict):
@@ -519,6 +534,10 @@ def gen_zero_5(context: dict):
 @expression_gen
 def gen_zero_6(context: dict):
     return [(LITERAL, "\"\".__len__( )")]
+
+@expression_gen
+def gen_zero_7(context: dict):
+    return [(LITERAL, "( ).__len__( )")]
 
 # ---
 
@@ -570,7 +589,7 @@ def gen_positive_integer_sum(context: dict, value: int):
 @expression_gen
 def gen_positive_integer_recurmulitiply(context: dict, value: int):
     xs = [x for x in range(3, value // 2) if value % x == 0]
-    if xs == [] or value < 50:
+    if xs == [] or value < 20:
         return [(UNSATISFIED,)]
     return [
         (
@@ -591,7 +610,7 @@ def gen_positive_integer_recurmulitiply(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_recurmultiply2(context: dict, value: int):
-    if value <= 50:
+    if value <= 20:
         return [(UNSATISFIED,)]
     alternatives = []
     for i in range(9, 3, -1):

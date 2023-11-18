@@ -5,6 +5,7 @@ import logging
 import random
 import string
 import traceback
+import time
 
 from copy import copy
 from collections import Counter, namedtuple
@@ -171,12 +172,12 @@ def find_pieces(resp_text, payload):
     ] + find_pieces(resp_text_next, payload_next)
 
 
-
-
 def combine_waf(waf_funcs):
     def new_waf_func(s):
         return all(waf(s) for waf in waf_funcs)
+
     return new_waf_func
+
 
 class WafFuncGen:
     """
@@ -228,6 +229,39 @@ class WafFuncGen:
                 continue
             hashes.append(hash(text))
 
+        return [k for k, v in Counter(hashes).items() if v >= 2]
+
+    def long_param_hash(self) -> List[int]:
+        """测试目标是否会waf过长的payload
+
+        Returns:
+            List[int]: 过长payload页面的hash
+        """
+        logger.info("Testing long payloads...")
+        keywords = [
+            "".join(random.choices(string.ascii_lowercase, k=5)) * 40 for _ in range(10)
+        ]
+        hashes = []
+        for keyword in keywords:
+            result = self.subm.submit(keyword)
+            if result is None:
+                logger.info(
+                    "Submit %s, continue",
+                    colored("yellow", "failed"),
+                )
+                continue
+            status_code, text = result
+            if status_code == 500:
+                continue
+            hashes.append(hash(text))
+        hashes_uniq = list(set(hashes))
+        if len(hashes_uniq) <= 3:
+            logger.warning(
+                "%s detected!, maybe you should try `--eval-args-payload`"
+                + " option to generate shorter payload.",
+                colored("red", "Long payload waf", bold=True),
+            )
+            time.sleep(2)
         return [k for k, v in Counter(hashes).items() if v >= 2]
 
     def replaced_keyword(self) -> List[str]:
@@ -315,6 +349,7 @@ class WafFuncGen:
         """
         replaced_keyword = self.replaced_keyword()
         waf_hashes = self.waf_page_hash()
+        long_param_hashes = self.long_param_hash()
         if self.replaced_keyword_strategy == REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING:
             self.subm.add_tamperer(lambda s: self.doubletapping(s, replaced_keyword))
 
@@ -348,7 +383,13 @@ class WafFuncGen:
                 if extra_content in result.text:
                     logger.debug("payload产生回显")
                     return True
-
+                # 被ban
+                if (
+                    hash(result.text) in waf_hashes
+                    or hash(result.text) in long_param_hashes
+                ):
+                    logger.debug("payload被waf")
+                    return False
                 # 产生关键词替换
                 replaced_list = find_pieces(result.text, payload)
                 if replaced_list:
