@@ -52,7 +52,7 @@ def burst_respond_params_data(
     Returns:
         Tuple[List[str], List[str]]: 产生回显的GET参数和POST参数
     """
-    words = re.findall(r"\w{1,30}", html_str)
+    words = re.findall(r"\w{1,30}", html_str) + re.findall(r"[a-zA-Z0-9_-]{1,30}", html_str)
     words = list(set(words))
     random.shuffle(words)
     if len(words) > PARAM_CHUNK_SIZE * 50:
@@ -130,6 +130,7 @@ def yield_form(
                     method="GET",
                 )
             ]
+            found = True
         if respond_post_params and len(respond_get_params) < 5:
             logger.warning("Found post params with burst: %s", colored("blue", repr(respond_post_params)))
             yield target_url, [
@@ -139,7 +140,8 @@ def yield_form(
                     method="POST",
                 )
             ]
+            found = True
 
         targets += parse_urls(html)
     if not found:
-        logger.warning("Exit without finding <form> element")
+        logger.warning("Found nothing.")
