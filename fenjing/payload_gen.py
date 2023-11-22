@@ -530,12 +530,16 @@ def gen_zero_emptylength(context: dict):
         (LITERAL, '""'),
         (LITERAL, "()"),
         (LITERAL, "( )"),
+        (LITERAL, "(\t)"),
+        (LITERAL, "(\n)"),
         (LITERAL, "[]"),
         (LITERAL, "{}"),
     ]
     get_length = [
         (LITERAL, ".__len__()"),
         (LITERAL, ".__len__( )"),
+        (LITERAL, ".__len__(\t)"),
+        (LITERAL, ".__len__(\n)"),
     ]
     return [(ONEOF, empty_things), (ONEOF, get_length)]
 
@@ -720,6 +724,8 @@ def gen_positive_integer_length(context: dict, value: int):
             ONEOF,
             [(LITERAL, ".__len__()")],
             [(LITERAL, ".__len__( )")],
+            [(LITERAL, ".__len__(\t)")],
+            [(LITERAL, ".__len__(\n)")],
             [(LITERAL, "|length")],
         ),
         (LITERAL, ")"),
@@ -1013,6 +1019,8 @@ def gen_string_percent_moddoc(context):
             ONEOF,
             [(LITERAL, "(1).__mod__.__doc__")],
             [(LITERAL, "(( ).__len__( )).__mod__.__doc__")],
+            [(LITERAL, "((\t).__len__(\t)).__mod__.__doc__")],
+            [(LITERAL, "((\n).__len__(\n)).__mod__.__doc__")],
             [(LITERAL, "([ ].__len__( )).__mod__.__doc__")],
             [
                 (
