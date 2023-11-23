@@ -2530,29 +2530,19 @@ def gen_os_popen_obj_eval(context, cmd):
 @expression_gen
 def gen_os_popen_read_normal(context, cmd):
     return [
-        (LITERAL, "("),
         (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"),
-        (LITERAL, "())"),
+        (ONEOF, [(LITERAL, "()")], [(LITERAL, "( )")]),
     ]
 
-
-@expression_gen
-def gen_os_popen_read_normalspace(context, cmd):
-    return [
-        (LITERAL, "("),
-        (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"),
-        (LITERAL, "( ))"),
-    ]
 
 
 @expression_gen
 def gen_os_popen_read_normal2(context, cmd):
     return [
-        (LITERAL, "("),
         (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"),
         (LITERAL, "("),
         (INTEGER, -1),
-        (LITERAL, "))"),
+        (LITERAL, ")"),
     ]
 
 
