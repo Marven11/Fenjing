@@ -180,6 +180,13 @@ def find_bad_exprs(tree, is_expr_bad_func):
             nodes.append((payload_unparsed, targetlist))
     return nodes
 
+def join_target(sep, targets):
+    assert len(targets) >= 1
+    ret = [targets[0], ]
+    for target in targets[1:]:
+        ret.append(sep)
+        ret.append(target)
+    return ret
 
 class PayloadGenerator:
     """生成一个表达式，如('a'+'b')
@@ -1889,11 +1896,7 @@ def gen_string_splitdictjoin(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
     parts = [value[i : i + 3] for i in range(0, len(value), 3)]
-    req = []
-    for i, part in enumerate(parts):
-        if i != 0:
-            req.append((STRING_STRING_CONCAT,))
-        req.append((LITERAL, "(dict({}=x)|join)".format(part)))
+    req = join_target((STRING_STRING_CONCAT, ), [(LITERAL, "(dict({}=x)|join)".format(part)) for part in parts])
     return req
 
 
@@ -1931,10 +1934,7 @@ def gen_string_formatpercent(context: dict, value: str):
     req.append((LITERAL, "(("))
     req.append((STRING_MANY_PERCENT_LOWER_C, len(value)))
     req.append((LITERAL, ")%("))
-    for i, c in enumerate(value):
-        if i != 0:
-            req.append((LITERAL, ","))
-        req.append((INTEGER, ord(c)))
+    req += join_target((LITERAL, ","), [(INTEGER, ord(c)) for c in value])
     req.append((LITERAL, "))"))
     return req
 
@@ -1946,10 +1946,8 @@ def gen_string_formatfunc(context: dict, value: str):
     req.append((LITERAL, "(("))
     req.append((STRING_MANY_PERCENT_LOWER_C, len(value)))
     req.append((LITERAL, ")|format("))
-    for i, c in enumerate(value):
-        if i != 0:
-            req.append((LITERAL, ","))
-        req.append((INTEGER, ord(c)))
+    req += join_target((LITERAL, ","), [(INTEGER, ord(c)) for c in value])
+
     req.append((LITERAL, "))"))
     return req
 
@@ -2005,36 +2003,19 @@ def gen_string_formatfunc4(context: dict, value: str):
     req.append((LITERAL, "(("))
     req.append((STRING_MANY_PERCENT_LOWER_C, len(value)))
     req.append((LITERAL, ").__mod__(("))
-    for i, c in enumerate(value):
-        if i != 0:
-            req.append((LITERAL, ","))
-        req.append((INTEGER, ord(c)))
+    req += join_target((LITERAL, ","), [(INTEGER, ord(c)) for c in value])
     req.append((LITERAL, ")))"))
     return req
 
 
 @expression_gen
 def gen_string_chars(context: dict, value: str):
-    ans: List[Any] = [(LITERAL, "("), (CHAR, value[0])]
-    for c in value[1:]:
-        ans.append((STRING_STRING_CONCAT,))
-        ans.append((CHAR, c))
-    ans.append(
-        (LITERAL, ")"),
-    )
-    return ans
+    return [(LITERAL, "(")] + join_target((STRING_STRING_CONCAT,), [(CHAR, c) for c in value]) + [(LITERAL, ")")]
 
 
 @expression_gen
 def gen_string_chars2(context: dict, value: str):
-    ans: List[Any] = [(LITERAL, "(("), (CHAR, value[0])]
-    for c in value[1:]:
-        ans.append((LITERAL, ","))
-        ans.append((CHAR, c))
-    ans.append(
-        (LITERAL, ")|join)"),
-    )
-    return ans
+    return [(LITERAL, "((")] + join_target((LITERAL, ","), [(CHAR, c) for c in value]) + [(LITERAL, ")|join)")]
 
 
 # ---
