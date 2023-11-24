@@ -65,7 +65,7 @@ class TestBase(unittest.TestCase):
         assert full_payload_gen is not None, self.__class__.__name__
         payload, will_print = full_payload_gen.generate(
             const.OS_POPEN_READ,
-            "echo 'cracked! @m wr!tI1111ng s()th' " + self.__class__.__name__,
+            "echo 'cracked! @m wr!tI1111ng\" s()th' " + self.__class__.__name__,
         )
         assert (
             payload is not None
@@ -76,7 +76,7 @@ class TestBase(unittest.TestCase):
                 self.assertNotIn(w, payload)
         resp = self.subm.submit(payload)
         assert resp is not None
-        self.assertIn("cracked! @m wr!tI1111ng s()th", resp.text, resp.text)
+        self.assertIn("cracked! @m wr!tI1111ng\" s()th", resp.text, resp.text)
 
 
 class TestEasy(TestBase):
@@ -389,7 +389,7 @@ class TestHard4(TestBase):
 
 
 class TestHard5(TestBase):
-    # geekgame2023 hlf_2
+    # geekgame2023 klf_2
     def setUp(self):
         super().setUp()
         self.setup_local_waf(
@@ -449,7 +449,7 @@ class TestHard5(TestBase):
         )
 
 class TestHard6(TestBase):
-    # geekgame2023 hlf_2 extended
+    # geekgame2023 klf_2 extended
     def setUp(self):
         super().setUp()
         self.setup_local_waf(
