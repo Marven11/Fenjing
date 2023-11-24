@@ -65,7 +65,7 @@ class TestBase(unittest.TestCase):
         assert full_payload_gen is not None, self.__class__.__name__
         payload, will_print = full_payload_gen.generate(
             const.OS_POPEN_READ,
-            "echo 'cracked! @m wr!tI1111ng\" s()th' " + self.__class__.__name__,
+            "echo 'cracked! @m WR171NG[]{}|;&&&\" S()METHING RANDON' " + self.__class__.__name__,
         )
         assert (
             payload is not None
@@ -76,7 +76,7 @@ class TestBase(unittest.TestCase):
                 self.assertNotIn(w, payload)
         resp = self.subm.submit(payload)
         assert resp is not None
-        self.assertIn("cracked! @m wr!tI1111ng\" s()th", resp.text, resp.text)
+        self.assertIn('cracked! @m WR171NG[]{}|;&&&" S()METHING RANDON', resp.text, resp.text)
 
 
 class TestEasy(TestBase):
@@ -448,8 +448,9 @@ class TestHard5(TestBase):
             ]
         )
 
+
 class TestHard6(TestBase):
-    # geekgame2023 klf_2 extended
+    # geekgame2023 klf_2 enhanced
     def setUp(self):
         super().setUp()
         self.setup_local_waf(
@@ -505,9 +506,89 @@ class TestHard6(TestBase):
                 "]",
                 "index",
                 "length",
-                "join"
+                "join",
             ]
         )
+
+
+class TestHard7(TestBase):
+    # geekgame2023 klf_3 enhanced
+    def setUp(self):
+        super().setUp()
+        self.setup_local_waf(
+            [
+                "_",
+                "\\",
+                "'",
+                '"',
+                "[",
+                "]",
+                "~",
+                "+",
+                "@",
+                "^",
+                "#",
+                "/",
+                ":",
+                "*",
+                "-",
+                "request",
+                "class",
+                "init",
+                "arg",
+                "config",
+                "app",
+                "self",
+                "cd",
+                "chr",
+                "request",
+                "url",
+                "builtins",
+                "globals",
+                "base",
+                "pop",
+                "import",
+                "popen",
+                "getitem",
+                "subclasses",
+                "flashed",
+                "os",
+                "open",
+                "read",
+                "cat",
+                "count",
+                "not",
+                "length",
+                "index",
+                "ord",
+                "43",
+                "45",
+                "38",
+                "124",
+                "47",
+                "59",
+                "99",
+                "100",
+                "0",
+                "37",
+                "94",
+                "96",
+                "48",
+                "49",
+                "50",
+                "51",
+                "52",
+                "53",
+                "54",
+                "55",
+                "56",
+                "57",
+                "58",
+                "59",
+                "))",
+            ]
+        )
+
 
 class TestStaticWAF(TestBase):
     def setUp(self):

