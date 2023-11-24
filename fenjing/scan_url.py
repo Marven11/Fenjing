@@ -59,24 +59,25 @@ def burst_respond_params_data(
         logger.warning("found %d params, don't burst", len(words))
         return [], []
     logger.warning("Bursting %d params...", len(words))
-    respond_get_params, respond_post_params = [], []
+    respond_get_params, respond_post_params = set(), set()
 
     for i in range(0, len(words), PARAM_CHUNK_SIZE):
         words_chunk = words[i : i + PARAM_CHUNK_SIZE]
-        params = {
-            k: "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
-            for k in words_chunk
-        }
-        data = {
-            k: "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
-            for k in words_chunk
-        }
-        resp = requester.request(method="GET", url=url, params=params)
-        if resp:
-            respond_get_params += [k for k, v in params.items() if v in resp.text]
-        resp = requester.request(method="POST", url=url, data=data)
-        if resp:
-            respond_post_params += [k for k, v in data.items() if v in resp.text]
+        for _ in range(3):
+            params = {
+                k: "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+                for k in words_chunk
+            }
+            data = {
+                k: "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+                for k in words_chunk
+            }
+            resp = requester.request(method="GET", url=url, params=params)
+            if resp:
+                respond_get_params |= set(k for k, v in params.items() if v in resp.text)
+            resp = requester.request(method="POST", url=url, data=data)
+            if resp:
+                respond_post_params |= set(k for k, v in data.items() if v in resp.text)
 
     return respond_get_params, respond_post_params
 
