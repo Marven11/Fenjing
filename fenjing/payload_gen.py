@@ -1877,7 +1877,7 @@ def gen_string_concat3(context: dict, value: str):
     return [
         (
             LITERAL,
-            "({})".format(
+            "{}".format(
                 "".join('"{}"'.format(c if c != '"' else '\\"') for c in value)
             ),
         )
