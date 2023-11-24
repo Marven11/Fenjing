@@ -384,10 +384,7 @@ class WafFuncGen:
                     logger.debug("payload产生回显")
                     return True
                 # 被ban
-                if (
-                    hash(result.text) in waf_hashes
-                    or hash(result.text) in long_param_hashes
-                ):
+                if hash(result.text) in long_param_hashes:
                     logger.debug("payload被waf")
                     return False
                 # 产生关键词替换
