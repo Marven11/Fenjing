@@ -26,6 +26,7 @@ from .const import (
     OS_POPEN_READ,
     DETECT_MODE_ACCURATE,
     REPLACED_KEYWORDS_STRATEGY_IGNORE,
+    FLASK_CONTEXT_VAR,
 )
 from .waf_func_gen import WafFuncGen, combine_waf
 from .full_payload_gen import FullPayloadGen
@@ -163,11 +164,9 @@ class Cracker:
             callback=None,
             detect_mode=self.detect_mode,
             environment=self.environment,
-            waf_expr_func=waf_expr_func
+            waf_expr_func=waf_expr_func,
         )
-        result = full_payload_gen.generate_with_tree(
-            OS_POPEN_READ, self.test_cmd
-        )
+        result = full_payload_gen.generate_with_tree(OS_POPEN_READ, self.test_cmd)
         if result is None:
             return None
         payload, will_print, tree = result
@@ -217,9 +216,11 @@ class Cracker:
             return status_code == 500
 
         exprs = [payload for payload, _ in find_bad_exprs(tree, is_expr_bad)]
+
         @functools.lru_cache(500)
         def new_waf(s):
             return all(expr not in s for expr in exprs) and not is_expr_bad(s)
+
         return new_waf
 
     def crack(self) -> Union[FullPayloadGen, None]:
@@ -237,12 +238,16 @@ class Cracker:
         self.log_with_result(will_print, test_result)
         if test_result == "FAIL_500":
             logger.info(colored("yellow", "Start fixing status code 500.", bold=True))
-            logger.info(colored("yellow", "IT MIGHT MAKE YOUR COMMAND EXECUTE TWICE!", bold=True))
-            logger.info(colored("yellow", "Use Ctrl+C to exit if you don't want it!", bold=True))
-            time.sleep(6)
-            waf_expr_func = self.expr_waf_not500(
-                tree, full_payload_gen.outer_pattern
+            logger.info(
+                colored(
+                    "yellow", "IT MIGHT MAKE YOUR COMMAND EXECUTE TWICE!", bold=True
+                )
             )
+            logger.info(
+                colored("yellow", "Use Ctrl+C to exit if you don't want it!", bold=True)
+            )
+            time.sleep(6)
+            waf_expr_func = self.expr_waf_not500(tree, full_payload_gen.outer_pattern)
             result = self.crack_with_waf(waf_func, waf_expr_func=waf_expr_func)
             if result:
                 full_payload_gen, will_print, test_result, tree = result
@@ -275,7 +280,7 @@ class Cracker:
             EVAL,
             (
                 CHAINED_ATTRIBUTE_ITEM,
-                (LITERAL, "request"),
+                (FLASK_CONTEXT_VAR, "request"),
                 (ATTRIBUTE, "values"),
                 (ATTRIBUTE, args_target_field),
             ),
