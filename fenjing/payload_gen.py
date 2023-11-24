@@ -1706,7 +1706,7 @@ def gen_string_twostringconcat2(context: dict, value: str):
     if len(value) <= 2 or len(value) > 20:
         return [(UNSATISFIED,)]
     return [
-        (LITERAL, '"'),  # ONEOF should output a valid expression
+        # (LITERAL, '"'),  # ONEOF should output a valid expression
         (
             ONEOF,
             *[
