@@ -24,8 +24,8 @@
 - 使用精确模式全面分析网站或使用快速模式减少不必要的网络请求
 - 支持攻击对应的HTML表单或HTML路径
 - 使用Shell指令对要发送的payload进行编码
-- 使用`--eval-args-payload`将payload放进GET参数中提交，有效降低payload长度
-- 使用`--replaced-keyword-strategy`进行自动双写
+- 将payload放进GET参数中提交，有效降低payload长度
+- 自动检测双写并绕过
 - 方便的网页界面/命令行界面
 
 ## 快速上手
@@ -37,6 +37,7 @@
 ```shell
 pip install fenjing
 python -m fenjing webui
+# python -m fenjing scan --url 'http://xxxx:xxx'
 ```
 
 ### 下载并运行docker镜像
@@ -62,29 +63,37 @@ docker build -t fenjing .
 docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
 ```
 
-## 特性
+## 支持的绕过规则
 
-支持绕过：
+### 关键字符绕过：
 
 - `'`和`"`
-- 绝大多数敏感关键字
-- 任意阿拉伯数字
 - `_`
 - `[`
+- 绝大多数敏感关键字
+- 任意阿拉伯数字
 - `+`
 - `-`
+- `*`
 - `~`
 - `{{`
+- `%`
+- ...
 
 ### 自然数绕过：
 
-支持绕过0-9的同时绕过加号或减号
+支持绕过0-9的同时绕过加减乘除，支持的方法如下：
+- 十六进制
+- a*b+c
+- `(39,39,20)|sum`
+- `(x,x,x)|length`
 
-支持全角数字和特定数字相加减两种绕过方式
+上方的规则支持潜逃
+
 
 ### `'%c'`绕过:
 
-支持绕过引号，`g`，`lipsum`和`urlencode`
+支持绕过引号，`g`，`lipsum`和`urlencode`等
 
 ### 下划线绕过：
 
@@ -105,6 +114,7 @@ docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
 - `'%c'*3%(97,97, 97)`
     - 其中的`'%c'`也支持上面的`'%c'`绕过
     - 其中的所有数字都支持上面的数字绕过
+- 将字符串切分成小段分别生成
 
 ### 属性：
 
@@ -123,6 +133,11 @@ docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
     - 其中的`__getitem__`支持上面的属性绕过
     - 其中的字符串也支持上面的任意字符串绕过
 
+## 其他技术细节
+
+- 脚本会在payload的前方设置一些变量提供给payload后部分的表达式。
+- 脚本会在全自动的前提下生成较短的表达式。
+- 脚本会仔细地检查各个表达式的优先级，尽量避免生成多余的括号。
 
 ## 详细使用
 
@@ -261,9 +276,13 @@ if __name__ == "__main__":
 
 其他使用例可以看[这里](examples.md)
 
-## 项目结构
+## 技术细节
+
+项目结构如下：
 
 [![](https://mermaid.ink/img/pako:eNptU8tuwyAQ_BWE1JziH8ihh6rXntpT68ja4CVGxYvLo0ka5d-L7SQGxxwQDLuzj1nOXJga-YZLbQ6iAevZx0tJLC4XdnsLXcOCV9qxEeyXMNpY9YcTYvEnoPNoJ0ga26Yu5Px0HU9I9TySQ1soikQSBKYhtfqS4DYSivjYKgLdY9vJ4oC70NvsehupLEpzHMFtRsOK4nnE70mwWRbCgvhG6xK_EUmigaxkIFHtkSY0MrTKZ21wAqgKVj9wDXksOKTPy1FSdIllaGtJs6I6OGkDdVLU0xOrY5-EV4buol_F8nj01S-kPXANal1daTJjqfaPuAyTdZ7_IpjTsFUebihzzjiA6X21kPl9xm7SZ1LewFylcR9mZMEl0eexxpL4mrdxQkHV8VOde5-S-wZbLPkmHgmDt6BLXtIlmkLw5v1Egm-8DbjmoavB46uCKFrL4yhrF9EO6NOY6Y618sa-jR93-L-Xf1aoMIE?type=png)](https://mermaid.live/edit#pako:eNptU8tuwyAQ_BWE1JziH8ihh6rXntpT68ja4CVGxYvLo0ka5d-L7SQGxxwQDLuzj1nOXJga-YZLbQ6iAevZx0tJLC4XdnsLXcOCV9qxEeyXMNpY9YcTYvEnoPNoJ0ga26Yu5Px0HU9I9TySQ1soikQSBKYhtfqS4DYSivjYKgLdY9vJ4oC70NvsehupLEpzHMFtRsOK4nnE70mwWRbCgvhG6xK_EUmigaxkIFHtkSY0MrTKZ21wAqgKVj9wDXksOKTPy1FSdIllaGtJs6I6OGkDdVLU0xOrY5-EV4buol_F8nj01S-kPXANal1daTJjqfaPuAyTdZ7_IpjTsFUebihzzjiA6X21kPl9xm7SZ1LewFylcR9mZMEl0eexxpL4mrdxQkHV8VOde5-S-wZbLPkmHgmDt6BLXtIlmkLw5v1Egm-8DbjmoavB46uCKFrL4yhrF9EO6NOY6Y618sa-jR93-L-Xf1aoMIE)
+
+payload生成原理见[howitworks.md](./howitworks.md)
 
 ## Stars
 

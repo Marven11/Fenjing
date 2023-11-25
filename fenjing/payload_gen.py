@@ -2820,6 +2820,16 @@ def gen_eval_normal(context, eval_param):
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
+@expression_gen
+def gen_eval_normal2(context, eval_param):
+    target_list = [
+        (ENCLOSE_UNDER, precedence["function_call"], (EVAL_FUNC,)),
+        (LITERAL, "("),
+        eval_param,
+        (LITERAL, ",)"),
+    ]
+    return [(EXPRESSION, precedence["function_call"], target_list)]
+
 # ---
 
 # 获取flask配置的生成规则

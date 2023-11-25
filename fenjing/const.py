@@ -3,14 +3,26 @@
 
 DEFAULT_USER_AGENT = "Fenjing/0.1"
 
-# 支持的类型
+# 支持的生成类型
 
+# 字面量
 LITERAL = "literal"
+# 生成失败
 UNSATISFIED = "unsatisfied"
+# 带有优先级标记的表达式
 EXPRESSION = "expression"
+# 选择后方的其中一条生成目标进行生成
 ONEOF = "oneof"
+# 当优先级小于n时对生成结果加上括号
 ENCLOSE_UNDER = "enclose_under"
+# 强制加上括号
 ENCLOSE = "enclose"
+# 标记使用了某个上下文中的变量
+WITH_CONTEXT_VAR = "with_context_var"
+# jinja上下文内置的变量
+JINJA_CONTEXT_VAR = "jinja_context_var"
+# flask上下文内置的变量
+FLASK_CONTEXT_VAR = "flask_context_var"
 
 PLUS = "plus"
 MULTIPLY = "multiply"
@@ -18,9 +30,6 @@ MOD = "mod"
 FUNCTION_CALL = "function_call"
 STRING_CONCAT = "string_concat"
 
-WITH_CONTEXT_VAR = "with_context_var"
-JINJA_CONTEXT_VAR = "jinja_context_var"
-FLASK_CONTEXT_VAR = "flask_context_var"
 ZERO = "zero"
 POSITIVE_INTEGER = "positive_integer"
 INTEGER = "integer"
