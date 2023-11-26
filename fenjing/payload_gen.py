@@ -18,6 +18,8 @@ import re
 import logging
 import sys
 import math
+import random
+import string
 
 from collections import defaultdict
 from typing import (
@@ -1672,6 +1674,17 @@ def gen_string_many_percent_lower_c_nulljoin(context, count: int):
     )
     return [(EXPRESSION, precedence["filter"], target_list)]
 
+@expression_gen
+def gen_string_many_percent_lower_c_nulljoin2(context, count: int):
+    # ((x,x,x)|join('%c'))
+    target_list = (
+        [
+            (LITERAL, "("),
+        ]
+        + [(LITERAL, "x,") for _ in range(count + 1)]
+        + [(LITERAL, ")|join("), (STRING_PERCENT_LOWER_C,), (LITERAL, ",)")]
+    )
+    return [(EXPRESSION, precedence["filter"], target_list)]
 
 @expression_gen
 def gen_string_many_percent_lower_c_concat(context, count: int):
@@ -2693,6 +2706,26 @@ def gen_eval_func_lipsum(context):
         )
     ]
 
+
+@expression_gen
+def gen_eval_func_unexist(context):
+    unexist = [
+        [(LITERAL, "x")],
+        [(LITERAL, "unexistfuckyou")],
+    ] + [
+        [(LITERAL, "".join(random.choices(string.ascii_lowercase, k = 6)))]
+        for _ in range(20)
+    ]
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (EXPRESSION, precedence["literal"], [(ONEOF, *unexist)]),
+            (ATTRIBUTE, "__init__"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+            (ITEM, "eval"),
+        )
+    ]
 
 @expression_gen
 def gen_eval_func_joiner(context):
