@@ -267,6 +267,12 @@ def tree_precedence(tree):
     return answer if answer != float("inf") else None
 
 
+def str_escape(value: str, quote = "'"):
+    """
+    转义字符串中的引号和反斜杠
+    """
+    return value.replace("\\", "\\\\").replace(quote, "\\" + quote)
+
 class PayloadGenerator:
     """生成一个表达式，如('a'+'b')
     其会遍历对应的expression_gen，依次“展开”生成目标为一个生成目标的列表，递归地
@@ -681,6 +687,26 @@ def gen_plus_addfunc(context: dict, a, b):
     ]
 
 
+@expression_gen
+def gen_plus_addfuncbyfilter(context: dict, a, b):
+    get_add_func = (ONEOF,
+        [(LITERAL, "|attr('__add__')(")],
+        [(LITERAL, "|attr(\"__add__\")(")],
+        [(LITERAL, "|attr(\"\\x5f\\x5fadd\\x5f\\x5f\")(")],
+    )
+    return [
+        (
+            EXPRESSION,
+            precedence["filter"],
+            [
+                (ENCLOSE_UNDER, precedence["filter"], a),
+                get_add_func,
+                b,
+                (LITERAL, ")"),
+            ],
+        )
+    ]
+
 # ---
 
 
@@ -830,22 +856,22 @@ def gen_zero_4(context: dict):
 @expression_gen
 def gen_zero_emptylength(context: dict):
     empty_things = [
-        (LITERAL, "''"),
-        (LITERAL, '""'),
-        (LITERAL, "()"),
-        (LITERAL, "( )"),
-        (LITERAL, "(\t)"),
-        (LITERAL, "(\n)"),
-        (LITERAL, "[]"),
-        (LITERAL, "{}"),
+        [(LITERAL, "''")],
+        [(LITERAL, '""')],
+        [(LITERAL, "()")],
+        [(LITERAL, "( )")],
+        [(LITERAL, "(\t)")],
+        [(LITERAL, "(\n)")],
+        [(LITERAL, "[]")],
+        [(LITERAL, "{}")],
     ]
     get_length = [
-        (LITERAL, ".__len__()"),
-        (LITERAL, ".__len__( )"),
-        (LITERAL, ".__len__(\t)"),
-        (LITERAL, ".__len__(\n)"),
+        [(LITERAL, ".__len__()")],
+        [(LITERAL, ".__len__( )")],
+        [(LITERAL, ".__len__(\t)")],
+        [(LITERAL, ".__len__(\n)")],
     ]
-    target_list = [(ONEOF, empty_things), (ONEOF, get_length)]
+    target_list = [(ONEOF, *empty_things), (ONEOF, *get_length)]
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
@@ -2040,14 +2066,14 @@ def gen_char_num2(context, c):
 
 @expression_gen
 def gen_string_1(context: dict, value: str):
-    chars = [c if c != "'" else "\\'" for c in value]
+    chars = [str_escape(c, "'") for c in value]
     target_list = [(LITERAL, "'{}'".format("".join(chars)))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
 
 @expression_gen
 def gen_string_2(context: dict, value: str):
-    chars = [c if c != '"' else '\\"' for c in value]
+    chars = [str_escape(c, '"') for c in value]
     target_list = [(LITERAL, '"{}"'.format("".join(chars)))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
@@ -2071,8 +2097,8 @@ def gen_string_twostringconcat(context: dict, value: str):
             ONEOF,
             *[
                 [
-                    (LITERAL, "'{}'".format(value[:i].replace("'", "\\'"))),
-                    (LITERAL, "'{}'".format(value[i:].replace("'", "\\'"))),
+                    (LITERAL, "'{}'".format(str_escape(value[:i], "'"))),
+                    (LITERAL, "'{}'".format(str_escape(value[i:], "'"))),
                 ]
                 for i in range(1, len(value) - 1)
             ],
@@ -2091,8 +2117,8 @@ def gen_string_twostringconcat2(context: dict, value: str):
             ONEOF,
             *[
                 [
-                    (LITERAL, '"{}"'.format(value[:i].replace('"', '\\"'))),
-                    (LITERAL, '"{}"'.format(value[i:].replace('"', '\\"'))),
+                    (LITERAL, "'{}'".format(str_escape(value[:i], '"'))),
+                    (LITERAL, "'{}'".format(str_escape(value[i:], '"'))),
                 ]
                 for i in range(1, len(value) - 1)
             ],
@@ -2112,14 +2138,14 @@ def gen_string_removedunder(context: dict, value: str):
 
 @expression_gen
 def gen_string_reverse1(context: dict, value: str):
-    chars = [c if c != "'" else "\\'" for c in value]
+    chars = [str_escape(c, "'") for c in value]
     target_list = [(LITERAL, "'{}'[::-1]".format("".join(chars[::-1])))]
     return [(EXPRESSION, precedence["slide"], target_list)]
 
 
 @expression_gen
 def gen_string_reverse2(context: dict, value: str):
-    chars = [c if c != '"' else '\\"' for c in value]
+    chars = [str_escape(c, '"') for c in value]
     target_list = [(LITERAL, '"{}"[::-1]'.format("".join(chars[::-1])))]
     return [(EXPRESSION, precedence["slide"], target_list)]
 
@@ -2128,7 +2154,7 @@ def gen_string_reverse2(context: dict, value: str):
 def gen_string_lower1(context: dict, value: str):
     if value.upper().lower() != value:
         return [(UNSATISFIED,)]
-    chars = [c if c != "'" else "\\'" for c in value.upper()]
+    chars = [str_escape(c, "'") for c in value.upper()]
     target_list = [(LITERAL, "'{}'.lower()".format("".join(chars)))]
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
@@ -2137,7 +2163,7 @@ def gen_string_lower1(context: dict, value: str):
 def gen_string_lower2(context: dict, value: str):
     if value.upper().lower() != value:
         return [(UNSATISFIED,)]
-    chars = [c if c != '"' else '\\"' for c in value.upper()]
+    chars = [str_escape(c, '"') for c in value.upper()]
     target_list = [(LITERAL, '"{}".lower()'.format("".join(chars)))]
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
@@ -2146,7 +2172,7 @@ def gen_string_lower2(context: dict, value: str):
 def gen_string_lower3(context: dict, value: str):
     if value.upper().lower() != value:
         return [(UNSATISFIED,)]
-    chars = [c if c != "'" else "\\'" for c in value.upper()]
+    chars = [str_escape(c, "'") for c in value.upper()]
     target_list = [(LITERAL, "'{}'.lower( )".format("".join(chars)))]
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
@@ -2155,7 +2181,7 @@ def gen_string_lower3(context: dict, value: str):
 def gen_string_lower4(context: dict, value: str):
     if value.upper().lower() != value:
         return [(UNSATISFIED,)]
-    chars = [c if c != '"' else '\\"' for c in value.upper()]
+    chars = [str_escape(c, '"') for c in value.upper()]
     target_list = [(LITERAL, '"{}".lower( )'.format("".join(chars)))]
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
@@ -2164,7 +2190,7 @@ def gen_string_lower4(context: dict, value: str):
 def gen_string_lowerfilter1(context: dict, value: str):
     if value.upper().lower() != value:
         return [(UNSATISFIED,)]
-    chars = [c if c != "'" else "\\'" for c in value.upper()]
+    chars = [str_escape(c, "'") for c in value.upper()]
     target_list = [(LITERAL, "'{}'|lower".format("".join(chars)))]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
@@ -2173,14 +2199,9 @@ def gen_string_lowerfilter1(context: dict, value: str):
 def gen_string_lowerfilter2(context: dict, value: str):
     if value.upper().lower() != value:
         return [(UNSATISFIED,)]
-    chars = [c if c != '"' else '\\"' for c in value.upper()]
+    chars = [str_escape(c, '"') for c in value.upper()]
     target_list = [(LITERAL, '"{}"|lower'.format("".join(chars)))]
     return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-
-
-# TODO: 解决反斜杠没有正确转义的问题
 
 
 @expression_gen
@@ -2188,7 +2209,7 @@ def gen_string_concat1(context: dict, value: str):
     target_list = [
         (
             LITERAL,
-            "+".join("'{}'".format(c if c != "'" else "\\'") for c in value),
+            "+".join("'{}'".format(str_escape(c, "'")) for c in value),
         )
     ]
     return [(EXPRESSION, precedence["plus"], target_list)]
@@ -2199,7 +2220,7 @@ def gen_string_concat2(context: dict, value: str):
     target_list = [
         (
             LITERAL,
-            "+".join('"{}"'.format(c if c != '"' else '\\"') for c in value),
+            "+".join('"{}"'.format(str_escape(c, '"')) for c in value),
         )
     ]
     return [(EXPRESSION, precedence["plus"], target_list)]
@@ -2208,7 +2229,7 @@ def gen_string_concat2(context: dict, value: str):
 @expression_gen
 def gen_string_concat3(context: dict, value: str):
     target_list = [
-        (LITERAL, "".join('"{}"'.format(c if c != '"' else '\\"') for c in value))
+        (LITERAL, "".join('"{}"'.format(str_escape(c, '"')) for c in value))
     ]
     return [(EXPRESSION, precedence["literal"], target_list)]
 

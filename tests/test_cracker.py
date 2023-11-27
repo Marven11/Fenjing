@@ -16,7 +16,6 @@ import logging
 import os
 
 VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
-waf_func_gen.logger.setLevel(logging.ERROR)
 SLEEP_INTERVAL = float(os.environ.get("SLEEP_INTERVAL", 0.01))
 
 
@@ -630,6 +629,24 @@ class TestLengthLimit1WAF(TestBase):
         self.blacklist = None
         self.setup_remote_waf("/lengthlimit1_waf")
 
+    def test_waf(self):
+        cracker = Cracker(self.subm, **self.cracker_other_opts)
+        full_payload_gen = cracker.crack()
+        assert full_payload_gen is not None, self.__class__.__name__
+        payload, will_print = full_payload_gen.generate(
+            const.OS_POPEN_READ,
+            "echo 'cracked!!!' " + self.__class__.__name__,
+        )
+        assert (
+            payload is not None
+        ), self.__class__.__name__  # 因为type hint无法认出.assertIsNotNone
+        self.assertTrue(will_print)
+        if self.local_blacklist:
+            for w in self.local_blacklist:
+                self.assertNotIn(w, payload)
+        resp = self.subm.submit(payload)
+        assert resp is not None
+        self.assertIn('cracked!!!', resp.text, resp.text)
 
 class TestLengthLimit2WAF(TestBase):
     def setUp(self):
