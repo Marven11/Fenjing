@@ -239,7 +239,7 @@ class WafFuncGen:
         """
         logger.info("Testing long payloads...")
         keywords = [
-            "".join(random.choices(string.ascii_lowercase, k=5)) * 40 for _ in range(10)
+            "".join(random.choices(string.ascii_lowercase, k=5)) * 40 for _ in range(20)
         ]
         hashes = []
         for keyword in keywords:
@@ -350,6 +350,7 @@ class WafFuncGen:
         replaced_keyword = self.replaced_keyword()
         waf_hashes = self.waf_page_hash()
         long_param_hashes = self.long_param_hash()
+        long_param_hashes = [h for h in long_param_hashes if h not in waf_hashes]
         if self.replaced_keyword_strategy == REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING:
             self.subm.add_tamperer(lambda s: self.doubletapping(s, replaced_keyword))
 
@@ -385,7 +386,7 @@ class WafFuncGen:
                     return True
                 # 被ban
                 if hash(result.text) in long_param_hashes:
-                    logger.debug("payload被waf")
+                    logger.warning("payload被waf")
                     return False
                 # 产生关键词替换
                 replaced_list = find_pieces(result.text, payload)
