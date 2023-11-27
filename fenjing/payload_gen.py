@@ -147,7 +147,7 @@ precedence = [
         "slide",
         "function_call",
     ],
-    ["filter"],  # i guess, TODO: verify
+    ["filter"],
     [
         "power",
     ],
@@ -660,8 +660,6 @@ def gen_string_concat_tilde(context: dict, a, b) -> List[LiteralTarget]:
 
 
 # ---
-
-# TODO: add  f'|attr("\\x5f\\x5fadd\\x5f\\x5f")({n})'
 
 
 @expression_gen
