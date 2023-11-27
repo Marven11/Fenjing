@@ -2178,6 +2178,49 @@ def gen_string_lowerfilter2(context: dict, value: str):
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
+
+
+# TODO: 解决反斜杠没有正确转义的问题
+
+
+@expression_gen
+def gen_string_concat1(context: dict, value: str):
+    target_list = [
+        (
+            LITERAL,
+            "+".join("'{}'".format(c if c != "'" else "\\'") for c in value),
+        )
+    ]
+    return [(EXPRESSION, precedence["plus"], target_list)]
+
+
+@expression_gen
+def gen_string_concat2(context: dict, value: str):
+    target_list = [
+        (
+            LITERAL,
+            "+".join('"{}"'.format(c if c != '"' else '\\"') for c in value),
+        )
+    ]
+    return [(EXPRESSION, precedence["plus"], target_list)]
+
+
+@expression_gen
+def gen_string_concat3(context: dict, value: str):
+    target_list = [
+        (LITERAL, "".join('"{}"'.format(c if c != '"' else '\\"') for c in value))
+    ]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
+def gen_string_dictjoin(context: dict, value: str):
+    if not re.match("^[a-zA-Z_]+$", value):
+        return [(UNSATISFIED,)]
+    target_list = [(LITERAL, "dict({}=x)|join".format(value))]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
 # 以下规则生成的payload显著长于原string
 
 
@@ -2233,47 +2276,6 @@ def gen_string_o2(context: dict, value: str):
     target = "".join("\\" + oct(ord(c))[2:] for c in value)
     target_list = [(LITERAL, "'{}'".format(target))]
     return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-# TODO: 解决反斜杠没有正确转义的问题
-
-
-@expression_gen
-def gen_string_concat1(context: dict, value: str):
-    target_list = [
-        (
-            LITERAL,
-            "+".join("'{}'".format(c if c != "'" else "\\'") for c in value),
-        )
-    ]
-    return [(EXPRESSION, precedence["plus"], target_list)]
-
-
-@expression_gen
-def gen_string_concat2(context: dict, value: str):
-    target_list = [
-        (
-            LITERAL,
-            "+".join('"{}"'.format(c if c != '"' else '\\"') for c in value),
-        )
-    ]
-    return [(EXPRESSION, precedence["plus"], target_list)]
-
-
-@expression_gen
-def gen_string_concat3(context: dict, value: str):
-    target_list = [
-        (LITERAL, "".join('"{}"'.format(c if c != '"' else '\\"') for c in value))
-    ]
-    return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-@expression_gen
-def gen_string_dictjoin(context: dict, value: str):
-    if not re.match("^[a-zA-Z_]+$", value):
-        return [(UNSATISFIED,)]
-    target_list = [(LITERAL, "dict({}=x)|join".format(value))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
 
 
 @expression_gen
