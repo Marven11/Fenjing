@@ -661,6 +661,24 @@ def gen_string_concat_tilde(context: dict, a, b) -> List[LiteralTarget]:
 
 # ---
 
+@expression_gen
+def gen_string_concatmany_onebyone(context: dict, parts) -> List[LiteralTarget]:
+    answer = parts[0]
+    for part in parts[1:]:
+        answer = (STRING_CONCAT, answer, part)
+    return [answer]
+
+@expression_gen
+def gen_string_concatmany_join(context: dict, parts) -> List[LiteralTarget]:
+    target_list = [
+        (LITERAL, "("),
+    ] + join_target(sep = (LITERAL, ","), targets = parts) + [
+        (LITERAL, ")|join"),
+    ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+# ---
+
 
 @expression_gen
 def gen_plus_normal(context: dict, a, b):
@@ -1087,23 +1105,46 @@ def gen_positive_integer_count(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_onesum1(context: dict, value: int):
-    return [(LITERAL, "({})".format("+".join(["1"] * value)))]
+    target_list = [(LITERAL, "{}".format("+".join(["1"] * value)))]
+    return [(EXPRESSION, precedence["plus"], target_list)]
 
 
 @expression_gen
 def gen_positive_integer_onesum2(context: dict, value: int):
-    return [(LITERAL, "(({},)|sum)".format(",".join(["1"] * value)))]
+    target_list = [(LITERAL, "({},)|sum".format(",".join(["1"] * value)))]
+    return [(EXPRESSION, precedence["filter"], target_list)]
 
 
 @expression_gen
 def gen_positive_integer_truesum1(context: dict, value: int):
-    return [(LITERAL, "({})".format("+".join(["True"] * value)))]
+    target_list = [(LITERAL, "{}".format("+".join(["True"] * value)))]
+    return [(EXPRESSION, precedence["plus"], target_list)]
 
 
 @expression_gen
 def gen_positive_integer_truesum2(context: dict, value: int):
-    return [(LITERAL, "(({},)|sum)".format(",".join(["True"] * value)))]
+    target_list = [(LITERAL, "({},)|sum".format(",".join(["True"] * value)))]
+    return [(EXPRESSION, precedence["filter"], target_list)]
 
+
+@expression_gen
+def gen_positive_integer_bool(context: dict, value: int):
+    if value not in (0, 1):
+        return [(UNSATISFIED, )]
+
+    target_list = [(LITERAL, str(value == 1))]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+@expression_gen
+def gen_positive_integer_indexoftrue(context: dict, value: int):
+    if value <= 1:
+        return [(UNSATISFIED, )]
+    falses = [
+        (LITERAL, "False,")
+        for _ in range(value - 1)
+    ]
+    target_list = [(LITERAL, "("), ] + falses + [(LITERAL, ",True).index(True)")]
+    return [(EXPRESSION, precedence["function_call"], target_list)]
 
 # ---
 
@@ -1401,7 +1442,8 @@ def gen_string_percent_moddoc(context):
         ),
         (
             ONEOF,
-            [(LITERAL, "[11]")],
+            [(LITERAL, "["), (INTEGER, 11), (LITERAL, "]")],
+            [(LITERAL, ".__getitem__("), (INTEGER, 11), (LITERAL, ")")],
             [(LITERAL, "|batch(12)|first|last")],
         ),
     ]
@@ -1645,6 +1687,11 @@ def gen_string_percent_lower_c_cycler(context):
 
 # ---
 
+@expression_gen
+def gen_string_many_percent_lower_c_asis(context, count: int):
+    if count != 1:
+        return [(UNSATISFIED, )]
+    return [(STRING_PERCENT_LOWER_C, )]
 
 @expression_gen
 def gen_string_many_percent_lower_c_multiply(context, count: int):
@@ -2135,6 +2182,21 @@ def gen_string_removedunder(context: dict, value: str):
 
 
 @expression_gen
+def gen_string_removedunder2(context: dict, value: str):
+    if not re.match("^__[A_Za-z][A_Za-z0-9]+__$", value):
+        return [(UNSATISFIED,)]
+    strings = [
+        (STRING_UNDERLINE,),
+        (STRING_UNDERLINE,),
+        (STRING, value[2:-2]),
+        (STRING_UNDERLINE,),
+        (STRING_UNDERLINE,),
+    ]
+    return [(STRING_CONCATMANY, strings)]
+
+
+
+@expression_gen
 def gen_string_reverse1(context: dict, value: str):
     chars = [str_escape(c, "'") for c in value]
     target_list = [(LITERAL, "'{}'[::-1]".format("".join(chars[::-1])))]
@@ -2433,6 +2495,24 @@ def gen_string_chars2(context: dict, value: str):
     )
     return [(EXPRESSION, precedence["filter"], target_list)]
 
+
+@expression_gen
+def gen_string_stringaschars(context: dict, value: str):
+    if len(value) <= 1 or re.match("^[a-zA-Z][a-zA-Z0-9]$", value):
+        return [(UNSATISFIED, )]
+    targets = []
+    while value:
+        regexp = re.match("^[a-zA-Z][a-zA-Z0-9]+", value)
+        if regexp:
+            targets.append((STRING, regexp.group(0)))
+            value = value[len(regexp.group(0)):]
+        else:
+            targets.append((STRING, value[0]))
+            value = value[1:]
+    final_target = targets[0]
+    for other_target in targets[1:]:
+        final_target = (STRING_CONCAT, final_target, other_target)
+    return [final_target]
 
 # ---
 

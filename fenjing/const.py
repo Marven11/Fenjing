@@ -29,6 +29,7 @@ MULTIPLY = "multiply"
 MOD = "mod"
 FUNCTION_CALL = "function_call"
 STRING_CONCAT = "string_concat"
+STRING_CONCATMANY = "string_concatmany"
 
 ZERO = "zero"
 POSITIVE_INTEGER = "positive_integer"
