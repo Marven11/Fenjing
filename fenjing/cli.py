@@ -191,6 +191,8 @@ def do_crack_form_pre(
             replaced_keyword_strategy=replaced_keyword_strategy,
             environment=environment,
         )
+        if not cracker.has_respond():
+            return None
         full_payload_gen = cracker.crack()
         if full_payload_gen:
             return full_payload_gen, submitter
@@ -234,6 +236,8 @@ def do_crack_form_eval_args_pre(
             replaced_keyword_strategy=replaced_keyword_strategy,
             environment=environment,
         )
+        if not cracker.has_respond():
+            return None
         result = cracker.crack_eval_args()
         if result:
             submitter, evalargs_payload_gen = result
@@ -270,6 +274,8 @@ def do_crack_path_pre(
         replaced_keyword_strategy=replaced_keyword_strategy,
         environment=environment,
     )
+    if not cracker.has_respond():
+        return None
     full_payload_gen = cracker.crack()
     if full_payload_gen is None:
         return None
