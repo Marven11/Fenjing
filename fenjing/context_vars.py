@@ -2,11 +2,16 @@
 
 """
 
-from typing import Iterable, Dict, Any, Callable
+from typing import Iterable, Dict, Any, Callable, Union
+import logging
+
+logger = logging.getLogger("context_vars")
 
 # 所有的上下文payload, 存储格式为: {payload: {变量名：变量值}}
 
-ContextPayloads = Dict[str, Dict[str, Any]]
+Context = Dict[str, Any]
+ContextPayloads = Dict[str, Context]
+Waf = Callable[[str], bool]
 
 # 所有上下文的payload, 变量名不能重复
 context_payloads_all: ContextPayloads = {
@@ -104,3 +109,100 @@ def filter_by_used_context(
         for payload, d in context_payloads.items()
         if any(var_name in used_context for var_name in d.keys())
     }
+
+
+class ContextVariableUtil:
+    """管理上下文变量payload的工具类
+    这个类管理类似{%set xxx%}的payload以及其对应的变量名与值
+    """
+
+    def __init__(self, waf: Waf, context_payloads: ContextPayloads):
+        self.waf = waf
+        self.context_payloads = context_payloads.copy()
+        self.payload_dependency = {}
+        self.prepared = False
+
+    def filter_by_waf(self, waf: Union[Waf, None] = None):
+        """根据WAF函数过滤context payload
+
+        Args:
+            waf (Union[Waf, None], optional): 用于过滤的waf函数，默认使用init传入的waf函数. Defaults to None.
+        """
+        if waf is None:
+            waf = self.waf
+        self.context_payloads = filter_by_waf(self.context_payloads, self.waf)
+
+    def do_prepare(self):
+        """准备函数，会被自动调用"""
+        self.filter_by_waf()
+        self.prepared = True
+
+    def is_variable_exists(self, var_name: str) -> bool:
+        """返回变量是否存在
+
+        Args:
+            var_name (str): 变量名
+
+        Returns:
+            bool: 是否存在
+        """
+        all_vars = set(v for d in self.context_payloads.values() for v in d)
+        return var_name in all_vars
+
+    def add_payload(
+        self,
+        payload: str,
+        variables: Context,
+        depends_on: Union[Context, None] = None,
+        check_waf: bool = True,
+    ) -> bool:
+        """将payload加入context payloads中
+
+        Args:
+            payload (str): 需要加入的payload
+            variables (Context): payload中存储的一系列变量，不能和已有的重复
+            depends_on (Union[Context, None], optional): payload依赖的变量. Defaults to None.
+            check_waf (bool, optional): 是否使用waf函数检查payload是否合法. Defaults to True.
+
+        Returns:
+            bool: 是否加入成功
+        """
+        if not self.prepared:
+            self.do_prepare()
+        if check_waf and not self.waf(payload):
+            return False
+        if any(self.is_variable_exists(v) for v in variables):
+            logger.warning("Variable exists!")
+            return False
+        if depends_on is not None:
+            if not all(self.is_variable_exists(v) for v in depends_on):
+                notfound_vars = [v for v in depends_on if not self.is_variable_exists(v)]
+                logger.warning("Variables not found: %s", repr(notfound_vars))
+                return False
+            self.payload_dependency[payload] = depends_on
+        self.context_payloads[payload] = variables
+        return True
+
+    def get_payload(self, used_context: Context = None):
+        if not self.prepared:
+            self.do_prepare()
+        answer = ""
+        to_add_vars = set(used_context.keys())
+        while to_add_vars:
+            to_add = to_add_vars.pop()
+
+            if not self.is_variable_exists(to_add):
+                raise RuntimeError(f"Variable {to_add} not found")
+            payload = next(payload for payload, d in self.context_payloads.items() if to_add in d)
+            if payload in self.payload_dependency:
+                to_add_vars = to_add_vars.union(self.payload_dependency[payload])
+            answer = payload + answer
+        return answer
+
+    def get_context(self) -> Context:
+        return {
+            var_name: var_value
+            for _, d in self.context_payloads.items()
+            for var_name, var_value in d.items()
+        }
+
