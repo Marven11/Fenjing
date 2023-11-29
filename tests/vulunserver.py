@@ -4,6 +4,8 @@ import random
 
 from flask import Flask, request, render_template_string
 from jinja2 import Template
+import gc
+import random
 
 app = Flask(__name__)
 blacklist = [
@@ -113,7 +115,11 @@ def lengthlimit2_waf_pass(inp):
     if len(inp) > 70:
         return False
 
-
+@app.after_request
+def garbasecollect(resp):
+    if random.randint(1, 10) == 1:
+        gc.collect()
+    return resp
 @app.route("/", methods=["GET", "POST"])
 def index():
     name = request.args.get("name", "world")
