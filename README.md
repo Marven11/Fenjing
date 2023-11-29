@@ -88,7 +88,7 @@ docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
 - `(39,39,20)|sum`
 - `(x,x,x)|length`
 
-上方的规则支持潜逃
+上方的规则支持嵌套
 
 
 ### `'%c'`绕过:

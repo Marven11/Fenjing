@@ -188,15 +188,18 @@ class ContextVariableUtil:
             self.do_prepare()
         answer = ""
         to_add_vars = set(used_context.keys())
+        added_vars = set()
         while to_add_vars:
             to_add = to_add_vars.pop()
-
+            if to_add in added_vars:
+                continue
             if not self.is_variable_exists(to_add):
                 raise RuntimeError(f"Variable {to_add} not found")
             payload = next(payload for payload, d in self.context_payloads.items() if to_add in d)
             if payload in self.payload_dependency:
                 to_add_vars = to_add_vars.union(self.payload_dependency[payload])
             answer = payload + answer
+            added_vars.add(to_add)
         return answer
 
     def get_context(self) -> Context:
