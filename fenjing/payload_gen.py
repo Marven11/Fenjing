@@ -206,6 +206,8 @@ def hashable(o):
 def unparse(tree):
     content = ""
     for target, subtree in tree:
+        if target[0] == WITH_CONTEXT_VAR:
+            continue
         if target[0] in [LITERAL, FLASK_CONTEXT_VAR, JINJA_CONTEXT_VAR]:
             content += target[1]
         elif target[0] == ONEOF:
@@ -412,7 +414,7 @@ class PayloadGenerator:
         Returns:
             Union[PayloadGeneratorResult, None]: 生成结果
         """
-        assert isinstance(target[2], tuple)
+        assert isinstance(target[2], tuple), repr(target)
         result = self.generate_by_list([target[2]])
         if not result:
             return
@@ -950,8 +952,11 @@ def gen_positive_integer_sum(context: dict, value: int):
             return [(UNSATISFIED,)]
         value_left -= ints[0][1]
         payload_vars.append(ints[0][0])
-
-    return [(FORMULAR_SUM, tuple(payload_vars))] + [
+    ints = [
+        (EXPRESSION, precedence["literal"], [(LITERAL, v)])
+        for v in payload_vars
+    ]
+    return [(FORMULAR_SUM, ints)] + [
         (WITH_CONTEXT_VAR, v) for v in payload_vars
     ]
 
@@ -1183,8 +1188,7 @@ def gen_integer_context(context: dict, value: int):
         return [(UNSATISFIED,)]
     v = [k for k, v in context.items() if v == value][0]
     return [
-        (EXPRESSION, precedence["literal"], [(LITERAL, v)]),
-        (WITH_CONTEXT_VAR, v),
+        (EXPRESSION, precedence["literal"], [(LITERAL, v), (WITH_CONTEXT_VAR, v)]),
     ]
 
 
@@ -2508,6 +2512,7 @@ def gen_string_formatfunc2(context: dict, value: str):
     if "{:c}" not in context.values():
         return [(UNSATISFIED,)]
     k = [k for k, v in context.values() if v == "{:c}"][0]
+    k = (EXPRESSION, precedence["literal"], (LITERAL, k))
     cs = (MULTIPLY, k, (INTEGER, len(value)))
     format_func = (ATTRIBUTE, (LITERAL, cs), "format")
     target_list = (
