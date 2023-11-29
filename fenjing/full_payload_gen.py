@@ -213,7 +213,7 @@ class FullPayloadGen:
         self.extra_context_vars_prepared = True
 
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
-        logger.warning(
+        logger.info(
             "Adding some string variables...",
         )
         for target in targets:
@@ -242,7 +242,7 @@ class FullPayloadGen:
             # add used context
             self.used_context.update(used_context)
             # finish
-            logger.warning(
+            logger.info(
                 "Adding %s with %s",
                 colored("yellow", repr(target)),
                 colored("blue", payload),
@@ -295,7 +295,7 @@ class FullPayloadGen:
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
 
         self.prepare_extra_context_vars()
-        logger.warning("Start generating expression...")
+        logger.info("Start generating expression...")
 
         ret = self.payload_gen.generate_detailed(gen_type, *args)
 
