@@ -237,7 +237,7 @@ class FullPayloadGen:
                 payload, {name: target}, check_waf=True, depends_on=used_context
             )
             if not success:
-                logger.warning("Failed")
+                logger.info("Failed generating %s", colored("yellow", repr(target)))
                 continue
             # add used context
             # finish
