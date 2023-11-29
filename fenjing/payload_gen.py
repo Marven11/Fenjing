@@ -1797,10 +1797,7 @@ def gen_string_many_percent_lower_c_nulljoin2(context, count: int):
 
 @expression_gen
 def gen_string_many_percent_lower_c_concat(context, count: int):
-    target = (STRING_PERCENT_LOWER_C,)
-    for _ in range(count - 1):
-        target = (STRING_CONCAT, target, (STRING_PERCENT_LOWER_C,))
-    return [target]
+    return [(STRING_CONCATMANY, [(STRING_PERCENT_LOWER_C,) for _ in range(count)])]
 
 
 @expression_gen
@@ -2187,6 +2184,11 @@ def gen_string_2(context: dict, value: str):
     target_list = [(LITERAL, '"{}"'.format("".join(chars)))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
+@expression_gen
+def gen_string_manypercentlowerc(context: dict, value: str):
+    if value.replace("%c", "") != "" or len(value) == "":
+        return [(UNSATISFIED, )]
+    return [(STRING_MANY_PERCENT_LOWER_C, value.count("%c"))]
 
 @expression_gen
 def gen_string_context(context: dict, value: str):
@@ -2246,7 +2248,11 @@ def gen_string_removedunder(context: dict, value: str):
         return [(UNSATISFIED,)]
     twounderline = (MULTIPLY, (STRING_UNDERLINE,), (INTEGER, 2))
     middle = (STRING, value[2:-2])
-    return [(STRING_CONCAT, (STRING_CONCAT, twounderline, middle), twounderline)]
+    return [(STRING_CONCATMANY, [
+        twounderline,
+        middle,
+        twounderline,
+    ])]
 
 
 @expression_gen
@@ -2429,19 +2435,6 @@ def gen_string_splitdictjoin(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
     parts = [value[i : i + 3] for i in range(0, len(value), 3)]
-    targets = [(LITERAL, "dict({}=x)|join".format(part)) for part in parts]
-    final_target = (EXPRESSION, precedence["filter"], [targets[0]])
-    for other_target in targets[1:]:
-        other_target = (EXPRESSION, precedence["filter"], [other_target])
-        final_target = (STRING_CONCAT, final_target, other_target)
-    return [final_target]
-
-
-@expression_gen
-def gen_string_splitdictjoin2(context: dict, value: str):
-    if not re.match("^[a-zA-Z_]+$", value):
-        return [(UNSATISFIED,)]
-    parts = [value[i : i + 3] for i in range(0, len(value), 3)]
 
     if len(set(parts)) != len(parts):
         return [(UNSATISFIED,)]
@@ -2450,6 +2443,16 @@ def gen_string_splitdictjoin2(context: dict, value: str):
         (LITERAL, "dict({})|join".format(",".join(f"{part}=x" for part in parts)))
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_string_splitdictjoin2(context: dict, value: str):
+    if not re.match("^[a-zA-Z_]+$", value):
+        return [(UNSATISFIED,)]
+    parts = [value[i : i + 3] for i in range(0, len(value), 3)]
+    targets = [(LITERAL, "dict({}=x)|join".format(part)) for part in parts]
+    strings = [(EXPRESSION, precedence["filter"], [target]) for target in targets]
+    return [(STRING_CONCATMANY, strings)]
 
 
 @expression_gen
@@ -2545,10 +2548,7 @@ def gen_string_formatfunc3(context: dict, value: str):
 @expression_gen
 def gen_string_chars(context: dict, value: str):
     targets = [(CHAR, c) for c in value]
-    final_target = targets[0]
-    for other_target in targets[1:]:
-        final_target = (STRING_CONCAT, final_target, other_target)
-    return [final_target]
+    return [(STRING_CONCATMANY, targets)]
 
 
 @expression_gen
@@ -2567,17 +2567,14 @@ def gen_string_stringaschars(context: dict, value: str):
         return [(UNSATISFIED,)]
     targets = []
     while value:
-        regexp = re.match("^[a-zA-Z][a-zA-Z0-9]+", value)
+        regexp = re.match("^[a-zA-Z][a-zA-Z0-9]{2}", value)
         if regexp:
             targets.append((STRING, regexp.group(0)))
             value = value[len(regexp.group(0)) :]
         else:
             targets.append((STRING, value[0]))
             value = value[1:]
-    final_target = targets[0]
-    for other_target in targets[1:]:
-        final_target = (STRING_CONCAT, final_target, other_target)
-    return [final_target]
+    return [(STRING_CONCATMANY, targets)]
 
 
 # ---
