@@ -246,7 +246,7 @@ class FullPayloadGen:
                 colored("yellow", repr(target)),
                 colored("blue", payload),
             )
-        self.payload_gen.cache = {}
+        self.payload_gen.cache_by_repr.clear()
 
     def add_context_variable(
         self,

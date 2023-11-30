@@ -276,6 +276,33 @@ def str_escape(value: str, quote="'"):
     """
     return value.replace("\\", "\\\\").replace(quote, "\\" + quote)
 
+class CacheByRepr:
+    def __init__(self):
+        self.cache = {}
+
+    def __setitem__(self, k, v):
+        repr_k = repr(k)
+        self.cache[repr_k] = self.cache.get(repr_k, [])
+        self.cache[repr(k)].append((k, v))
+
+    def __getitem__(self, k):
+        repr_k = repr(k)
+        for k_store, v in self.cache.get(repr_k, []):
+            if k_store == k:
+                return v
+        raise KeyError(f"Not found: {repr_k}")
+
+    def __contains__(self, k):
+        repr_k = repr(k)
+        for k_store, v in self.cache.get(repr_k, []):
+            if k_store == k:
+                return True
+        return False
+
+    def __iter__(self):
+        return (k for k_repr in self.cache for k, v in self.cache[k_repr])
+    def clear(self):
+        self.cache = {}
 
 class PayloadGenerator:
     """生成一个表达式，如('a'+'b')
@@ -298,7 +325,7 @@ class PayloadGenerator:
             else (lambda x: waf_func(x) and waf_expr_func(x))
         )
         self.context = context if context else {}
-        self.cache = {}
+        self.cache_by_repr = CacheByRepr()
         self.used_count = defaultdict(int)
         self.detect_mode = detect_mode
         if detect_mode == DETECT_MODE_FAST:
@@ -369,7 +396,7 @@ class PayloadGenerator:
         return (target[1], {}, None)
 
     @register_generate_func(
-        lambda self, target: hashable(target) and target in self.cache
+        lambda self, target: target in self.cache_by_repr
     )
     def cache_generate(self, target: Target) -> Union[PayloadGeneratorResult, None]:
         """为已经缓存的生成目标生成payload
@@ -380,7 +407,7 @@ class PayloadGenerator:
         Returns:
             Union[PayloadGeneratorResult, None]: 生成结果
         """
-        return self.cache.get(target, None)
+        return self.cache_by_repr[target]
 
     @register_generate_func(lambda self, target: target[0] == EXPRESSION)
     def expression_generate(
@@ -527,8 +554,7 @@ class PayloadGenerator:
             gen_ret: List[Target] = gen(self.context, *args)
             ret = self.generate_by_list(gen_ret)
             if ret is None:
-                if hashable(gen_req):
-                    self.cache[gen_req] = ret
+                self.cache_by_repr[gen_req] = ret
                 continue
             logger.debug("Using gen rule: %s", gen.__name__)
             result = ret[0]
@@ -572,8 +598,7 @@ class PayloadGenerator:
                     )
                 )
 
-            if hashable(gen_req):
-                self.cache[gen_req] = ret
+            self.cache_by_repr[gen_req] = ret
             self.used_count[gen.__name__] += 1
             return ret
         if gen_type not in (
@@ -592,6 +617,7 @@ class PayloadGenerator:
                     args_repl=", ".join(repr(arg) for arg in args),
                 )
             )
+        self.cache_by_repr[gen_req] = None
         return None
 
     def generate(self, gen_type, *args) -> Union[str, None]:
