@@ -187,16 +187,17 @@ class PayloadGenTestCaseHard(unittest.TestCase):
         targets = [
             (const.STRING_PERCENT, ),
             (const.STRING_LOWERC, ),
-            (const.INTEGER, 10),
+            (const.INTEGER, 11),
             (const.STRING, "a"),
-            (const.STRING_CONCAT, (const.STRING, "a"), (const.STRING, "a")),
+            (const.MULTIPLY, (const.STRING, "a"), (const.INTEGER, 11)),
             (const.STRING_PERCENT_LOWER_C, ),
-            (const.STRING_MANY_PERCENT_LOWER_C, 10),
+            (const.STRING_MANY_PERCENT_LOWER_C, 11),
             (const.STRING, "ls /;"),
 
         ]
         for target in targets:
-            self.assertIsNotNone(self.payload_gen.generate(target[0], *target[1:]), repr(target))
+            result = self.payload_gen.generate(target[0], *target[1:])
+            self.assertIsNotNone(result, repr(target))
 
 
     def test_string(self):
