@@ -187,18 +187,27 @@ class ContextVariableUtil:
         if not self.prepared:
             self.do_prepare()
         answer = ""
-        to_add_vars = set(used_context.keys())
+        to_add_vars = list(used_context.keys())
         added_vars = set()
         while to_add_vars:
-            to_add = to_add_vars.pop()
+            to_add = to_add_vars.pop(0)
+
             if to_add in added_vars:
                 continue
             if not self.is_variable_exists(to_add):
                 raise RuntimeError(f"Variable {to_add} not found")
+
             payload = next(payload for payload, d in self.context_payloads.items() if to_add in d)
             if payload in self.payload_dependency:
-                to_add_vars = to_add_vars.union(self.payload_dependency[payload])
-            answer = payload + answer
+                # 检测依赖的变量是否都加入了
+                vars_name = list(self.payload_dependency[payload].keys())
+                assert all(self.is_variable_exists(v) for v in vars_name)
+                if not all(v in added_vars for v in vars_name):
+                    to_add_vars += list(self.payload_dependency[payload])
+                    to_add_vars.append(to_add)
+                    continue
+
+            answer += payload
             added_vars.add(to_add)
         return answer
 
