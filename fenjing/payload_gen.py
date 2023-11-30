@@ -891,11 +891,10 @@ def gen_multiply_func2(context: dict, a, b):
 
 
 @expression_gen
-def gen_formular_sum_add(context, num_targets):
-    final_target = num_targets[0]
-    for target in num_targets[1:]:
-        final_target = (PLUS, final_target, target)
-    return [final_target]
+def gen_formular_sum_simplesum(context, num_targets):
+    # simply sum up with `+` without touching complex rules for PLUS
+    target_list = join_target(sep = (LITERAL, "+"), targets = num_targets)
+    return [(EXPRESSION, precedence["plus"], target_list)]
 
 
 @expression_gen
@@ -908,6 +907,13 @@ def gen_formular_sum_tuplesum(context, num_targets):
         (LITERAL, ")|sum")
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
+
+@expression_gen
+def gen_formular_sum_add(context, num_targets):
+    final_target = num_targets[0]
+    for target in num_targets[1:]:
+        final_target = (PLUS, final_target, target)
+    return [final_target]
 
 
 # ---
