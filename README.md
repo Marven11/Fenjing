@@ -87,6 +87,7 @@ docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
 - a*b+c
 - `(39,39,20)|sum`
 - `(x,x,x)|length`
+- unicode全角字符
 
 上方的规则支持嵌套
 
@@ -109,12 +110,13 @@ docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
 - `'str'`
 - `"str"`
 - `"\x61\x61\x61"`
-- `dict(__class__=cycler)|join`
+- `dict(__class__=x)|join`
     - 其中的下划线支持绕过
 - `'%c'*3%(97,97, 97)`
     - 其中的`'%c'`也支持上面的`'%c'`绕过
     - 其中的所有数字都支持上面的数字绕过
 - 将字符串切分成小段分别生成
+- ...
 
 ### 属性：
 
@@ -135,6 +137,7 @@ docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
 
 ## 其他技术细节
 
+- 脚本会提前生成一些字符串并使用`{%set %}`设置在前方
 - 脚本会在payload的前方设置一些变量提供给payload后部分的表达式。
 - 脚本会在全自动的前提下生成较短的表达式。
 - 脚本会仔细地检查各个表达式的优先级，尽量避免生成多余的括号。
@@ -191,6 +194,8 @@ Options:
   --user-agent TEXT               请求时使用的User Agent
   --header TEXT                   请求时使用的Headers
   --cookies TEXT                  请求时使用的Cookie
+  --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
+  --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
   --proxy TEXT                    请求时使用的代理
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
   --help                          Show this message and exit.
@@ -214,6 +219,8 @@ Options:
   --user-agent TEXT               请求时使用的User Agent
   --header TEXT                   请求时使用的Headers
   --cookies TEXT                  请求时使用的Cookie
+  --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
+  --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
   --proxy TEXT                    请求时使用的代理
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
   --help                          Show this message and exit.
@@ -233,6 +240,8 @@ Options:
   --user-agent TEXT               请求时使用的User Agent
   --header TEXT                   请求时使用的Headers
   --cookies TEXT                  请求时使用的Cookie
+  --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
+  --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
   --proxy TEXT                    请求时使用的代理
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
   --help                          Show this message and exit.
