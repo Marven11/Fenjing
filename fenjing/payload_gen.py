@@ -2692,7 +2692,7 @@ def gen_string_chars2(context: dict, value: str):
 
 @expression_gen
 def gen_string_stringaschars(context: dict, value: str):
-    if len(value) <= 1 or re.match("^[a-zA-Z][a-zA-Z0-9]$", value):
+    if len(value) <= 1 or re.match("^[a-zA-Z][a-zA-Z0-9]+$", value):
         return [(UNSATISFIED,)]
     targets = []
     while value:
