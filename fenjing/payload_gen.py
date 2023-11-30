@@ -246,15 +246,18 @@ def join_target(sep, targets):
 def tree_precedence(tree):
     answer = float("inf")
     for target, sub_target_tree in tree:
-        if target[0] in ["literal", "unsatisfied"]:
-            continue
-        if target[0] == "expression":
+        if target[0] in [LITERAL, UNSATISFIED]:
+            pass
+        elif target[0] in [PLUS, MULTIPLY, MOD, ]:
+            # might be transformed into filters
+            sub_target_answer = tree_precedence(sub_target_tree)
+            if sub_target_answer:
+                answer = min(answer, sub_target_answer)
+        elif target[0] == EXPRESSION:
             answer = min(answer, target[1])
-            continue
-        if target[0] in precedence:
+        elif target[0] in precedence:
             answer = min(answer, precedence[target[0]])
-            continue
-        if sub_target_tree:
+        elif sub_target_tree:
             sub_target_answer = tree_precedence(sub_target_tree)
             if sub_target_answer:
                 answer = min(answer, sub_target_answer)
@@ -542,7 +545,6 @@ class PayloadGenerator:
         if self.detect_mode == DETECT_MODE_FAST:
             gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         for gen in gens:
-            logger.debug("Trying gen rule: %s", gen.__name__)
             gen_ret: List[Target] = gen(self.context, *args)
             ret = self.generate_by_list(gen_ret)
             if ret is None:
@@ -738,6 +740,7 @@ def gen_plus_addfuncbyfilter(context: dict, a, b):
         [(LITERAL, '|attr("\\x5f\\x5fadd\\x5f\\x5f")(')],
         [(LITERAL, "|attr("), (VARIABLE_OF, "__add__"), (LITERAL, ")(")],
     )
+    logger.debug("gen_plus_addfuncbyfilter: %s", repr(a))
     return [
         (
             EXPRESSION,
