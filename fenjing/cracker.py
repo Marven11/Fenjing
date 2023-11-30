@@ -30,6 +30,7 @@ from .const import (
 )
 from .waf_func_gen import WafFuncGen, combine_waf
 from .full_payload_gen import FullPayloadGen
+from .context_vars import ContextVariableUtil
 
 logger = logging.getLogger("cracker")
 Result = namedtuple("Result", "full_payload_gen input_field")
@@ -202,9 +203,11 @@ class Cracker:
                     + "You can try generating payloads anyway.",
                 )
 
-    def expr_waf_not500(self, tree, outer_pattern):
+    def expr_waf_not500(self, tree, outer_pattern, context_vars: ContextVariableUtil):
         def is_expr_bad(expr):
-            payload = outer_pattern.replace("PAYLOAD", expr)
+            payload = context_vars.get_payload(
+                context_vars.context_payloads
+            ) + outer_pattern.replace("PAYLOAD", expr)
             result = self.subm.submit(payload)
             assert result is not None
             status_code, _ = result
@@ -247,7 +250,9 @@ class Cracker:
                 colored("yellow", "Use Ctrl+C to exit if you don't want it!", bold=True)
             )
             time.sleep(6)
-            waf_expr_func = self.expr_waf_not500(tree, full_payload_gen.outer_pattern)
+            waf_expr_func = self.expr_waf_not500(
+                tree, full_payload_gen.outer_pattern, full_payload_gen.context_vars
+            )
             result = self.crack_with_waf(waf_func, waf_expr_func=waf_expr_func)
             if result:
                 full_payload_gen, will_print, test_result, tree = result
