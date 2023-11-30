@@ -195,14 +195,6 @@ def expression_gen(f: ExpressionGenerator):
     expression_gens[gen_type.group(1)].append(f)
 
 
-def hashable(o):
-    try:
-        _ = hash(o)
-        return True
-    except TypeError:
-        return False
-
-
 def unparse(tree):
     content = ""
     for target, subtree in tree:
@@ -651,13 +643,6 @@ class PayloadGenerator:
         return result
 
 
-def generate(
-    gen_type, *args, waf_func: Callable, context: Union[dict, None] = None
-) -> Union[str, None]:
-    payload_generator = PayloadGenerator(waf_func, context)
-    return payload_generator.generate(gen_type, *args)
-
-
 @expression_gen
 def gen_variable_of_context(context: dict, var_value) -> List[LiteralTarget]:
     variables = [name for name, value in context.items() if value == var_value]
@@ -665,19 +650,6 @@ def gen_variable_of_context(context: dict, var_value) -> List[LiteralTarget]:
         return [(UNSATISFIED,)]
     targets_list = [[(LITERAL, v), (WITH_CONTEXT_VAR, v)] for v in variables]
     return [(ONEOF, *targets_list)]
-
-
-# ---
-
-
-@expression_gen
-def gen_string_string_concat_plus(context: dict) -> List[LiteralTarget]:
-    return [(LITERAL, "+")]
-
-
-@expression_gen
-def gen_string_string_concat_tilde(context: dict):
-    return [(LITERAL, "~")]
 
 
 # ---
