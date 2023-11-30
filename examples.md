@@ -12,8 +12,6 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
 
 扫描网站：`python -m fenjing scan --url 'http://xxx.xxx/'`
 
-获取config：`python -m fenjing get-config --url 'http://xxx.xxx' --method GET --inputs name`
-
 攻击对应的表单：
 - `python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name`
 - 也可以指定多个input：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name,email`

@@ -20,11 +20,12 @@
 
 - 集成了大部分CTF中的SSTI WAF绕过技巧
 - 全自动扫描HTML页面中的form元素并进行攻击
+- 使用页面中的词语自动扫描出提交参数并攻击
 - 全自动分析网站的WAF并生成相应的payload
 - 使用精确模式全面分析网站或使用快速模式减少不必要的网络请求
-- 支持攻击对应的HTML表单或HTML路径
+- 支持攻击对应的HTML表单或HTTP路径
 - 使用Shell指令对要发送的payload进行编码
-- 将payload放进GET参数中提交，有效降低payload长度
+- 支持将payload放进GET参数中提交，有效降低payload长度
 - 自动检测双写并绕过
 - 方便的网页界面/命令行界面
 
@@ -163,8 +164,6 @@ docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
   - 攻击某个路径（如`http://xxx.xxx/hello/<payload>`）存在的漏洞
   - 参数大致上和crack相同，但是只需要提供对应的路径
   - 示例：`python -m fenjing crack-path --url 'http://xxx/hello/'`
-- get-config: 对某个特定的表单进行攻击，但是只获取flask config
-  - 参数大致上和crack相同
 
 一些特殊的选项：
 - `--eval-args-payload`：将payload放在GET参数x中提交
