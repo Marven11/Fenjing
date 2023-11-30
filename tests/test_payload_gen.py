@@ -56,14 +56,23 @@ class PayloadGenTestsTargetRules(unittest.TestCase):
 
     def test_targets(self):
         targets = [
+            (const.ZERO, ),
+            (const.INTEGER, 11),
             (const.INTEGER, 123),
             (const.PLUS, (const.INTEGER, 98), (const.INTEGER, 37)),
             (const.MULTIPLY, (const.INTEGER, 3), (const.INTEGER, 37)),
+            (const.MULTIPLY, (const.STRING, "a"), (const.INTEGER, 11)),
+
             (const.STRING_PERCENT,),
             (const.STRING_LOWERC,),
-            (const.STRING_MANY_PERCENT_LOWER_C, 4),
+            (const.STRING_PERCENT_LOWER_C, ),
+            (const.STRING_MANY_PERCENT_LOWER_C, 11),
+            (const.STRING, "a"),
             (const.STRING, "__class__"),
             (const.STRING, "echo 'cracked\"\\'"),
+            (const.STRING, "ls /;"),
+
+            (const.MODULE_OS),
             (const.OS_POPEN_READ, "echo 'cracked\"\\'"),
         ]
         for target in targets:
@@ -189,11 +198,9 @@ class PayloadGenTestCaseHard(unittest.TestCase):
             (const.STRING_LOWERC, ),
             (const.INTEGER, 11),
             (const.STRING, "a"),
-            (const.MULTIPLY, (const.STRING, "a"), (const.INTEGER, 11)),
             (const.STRING_PERCENT_LOWER_C, ),
             (const.STRING_MANY_PERCENT_LOWER_C, 11),
             (const.STRING, "ls /;"),
-
         ]
         for target in targets:
             result = self.payload_gen.generate(target[0], *target[1:])
