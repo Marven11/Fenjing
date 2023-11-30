@@ -554,7 +554,6 @@ class PayloadGenerator:
             gen_ret: List[Target] = gen(self.context, *args)
             ret = self.generate_by_list(gen_ret)
             if ret is None:
-                self.cache_by_repr[gen_req] = ret
                 continue
             logger.debug("Using gen rule: %s", gen.__name__)
             result = ret[0]
