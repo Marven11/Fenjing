@@ -2003,6 +2003,20 @@ def gen_string_underline_tupleselect(context):
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
+@expression_gen
+def gen_string_underline_gget(context):
+    # g|attr("get")|e|batch(18)|first|last
+    target_list = [
+        (FLASK_CONTEXT_VAR, "g"),
+        (LITERAL, "|attr("),
+        (VARIABLE_OF, "get"),
+        (LITERAL, ")|e|batch("),
+        (INTEGER, 18),
+        (LITERAL, ")|first|last"),
+    ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
 
 # ---
 
@@ -2674,17 +2688,25 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
         ]
         + value_tpl
     )
+    functioncall = (ONEOF,
+        [(LITERAL, "()")],
+        [(LITERAL, "( )")],
+        [(LITERAL, "(\n)")],
+        [(LITERAL, "(\t)")],
+    )
     target_list1 = bytes_targets_noendbracket + [
         (LITERAL, ")"),
         (LITERAL, "["),
         (VARIABLE_OF, "decode"),
-        (LITERAL, "]()"),
+        (LITERAL, "]"),
+        functioncall
     ]
     target_list2 = bytes_targets_noendbracket + [
         (LITERAL, ",)"),
         (LITERAL, "["),
         (VARIABLE_OF, "decode"),
-        (LITERAL, "]()"),
+        (LITERAL, "]"),
+        functioncall
     ]
     return [
         (
@@ -2718,17 +2740,25 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
         ]
         + value_tpl
     )
+    functioncall = (ONEOF,
+        [(LITERAL, "()")],
+        [(LITERAL, "( )")],
+        [(LITERAL, "(\n)")],
+        [(LITERAL, "(\t)")],
+    )
     target_list1 = bytes_targets_noendbracket + [
             (LITERAL, ")"),
             (LITERAL, "|attr("),
             (VARIABLE_OF, "decode"),
-            (LITERAL, ")()"),
+            (LITERAL, ")"),
+            functioncall
         ]
     target_list2 = bytes_targets_noendbracket + [
             (LITERAL, ",)"),
             (LITERAL, "|attr("),
             (VARIABLE_OF, "decode"),
-            (LITERAL, ")()"),
+            (LITERAL, ")"),
+            functioncall
         ]
     return [
         (
