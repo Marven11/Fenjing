@@ -191,6 +191,8 @@ class FullPayloadGen:
         """生成一系列字符串的变量并加入到context payloads中
         """
         targets = [
+            "%c",
+            "_",
             "__class__",
             "__globals__",
             "__init__",
@@ -210,7 +212,6 @@ class FullPayloadGen:
             "get",
             "eval",
             "chr",
-            "%c",
         ]
         if not self.prepared and not self.do_prepare():
             return
@@ -255,8 +256,8 @@ class FullPayloadGen:
                 colored("yellow", repr(target)),
                 colored("blue", payload),
             )
-        # 需要清除缓存，否则生成器只会使用缓存的表达式而不会使用加入的变量
-        self.payload_gen.cache_by_repr.clear()
+            # 需要清除缓存，否则生成器只会使用缓存的表达式而不会使用加入的变量
+            self.payload_gen.cache_by_repr.clear()
 
     def add_context_variable(
         self,
