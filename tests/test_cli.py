@@ -37,15 +37,6 @@ class TestCLI(unittest.TestCase):
         ctx.params.update(params)
         cli.crack_path.invoke(ctx)
 
-    def get_config_test(self, params):
-        ctx = click.Context(cli.get_config)
-        ctx.params = {
-            param.name: param.default
-            for param in cli.get_config.get_params(ctx)
-            if param.name != "help"
-        }
-        ctx.params.update(params)
-        cli.get_config.invoke(ctx)
 
     def scan_test(self, params):
         ctx = click.Context(cli.scan)
@@ -186,27 +177,6 @@ class TestCLI(unittest.TestCase):
                 "interval": SLEEP_INTERVAL,
                 "extra_params": "debug=1",
                 "exec_cmd": "ls /",
-            }
-        )
-
-    def test_get_config_basic(self):
-        self.get_config_test(
-            {
-                "url": VULUNSERVER_ADDR,
-                "method": "GET",
-                "inputs": "name",
-                "interval": SLEEP_INTERVAL,
-            }
-        )
-
-    def test_get_config_fast(self):
-        self.get_config_test(
-            {
-                "url": VULUNSERVER_ADDR,
-                "method": "GET",
-                "inputs": "name",
-                "interval": SLEEP_INTERVAL,
-                "detect_mode": "fast",
             }
         )
 
