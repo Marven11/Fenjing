@@ -246,7 +246,7 @@ class FullPayloadGen:
             # 变量名需要可以通过waf且不重复
             var_name = None
             for _ in range(10):
-                name = "".join(random.choices(string.ascii_lowercase, k=3))
+                name = "".join(random.choices(string.ascii_lowercase, k=4))
                 if self.context_vars.is_variable_exists(name):
                     continue
                 if not self.waf_func(name):
