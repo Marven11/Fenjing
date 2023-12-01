@@ -244,22 +244,15 @@ class FullPayloadGen:
                 continue
             expression, used_context, _ = ret
             # 变量名需要可以通过waf且不重复
-            var_name = None
-            for _ in range(10):
-                name = "".join(random.choices(string.ascii_lowercase, k=4))
-                if self.context_vars.is_variable_exists(name):
-                    continue
-                if not self.waf_func(name):
-                    continue
-                var_name = name
+            var_name = self.context_vars.generate_random_variable_name()
             if not var_name:
                 continue
             # 保存payload、对应的变量以及payload依赖的变量
-            payload = "{%set NAME=EXPR%}".replace("NAME", name).replace(
+            payload = "{%set NAME=EXPR%}".replace("NAME", var_name).replace(
                 "EXPR", expression
             )
             success = self.add_context_variable(
-                payload, {name: target}, check_waf=True, depends_on=used_context
+                payload, {var_name: target}, check_waf=True, depends_on=used_context
             )
             if not success:
                 logger.info("Failed generating %s, continue", colored("yellow", repr(target)))

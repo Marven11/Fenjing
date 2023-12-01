@@ -4,6 +4,8 @@
 
 from typing import Iterable, Dict, Any, Callable, Union
 import logging
+import random
+import string
 
 logger = logging.getLogger("context_vars")
 
@@ -149,6 +151,26 @@ class ContextVariableUtil:
         all_vars = set(v for d in self.context_payloads.values() for v in d)
         return var_name in all_vars
 
+    def generate_random_variable_name(self) -> Union[str, None]:
+        """生成一个可能的变量名
+
+        Returns:
+            Union[str, None]: 可能的变量名，失败时返回None
+        """
+        var_name = None
+        
+        for i in range(20):
+            # 变量名的长度由尝试次数决定
+            var_length = 2 if i < 10 else 3
+            name = "".join(random.choices(string.ascii_lowercase, k=var_length))
+            if self.is_variable_exists(name):
+                continue
+            if not self.waf(name):
+                continue
+            var_name = name
+            break
+        return var_name
+
     def add_payload(
         self,
         payload: str,
@@ -172,7 +194,7 @@ class ContextVariableUtil:
         if check_waf and not self.waf(payload):
             return False
         if any(self.is_variable_exists(v) for v in variables):
-            logger.warning("Variable exists!")
+            # raise RuntimeError(f"Variables {[self.is_variable_exists(v) for v in variables]} exists!")
             return False
         if depends_on is not None:
             if not all(self.is_variable_exists(v) for v in depends_on):
