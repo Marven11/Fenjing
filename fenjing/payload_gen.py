@@ -276,6 +276,19 @@ def str_escape(value: str, quote="'"):
     return value.replace("\\", "\\\\").replace(quote, "\\" + quote)
 
 
+def transform_int_chars_charcodes(int_chars, charcodes, keepfirst = False):
+    charcode_dict = {
+        str(int(chr(x), 0)): chr(x)
+        for x in charcodes
+    }
+    return "".join(charcode_dict.get(c, c) for c in int_chars)
+
+def transform_int_chars_unicode(int_chars):
+    return [
+        transform_int_chars_charcodes(int_chars, charcodes)
+        for charcodes in UNICODE_INT_CHARCODES
+    ]
+
 class CacheByRepr:
     def __init__(self):
         self.cache = {}
@@ -1016,23 +1029,25 @@ def gen_positive_integer_underline(context: dict, value: int):
 def gen_positive_integer_unicode(context: dict, value: int):
     if value <= 9:
         return [(UNSATISFIED,)]
-    chars = [
-        c if i == 0 else chr(ord(c) + ord("０") - ord("0"))
-        for i, c in enumerate(str(value))
+    payload_targets = [
+        [(LITERAL, payload)]
+        for payload in transform_int_chars_unicode(str(value)[1:])
     ]
-    targets_list = [(LITERAL, c) for c in chars]
-    return [(EXPRESSION, precedence["literal"], targets_list)]
+    return [(EXPRESSION, precedence["literal"], [
+        (LITERAL, str(value)[0]), (ONEOF,*payload_targets)
+    ])]
 
 
 @expression_gen
 def gen_positive_integer_unicodehex(context: dict, value: int):
     if value <= 0:
         return [(UNSATISFIED,)]
-    chars = [
-        chr(ord(c) + ord("０") - ord("0")) if ord("0") <= ord(c) <= ord("9") else c
-        for i, c in enumerate(hex(value)[2:])
+    value_hex_literal = hex(value)[2:]
+    payload_targets = [
+        [(LITERAL, payload)]
+        for payload in transform_int_chars_unicode(value_hex_literal)
     ]
-    targets_list = [(LITERAL, "0x")] + [(LITERAL, c) for c in chars]
+    targets_list = [(LITERAL, "0x"), (ONEOF, *payload_targets)]
     return [(EXPRESSION, precedence["literal"], targets_list)]
 
 
