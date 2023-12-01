@@ -14,7 +14,7 @@
 
 ## 演示
 
-![demo](assets/demo.webp)
+[![asciicast](assets/demo.svg)](https://asciinema.org/a/TCtEXFymWedBthfQPs3rnocL9)
 
 ## 主要特性
 
