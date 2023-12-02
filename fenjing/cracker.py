@@ -221,7 +221,7 @@ class Cracker:
     def expr_waf_not500(self, tree, outer_pattern, context_vars: ContextVariableUtil):
         def is_expr_bad(expr):
             payload = context_vars.get_payload(
-                context_vars.context_payloads
+                context_vars.get_context()
             ) + outer_pattern.replace("PAYLOAD", expr)
             result = self.subm.submit(payload)
             assert result is not None
