@@ -1,6 +1,4 @@
 from dataclasses import dataclass
-from typing import Literal
-
 from .const import (
     DETECT_MODE_ACCURATE,
     DETECT_MODE_FAST,
@@ -13,6 +11,12 @@ from .const import (
     PYTHON_VERSION_2,
     PYTHON_VERSION_3,
 )
+import sys
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 
 @dataclass
