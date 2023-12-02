@@ -10,7 +10,7 @@ import re
 
 from collections import namedtuple
 from string import ascii_lowercase
-from typing import Union, Callable, Dict, Tuple, Literal
+
 
 from .payload_gen import TargetAndSubTargets, find_bad_exprs
 from .requester import Requester
@@ -34,6 +34,13 @@ from .full_payload_gen import FullPayloadGen
 from .context_vars import ContextVariableUtil
 from .options import Options
 
+
+import sys
+
+if sys.version_info >= (3, 8):
+    from typing import Union, Callable, Dict, Tuple, Literal
+else:
+    from typing_extensions import Union, Callable, Dict, Tuple, Literal
 logger = logging.getLogger("cracker")
 Result = namedtuple("Result", "full_payload_gen input_field")
 
