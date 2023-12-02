@@ -23,6 +23,9 @@ WITH_CONTEXT_VAR = "with_context_var"
 JINJA_CONTEXT_VAR = "jinja_context_var"
 # flask上下文内置的变量
 FLASK_CONTEXT_VAR = "flask_context_var"
+# 需要python3环境
+REQUIRE_PYTHON3 = "require_python3"
+
 
 PLUS = "plus"
 MULTIPLY = "multiply"
@@ -78,6 +81,13 @@ DETECT_MODE_ACCURATE = "accurate"
 
 ENVIRONMENT_FLASK = "flask"
 ENVIRONMENT_JINJA = "jinja"
+
+
+# 模板的python执行环境：手动指定python3或者python2，或者让脚本猜测
+
+PYTHON_VERSION_UNKNOWN = "python_version_unknown"
+PYTHON_VERSION_2 = "python2"
+PYTHON_VERSION_3 = "python3"
 
 # 在WAF替换危险keywords时的策略
 

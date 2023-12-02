@@ -6,12 +6,14 @@ import logging
 import random
 import time
 import functools
+import re
 
 from collections import namedtuple
 from string import ascii_lowercase
-from typing import Union, Callable, Dict, Tuple
+from typing import Union, Callable, Dict, Tuple, Literal
 
 from .payload_gen import TargetAndSubTargets, find_bad_exprs
+from .requester import Requester
 from .form import random_fill
 from .submitter import FormSubmitter, RequestSubmitter, Submitter
 from .colorize import colored
@@ -23,6 +25,9 @@ from .const import (
     EVAL,
     OS_POPEN_READ,
     FLASK_CONTEXT_VAR,
+    PYTHON_VERSION_UNKNOWN,
+    PYTHON_VERSION_2,
+    PYTHON_VERSION_3,
 )
 from .waf_func_gen import WafFuncGen
 from .full_payload_gen import FullPayloadGen
@@ -32,6 +37,28 @@ from .options import Options
 logger = logging.getLogger("cracker")
 Result = namedtuple("Result", "full_payload_gen input_field")
 
+
+def guess_python_version(
+    url: str, requester: Requester
+) -> Literal[PYTHON_VERSION_UNKNOWN, PYTHON_VERSION_2, PYTHON_VERSION_3]:
+    """猜测目标的python版本
+
+    Args:
+        url (str): 目标的url
+        requester (Requester): 用于发送请求的requester
+
+    Returns:
+        Literal[PYTHON_VERSION_UNKNOWN, PYTHON_VERSION_2, PYTHON_VERSION_3]: python版本
+    """
+    resp = requester.request(method="GET", url=url)
+    if resp is None:
+        return PYTHON_VERSION_UNKNOWN
+    version_regexp = re.search(r"Python/(\d)", resp.headers.get("Server", ""))
+    if not version_regexp:
+        return PYTHON_VERSION_UNKNOWN
+    result = PYTHON_VERSION_3 if version_regexp.group(1) == "3" else PYTHON_VERSION_2
+    logger.info("Target is %s", colored("blue", result, bold = True))
+    return result
 
 class EvalArgsModePayloadGen:
     def __init__(self, will_print):
@@ -67,7 +94,7 @@ class Cracker:
         self,
         submitter: Submitter,
         callback: Union[Callable[[str, Dict], None], None] = None,
-        options: Union[Options, None] = None
+        options: Union[Options, None] = None,
     ):
         self.options = options if options else Options()
         self.subm = submitter
@@ -75,11 +102,7 @@ class Cracker:
         self._callback: Callable[[str, Dict], None] = (
             callback if callback else (lambda x, y: None)
         )
-        self.waf_func_gen = WafFuncGen(
-            submitter,
-            callback=callback,
-            options=options
-        )
+        self.waf_func_gen = WafFuncGen(submitter, callback=callback, options=options)
 
     @property
     def callback(self):
@@ -267,11 +290,7 @@ class Cracker:
             self.subm, FormSubmitter
         ), "Currently onlu FormSubmitter is supported"
         waf_func = self.waf_func_gen.generate()
-        full_payload_gen = FullPayloadGen(
-            waf_func,
-            callback=None,
-            options=self.options
-        )
+        full_payload_gen = FullPayloadGen(waf_func, callback=None, options=self.options)
         payload, will_print = full_payload_gen.generate(
             EVAL,
             (

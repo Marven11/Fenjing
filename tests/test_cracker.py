@@ -10,6 +10,7 @@ import unittest
 import fenjing
 from typing import Union
 from fenjing.cracker import Cracker
+from fenjing.options import Options
 from fenjing.submitter import FormSubmitter, PathSubmitter, Submitter, HTTPResponse
 from fenjing import const, waf_func_gen
 import logging
@@ -17,7 +18,6 @@ import os
 
 VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
 SLEEP_INTERVAL = float(os.environ.get("SLEEP_INTERVAL", 0.01))
-
 
 class WrappedSubmitter(Submitter):
     def __init__(self, subm, blacklist):
@@ -655,7 +655,7 @@ class TestLengthLimit2WAF(TestBase):
         self.setup_remote_waf("/lengthlimit2_waf")
 
     def test_waf(self):
-        cracker = Cracker(self.subm, environment="flask")
+        cracker = Cracker(self.subm, options=Options(environment="flask"))
         result = cracker.crack_eval_args()
         assert result is not None
         subm, will_print = result
@@ -670,25 +670,25 @@ class TestReplacedWAFAvoid(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/replace_waf")
-        self.cracker_other_opts = {"replaced_keyword_strategy": "avoid"}
+        self.cracker_other_opts = {"options": Options(replaced_keyword_strategy="avoid")}
 
 
 class TestReplacedWAFDoubleTapping(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/replace_waf")
-        self.cracker_other_opts = {"replaced_keyword_strategy": "doubletapping"}
+        self.cracker_other_opts = {"options": Options(replaced_keyword_strategy="doubletapping")}
 
 
 class TestJinjaEnv(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/jinja_env_waf")
-        self.cracker_other_opts = {"environment": "jinja"}
+        self.cracker_other_opts = {"options": Options(environment="jinja")}
 
 
 class TestFix500(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/jinja_env_waf")
-        self.cracker_other_opts = {"environment": "flask"}
+        self.cracker_other_opts = {"options": Options(environment="flask")}

@@ -12,7 +12,7 @@ import fenjing
 import logging
 import os
 
-from fenjing import FullPayloadGen, const
+from fenjing import FullPayloadGen, const, options
 import unittest
 import random
 
@@ -23,7 +23,7 @@ fenjing.payload_gen.logger.setLevel(logging.ERROR)
 def get_full_payload_gen(blacklist, detect_mode=fenjing.const.DETECT_MODE_ACCURATE):
     return FullPayloadGen(
         lambda x: all(word not in x for word in blacklist),
-        detect_mode=detect_mode,
+        options=options.Options(detect_mode=detect_mode),
     )
 
 

@@ -2,7 +2,6 @@
 
 """
 import logging
-import time
 
 from urllib.parse import urlparse
 from typing import List, Dict, Tuple, Union
@@ -21,7 +20,7 @@ from .const import (
     DETECT_MODE_ACCURATE,
 )
 from .colorize import colored, set_enable_coloring
-from .cracker import Cracker, EvalArgsModePayloadGen
+from .cracker import Cracker, EvalArgsModePayloadGen, guess_python_version
 from .form import Form, get_form
 from .full_payload_gen import FullPayloadGen
 from .requester import Requester
@@ -176,6 +175,7 @@ def do_crack_form_pre(
     Returns:
         Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
     """
+    python_version = guess_python_version(url, requester)
     for input_field in form["inputs"]:
         submitter = FormSubmitter(
             url,
@@ -189,7 +189,8 @@ def do_crack_form_pre(
         options = Options(
             detect_mode=detect_mode,
             replaced_keyword_strategy=replaced_keyword_strategy,
-            environment=environment
+            environment=environment,
+            python_version=python_version
         )
         cracker = Cracker(
             submitter=submitter,
@@ -224,6 +225,7 @@ def do_crack_form_eval_args_pre(
     Returns:
         Union[Tuple[Submitter, bool], None]: 攻击结果
     """
+    python_version = guess_python_version(url, requester)
     for input_field in form["inputs"]:
         submitter = FormSubmitter(
             url,
@@ -237,7 +239,8 @@ def do_crack_form_eval_args_pre(
         options = Options(
             detect_mode=detect_mode,
             replaced_keyword_strategy=replaced_keyword_strategy,
-            environment=environment
+            environment=environment,
+            python_version=python_version
         )
         cracker = Cracker(
             submitter=submitter,
@@ -271,6 +274,7 @@ def do_crack_path_pre(
     Returns:
         Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
     """
+    python_version = guess_python_version(url, requester)
     submitter = PathSubmitter(url=url, requester=requester)
     if tamper_cmd:
         tamperer = shell_tamperer(tamper_cmd)
@@ -278,7 +282,8 @@ def do_crack_path_pre(
     options = Options(
         detect_mode=detect_mode,
         replaced_keyword_strategy=replaced_keyword_strategy,
-        environment=environment
+        environment=environment,
+        python_version=python_version
     )
     cracker = Cracker(
         submitter=submitter,

