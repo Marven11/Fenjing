@@ -2427,15 +2427,6 @@ def gen_string_manypercentlowerc(context: dict, value: str):
 
 
 @expression_gen
-def gen_string_context(context: dict, value: str):
-    if value not in context.values():
-        return [(UNSATISFIED,)]
-    vs = [k for k, v in context.items() if v == value]
-    alternatives = [[(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)] for v in vs]
-    return [(EXPRESSION, precedence["literal"], [(ONEOF, *alternatives)])]
-
-
-@expression_gen
 def gen_string_twostringconcat(context: dict, value: str):
     if len(value) <= 2 or len(value) > 20:
         return [(UNSATISFIED,)]
@@ -2473,6 +2464,16 @@ def gen_string_twostringconcat2(context: dict, value: str):
         ),
     ]
     return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+# 如果上面的规则能用那就不要随便用上下文中的变量，否则会增加payload长度
+@expression_gen
+def gen_string_context(context: dict, value: str):
+    if value not in context.values():
+        return [(UNSATISFIED,)]
+    vs = [k for k, v in context.items() if v == value]
+    alternatives = [[(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)] for v in vs]
+    return [(EXPRESSION, precedence["literal"], [(ONEOF, *alternatives)])]
 
 
 @expression_gen
