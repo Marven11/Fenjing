@@ -3,8 +3,6 @@
 """
 
 import logging
-import random
-import string
 from typing import Callable, Tuple, Union, Dict, Any
 
 from . import payload_gen
@@ -16,10 +14,9 @@ from .context_vars import (
 from .const import (
     CALLBACK_PREPARE_FULLPAYLOADGEN,
     CALLBACK_GENERATE_FULLPAYLOAD,
-    DETECT_MODE_ACCURATE,
-    ENVIRONMENT_JINJA,
     STRING,
 )
+from .options import Options
 
 logger = logging.getLogger("full_payload_gen")
 
@@ -102,8 +99,7 @@ class FullPayloadGen:
             bool,
         ],
         callback: Union[Callable[[str, Dict], None], None] = None,
-        detect_mode: str = DETECT_MODE_ACCURATE,
-        environment: str = ENVIRONMENT_JINJA,
+        options: Union[Options, None] = None,
         waf_expr_func: Union[
             Callable[
                 [
@@ -123,8 +119,7 @@ class FullPayloadGen:
         self.context_vars = ContextVariableUtil(waf_func, context_payloads_all)
         self.outer_pattern, self.will_print = None, None
         self.payload_gen = None
-        self.detect_mode = detect_mode
-        self.environment = environment
+        self.options = options if options else None
         self.waf_expr_func = waf_expr_func
 
     @property
@@ -173,8 +168,7 @@ class FullPayloadGen:
             self.waf_func,
             self.context_vars.get_context(),
             self.callback,
-            detect_mode=self.detect_mode,
-            environment=self.environment,
+            options=self.options,
             waf_expr_func=self.waf_expr_func,
         )
         self.prepared = True

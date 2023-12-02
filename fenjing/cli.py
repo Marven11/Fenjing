@@ -29,6 +29,7 @@ from .submitter import Submitter, PathSubmitter, FormSubmitter, shell_tamperer
 from .scan_url import yield_form
 from .webui import main as webui_main
 from .interact import interact
+from .options import Options
 
 set_enable_coloring()
 
@@ -185,11 +186,14 @@ def do_crack_form_pre(
         if tamper_cmd:
             tamperer = shell_tamperer(tamper_cmd)
             submitter.add_tamperer(tamperer)
-        cracker = Cracker(
-            submitter=submitter,
+        options = Options(
             detect_mode=detect_mode,
             replaced_keyword_strategy=replaced_keyword_strategy,
-            environment=environment,
+            environment=environment
+        )
+        cracker = Cracker(
+            submitter=submitter,
+            options=options
         )
         if not cracker.has_respond():
             return None
@@ -230,11 +234,14 @@ def do_crack_form_eval_args_pre(
         if tamper_cmd:
             tamperer = shell_tamperer(tamper_cmd)
             submitter.add_tamperer(tamperer)
-        cracker = Cracker(
-            submitter=submitter,
+        options = Options(
             detect_mode=detect_mode,
             replaced_keyword_strategy=replaced_keyword_strategy,
-            environment=environment,
+            environment=environment
+        )
+        cracker = Cracker(
+            submitter=submitter,
+            options=options
         )
         if not cracker.has_respond():
             return None
@@ -268,11 +275,14 @@ def do_crack_path_pre(
     if tamper_cmd:
         tamperer = shell_tamperer(tamper_cmd)
         submitter.add_tamperer(tamperer)
-    cracker = Cracker(
-        submitter=submitter,
+    options = Options(
         detect_mode=detect_mode,
         replaced_keyword_strategy=replaced_keyword_strategy,
-        environment=environment,
+        environment=environment
+    )
+    cracker = Cracker(
+        submitter=submitter,
+        options=options
     )
     if not cracker.has_respond():
         return None

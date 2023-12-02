@@ -22,7 +22,7 @@ from .const import (
 )
 from .colorize import colored
 from .submitter import Submitter
-
+from .options import Options
 
 logger = logging.getLogger("waf_func_gen")
 Result = namedtuple("Result", "payload_generate_func input_field")
@@ -189,15 +189,13 @@ class WafFuncGen:
         self,
         submitter: Submitter,
         callback: Union[Callable[[str, Dict], None], None] = None,
-        detect_mode: str = DETECT_MODE_ACCURATE,
-        replaced_keyword_strategy: str = REPLACED_KEYWORDS_STRATEGY_AVOID,
+        options: Union[Options, None] = None
     ):
         self.subm = submitter
         self.callback: Callable[[str, Dict], None] = (
             callback if callback else (lambda x, y: None)
         )
-        self.detect_mode = detect_mode
-        self.replaced_keyword_strategy = replaced_keyword_strategy
+        self.options = options if options else Options()
 
     def waf_page_hash(self):
         """使用危险的payload测试对应的input，得到一系列响应后，求出响应中最常见的几个hash
@@ -207,7 +205,7 @@ class WafFuncGen:
         """
         test_keywords = (
             grouped_payloads(2) + dangerous_keywords
-            if self.detect_mode == DETECT_MODE_ACCURATE
+            if self.options.detect_mode == DETECT_MODE_ACCURATE
             else grouped_payloads(4)
         )
         hashes: List[int] = []
@@ -273,7 +271,7 @@ class WafFuncGen:
         extra = "".join(random.choices(string.ascii_lowercase, k=4))
         test_payloads = (
             dangerous_keywords
-            if self.detect_mode == DETECT_MODE_ACCURATE
+            if self.options.detect_mode == DETECT_MODE_ACCURATE
             else grouped_payloads(4, sep=extra)
         )
         keywords = []
@@ -351,7 +349,7 @@ class WafFuncGen:
         waf_hashes = self.waf_page_hash()
         long_param_hashes = self.long_param_hash()
         long_param_hashes = [h for h in long_param_hashes if h not in waf_hashes]
-        if self.replaced_keyword_strategy == REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING:
+        if self.options.replaced_keyword_strategy == REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING:
             self.subm.add_tamperer(lambda s: self.doubletapping(s, replaced_keyword))
 
         # 随着检测payload一起提交的附加内容
@@ -368,7 +366,7 @@ class WafFuncGen:
             payload = extra_content + value
             for _ in range(5):
                 if (
-                    self.replaced_keyword_strategy == REPLACED_KEYWORDS_STRATEGY_AVOID
+                    self.options.replaced_keyword_strategy == REPLACED_KEYWORDS_STRATEGY_AVOID
                     and any(w in payload for w in replaced_keyword)
                 ):
                     return False
@@ -395,7 +393,7 @@ class WafFuncGen:
                     replaced_keyword += replaced_list
                     # 如果策略为“忽略”则返回True, 否则返回False
                     return (
-                        self.replaced_keyword_strategy
+                        self.options.replaced_keyword_strategy
                         == REPLACED_KEYWORDS_STRATEGY_IGNORE
                     )
                 # 去除下方的规则，因为如果我们没有fuzz出所有的waf页面，而此时extra_content
@@ -407,7 +405,7 @@ class WafFuncGen:
                 #     return True
                 # 页面的hash和waf的相同，但是用户要求检测模式为快速
                 # 因此我们选择直接返回False
-                if self.detect_mode == DETECT_MODE_FAST:
+                if self.options.detect_mode == DETECT_MODE_FAST:
                     logger.debug("快速模式直接返回False")
                     return False
                 # 如果extra_content之前检测过，则可以确定不是它产生的问题，返回False

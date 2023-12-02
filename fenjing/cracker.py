@@ -18,19 +18,16 @@ from .colorize import colored
 from .const import (
     ATTRIBUTE,
     CHAINED_ATTRIBUTE_ITEM,
-    ENVIRONMENT_JINJA,
-    LITERAL,
     STRING,
     CONFIG,
     EVAL,
     OS_POPEN_READ,
-    DETECT_MODE_ACCURATE,
-    REPLACED_KEYWORDS_STRATEGY_IGNORE,
     FLASK_CONTEXT_VAR,
 )
-from .waf_func_gen import WafFuncGen, combine_waf
+from .waf_func_gen import WafFuncGen
 from .full_payload_gen import FullPayloadGen
 from .context_vars import ContextVariableUtil
+from .options import Options
 
 logger = logging.getLogger("cracker")
 Result = namedtuple("Result", "full_payload_gen input_field")
@@ -70,11 +67,9 @@ class Cracker:
         self,
         submitter: Submitter,
         callback: Union[Callable[[str, Dict], None], None] = None,
-        detect_mode: str = DETECT_MODE_ACCURATE,
-        replaced_keyword_strategy: str = REPLACED_KEYWORDS_STRATEGY_IGNORE,
-        environment: str = ENVIRONMENT_JINJA,
+        options: Union[Options, None] = None
     ):
-        self.detect_mode = detect_mode
+        self.options = options if options else Options()
         self.subm = submitter
 
         self._callback: Callable[[str, Dict], None] = (
@@ -83,10 +78,8 @@ class Cracker:
         self.waf_func_gen = WafFuncGen(
             submitter,
             callback=callback,
-            detect_mode=detect_mode,
-            replaced_keyword_strategy=replaced_keyword_strategy,
+            options=options
         )
-        self.environment = environment
 
     @property
     def callback(self):
@@ -163,8 +156,7 @@ class Cracker:
         full_payload_gen = FullPayloadGen(
             waf_func,
             callback=None,
-            detect_mode=self.detect_mode,
-            environment=self.environment,
+            options=self.options,
             waf_expr_func=waf_expr_func,
         )
         result = full_payload_gen.generate_with_tree(OS_POPEN_READ, self.test_cmd)
@@ -278,8 +270,7 @@ class Cracker:
         full_payload_gen = FullPayloadGen(
             waf_func,
             callback=None,
-            detect_mode=self.detect_mode,
-            environment=self.environment,
+            options=self.options
         )
         payload, will_print = full_payload_gen.generate(
             EVAL,
