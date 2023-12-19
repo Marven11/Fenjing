@@ -1283,7 +1283,11 @@ def gen_positive_integer_numbersum1(context: dict, value: int):
         return [(UNSATISFIED,)]
     alternative = []
     for i in range(min(40, value - 1), 3, -1):
-        inner = "+".join([str(i)] * (value // i) + [str(value % i)])
+        if value % i != 0:
+            numbers = [str(i)] * (value // i) + [str(value % i)]
+        else:
+            numbers = [str(i)] * (value // i)
+        inner = "+".join(numbers)
         alternative.append([(LITERAL, inner)])
     target_list = [(ONEOF, *alternative)]
     return [(EXPRESSION, precedence["plus"], target_list)]
@@ -1295,7 +1299,11 @@ def gen_positive_integer_numbersum2(context: dict, value: int):
         return [(UNSATISFIED,)]
     alternatives = []
     for i in range(min(40, value - 1), 3, -1):
-        inner = ",".join([str(i)] * (value // i) + [str(value % i)])
+        if value % i != 0:
+            numbers = [str(i)] * (value // i) + [str(value % i)]
+        else:
+            numbers = [str(i)] * (value // i)
+        inner = ",".join(numbers)
         alternatives.append([(LITERAL, "({})|sum".format(inner))])
     target_list = [(ONEOF, *alternatives)]
     return [(EXPRESSION, precedence["filter"], target_list)]
