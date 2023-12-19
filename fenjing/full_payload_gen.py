@@ -205,7 +205,9 @@ class FullPayloadGen:
         expression, used_context, _ = ret
 
         # 变量名需要可以通过waf且不重复
-        var_name = self.context_vars.generate_random_variable_name()
+        var_name = self.context_vars.generate_related_variable_name(value)
+        if not var_name:
+            var_name = self.context_vars.generate_random_variable_name()
         if not var_name:
             return False
 

