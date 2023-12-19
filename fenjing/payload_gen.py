@@ -296,6 +296,9 @@ def transform_int_chars_unicode(int_chars):
     ]
 
 class CacheByRepr:
+    """缓存传入的对象，其中键可以是任意对象
+    会将键的repr表达式作为键进行存储
+    """
     def __init__(self):
         self.cache = {}
 
@@ -858,7 +861,38 @@ def gen_mod_func2(context: dict, a, b):
 
 
 @expression_gen
-def gen_function_call_normal(context: dict, function_target, args_target_list):
+def gen_function_call_forfilter1(context: dict, function_target, args_target_list):
+    target_list = (
+        [
+            (ENCLOSE_UNDER, precedence["filter_with_function_call"], function_target),
+            (LITERAL, "("),
+        ]
+        + join_target((LITERAL, ","), args_target_list)
+        + [
+            (LITERAL, ")"),
+        ]
+    )
+    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
+
+@expression_gen
+def gen_function_call_forfilter2(context: dict, function_target, args_target_list):
+    target_list = (
+        [
+            (ENCLOSE_UNDER, precedence["filter_with_function_call"], function_target),
+            (LITERAL, "("),
+        ]
+        + join_target((LITERAL, ","), args_target_list)
+        + [
+            (LITERAL, ","),
+            (LITERAL, ")"),
+        ]
+    )
+    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
+
+
+
+@expression_gen
+def gen_function_call_forattr(context: dict, function_target, args_target_list):
     target_list = (
         [
             (ENCLOSE_UNDER, precedence["function_call"], function_target),
@@ -873,7 +907,7 @@ def gen_function_call_normal(context: dict, function_target, args_target_list):
 
 
 @expression_gen
-def gen_function_call_normal2(context: dict, function_target, args_target_list):
+def gen_function_call_forattr2(context: dict, function_target, args_target_list):
     target_list = (
         [
             (ENCLOSE_UNDER, precedence["function_call"], function_target),
@@ -886,35 +920,6 @@ def gen_function_call_normal2(context: dict, function_target, args_target_list):
         ]
     )
     return [(EXPRESSION, precedence["function_call"], target_list)]
-
-@expression_gen
-def gen_function_call_normal3(context: dict, function_target, args_target_list):
-    target_list = (
-        [
-            (ENCLOSE_UNDER, precedence["filter_with_function_call"], function_target),
-            (LITERAL, "("),
-        ]
-        + join_target((LITERAL, ","), args_target_list)
-        + [
-            (LITERAL, ")"),
-        ]
-    )
-    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
-
-@expression_gen
-def gen_function_call_normal4(context: dict, function_target, args_target_list):
-    target_list = (
-        [
-            (ENCLOSE_UNDER, precedence["filter_with_function_call"], function_target),
-            (LITERAL, "("),
-        ]
-        + join_target((LITERAL, ","), args_target_list)
-        + [
-            (LITERAL, ","),
-            (LITERAL, ")"),
-        ]
-    )
-    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
 
 
 # ---
