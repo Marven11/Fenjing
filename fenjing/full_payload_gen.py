@@ -3,7 +3,7 @@
 """
 
 import logging
-from typing import Callable, Tuple, Union, Dict, Any
+from typing import Callable, Tuple, Union, Dict, Any, List
 
 from . import payload_gen
 from .colorize import colored
@@ -15,6 +15,8 @@ from .const import (
     CALLBACK_PREPARE_FULLPAYLOADGEN,
     CALLBACK_GENERATE_FULLPAYLOAD,
     STRING,
+    OS_POPEN_READ,
+    EVAL,
 )
 from .options import Options
 
@@ -182,8 +184,56 @@ class FullPayloadGen:
         )
         return True
 
-    def prepare_extra_context_vars(self):
-        """生成一系列字符串的变量并加入到context payloads中"""
+    def try_add_context_var_string(self, value: str, clean_cache=True) -> bool:
+        """尝试添加{%set xxx=yyy%}形式的payload，为最终的payload添加变量
+
+        Args:
+            value (str): 变量的值
+            clean_cache (bool, optional): 是否清除payload_gen的缓存. Defaults to True.
+
+        Returns:
+            bool: 是否成功
+        """
+        if not self.prepared and not self.do_prepare():
+            return False
+        if not self.waf_func("{%set %}"):
+            return False
+
+        ret = self.payload_gen.generate_detailed(STRING, value)
+        if ret is None:
+            return False
+        expression, used_context, _ = ret
+
+        # 变量名需要可以通过waf且不重复
+        var_name = self.context_vars.generate_random_variable_name()
+        if not var_name:
+            return False
+
+        # 保存payload、对应的变量以及payload依赖的变量
+        payload = "{%set NAME=EXPR%}".replace("NAME", var_name).replace(
+            "EXPR", expression
+        )
+        success = self.add_context_variable(
+            payload, {var_name: value}, check_waf=True, depends_on=used_context
+        )
+        if not success:
+            return False
+        # 需要清除缓存，否则生成器只会使用缓存的表达式而不会使用加入的变量
+        if clean_cache:
+            self.payload_gen.cache_by_repr.clear()
+        logger.info(
+            "Adding %s with %s",
+            colored("yellow", repr(value)),
+            colored("blue", payload),
+        )
+        return True
+
+    def prepare_extra_context_vars(self, append_targets: Union[List, None] = None):
+        """生成一系列字符串的变量并加入到context payloads中
+
+        Args:
+            append_targets (list): 指定更多需要生成的字符串
+        """
         targets = [
             "%c",
             "__",
@@ -219,10 +269,11 @@ class FullPayloadGen:
             "__mod__",
             "__truediv__",
             "%c",  # try to regenerate
-        ]
+        ] + append_targets
         if not self.prepared and not self.do_prepare():
             return
         if not self.waf_func("{%set %}"):
+            logger.warning("Payload %s cannot pass WAF.", colored("blue", "{%set %}"))
             return
         if self.extra_context_vars_prepared:
             return
@@ -233,33 +284,9 @@ class FullPayloadGen:
             "Adding some string variables...",
         )
         for target in targets:
-            ret = self.payload_gen.generate_detailed(STRING, target)
-            if ret is None:
-                continue
-            expression, used_context, _ = ret
-            # 变量名需要可以通过waf且不重复
-            var_name = self.context_vars.generate_random_variable_name()
-            if not var_name:
-                continue
-            # 保存payload、对应的变量以及payload依赖的变量
-            payload = "{%set NAME=EXPR%}".replace("NAME", var_name).replace(
-                "EXPR", expression
-            )
-            success = self.add_context_variable(
-                payload, {var_name: target}, check_waf=True, depends_on=used_context
-            )
-            if not success:
-                logger.info(
-                    "Failed generating %s, continue", colored("yellow", repr(target))
-                )
-                continue
-            logger.info(
-                "Adding %s with %s",
-                colored("yellow", repr(target)),
-                colored("blue", payload),
-            )
-            # 需要清除缓存，否则生成器只会使用缓存的表达式而不会使用加入的变量
-            self.payload_gen.cache_by_repr.clear()
+            result = self.try_add_context_var_string(target, clean_cache=True)
+            if not result:
+                logger.warning("Failed generating %s", colored("yellow", repr(target)))
 
     def add_context_variable(
         self,
@@ -313,8 +340,14 @@ class FullPayloadGen:
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
         assert isinstance(self.outer_pattern, str)
 
-        # 添加一系列值为字符串的变量
-        self.prepare_extra_context_vars()
+        # 添加一系列值为字符串的变量，需要从生成目标中取出需要生成的字符串
+        extra_strings = []
+        if gen_type == OS_POPEN_READ:
+            extra_strings = [args[0]]
+        elif gen_type == EVAL and args[0][0] == STRING:
+            extra_strings = [args[0][1]]
+        self.prepare_extra_context_vars(extra_strings)
+
         logger.info("Start generating final expression...")
 
         # 生成并检查
