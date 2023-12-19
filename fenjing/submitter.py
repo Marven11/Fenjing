@@ -225,7 +225,9 @@ class PathSubmitter(BaseSubmitter):
         """
         super().__init__(callback)
         if not url.endswith("/"):
-            logger.warning("PathSubmitter get a url that's not ends with '/', appending it.")
+            logger.warning(
+                "PathSubmitter get a url that's not ends with '/', appending it."
+            )
             url += "/"
         self.url = url
         self.req = requester

@@ -64,8 +64,9 @@ def guess_python_version(
     if not version_regexp:
         return PYTHON_VERSION_UNKNOWN
     result = PYTHON_VERSION_3 if version_regexp.group(1) == "3" else PYTHON_VERSION_2
-    logger.info("Target is %s", colored("blue", result, bold = True))
+    logger.info("Target is %s", colored("blue", result, bold=True))
     return result
+
 
 class EvalArgsModePayloadGen:
     def __init__(self, will_print):

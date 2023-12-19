@@ -90,11 +90,11 @@ def do_submit_cmdexec(
             )
         elif cmd.startswith("ls"):
             cmd = cmd.strip()
-            if len(cmd) == 2: # ls
+            if len(cmd) == 2:  # ls
                 payload, will_print = full_payload_gen_like.generate(
                     EVAL, (STRING, "__import__('os').listdir()")
                 )
-            else: # ls xxx
+            else:  # ls xxx
                 payload, will_print = full_payload_gen_like.generate(
                     EVAL, (STRING, f"__import__('os').listdir({repr(cmd[2:].strip())})")
                 )
@@ -190,12 +190,9 @@ def do_crack_form_pre(
             detect_mode=detect_mode,
             replaced_keyword_strategy=replaced_keyword_strategy,
             environment=environment,
-            python_version=python_version
+            python_version=python_version,
         )
-        cracker = Cracker(
-            submitter=submitter,
-            options=options
-        )
+        cracker = Cracker(submitter=submitter, options=options)
         if not cracker.has_respond():
             return None
         full_payload_gen = cracker.crack()
@@ -240,12 +237,9 @@ def do_crack_form_eval_args_pre(
             detect_mode=detect_mode,
             replaced_keyword_strategy=replaced_keyword_strategy,
             environment=environment,
-            python_version=python_version
+            python_version=python_version,
         )
-        cracker = Cracker(
-            submitter=submitter,
-            options=options
-        )
+        cracker = Cracker(submitter=submitter, options=options)
         if not cracker.has_respond():
             return None
         result = cracker.crack_eval_args()
@@ -283,12 +277,9 @@ def do_crack_path_pre(
         detect_mode=detect_mode,
         replaced_keyword_strategy=replaced_keyword_strategy,
         environment=environment,
-        python_version=python_version
+        python_version=python_version,
     )
-    cracker = Cracker(
-        submitter=submitter,
-        options=options
-    )
+    cracker = Cracker(submitter=submitter, options=options)
     if not cracker.has_respond():
         return None
     full_payload_gen = cracker.crack()

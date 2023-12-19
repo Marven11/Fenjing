@@ -183,8 +183,7 @@ class FullPayloadGen:
         return True
 
     def prepare_extra_context_vars(self):
-        """生成一系列字符串的变量并加入到context payloads中
-        """
+        """生成一系列字符串的变量并加入到context payloads中"""
         targets = [
             "%c",
             "__",
@@ -219,7 +218,7 @@ class FullPayloadGen:
             "__mul__",
             "__mod__",
             "__truediv__",
-            "%c", # try to regenerate
+            "%c",  # try to regenerate
         ]
         if not self.prepared and not self.do_prepare():
             return
@@ -250,7 +249,9 @@ class FullPayloadGen:
                 payload, {var_name: target}, check_waf=True, depends_on=used_context
             )
             if not success:
-                logger.info("Failed generating %s, continue", colored("yellow", repr(target)))
+                logger.info(
+                    "Failed generating %s, continue", colored("yellow", repr(target))
+                )
                 continue
             logger.info(
                 "Adding %s with %s",

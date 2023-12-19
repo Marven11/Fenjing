@@ -158,7 +158,7 @@ class ContextVariableUtil:
             Union[str, None]: 可能的变量名，失败时返回None
         """
         var_name = None
-        
+
         for i in range(20):
             # 变量名的长度由尝试次数决定
             var_length = 2 if i < 10 else 3
@@ -198,7 +198,9 @@ class ContextVariableUtil:
             return False
         if depends_on is not None:
             if not all(self.is_variable_exists(v) for v in depends_on):
-                notfound_vars = [v for v in depends_on if not self.is_variable_exists(v)]
+                notfound_vars = [
+                    v for v in depends_on if not self.is_variable_exists(v)
+                ]
                 logger.warning("Variables not found: %s", repr(notfound_vars))
                 return False
             self.payload_dependency[payload] = depends_on
@@ -219,7 +221,9 @@ class ContextVariableUtil:
             if not self.is_variable_exists(to_add):
                 raise RuntimeError(f"Variable {to_add} not found")
 
-            payload = next(payload for payload, d in self.context_payloads.items() if to_add in d)
+            payload = next(
+                payload for payload, d in self.context_payloads.items() if to_add in d
+            )
             if payload in self.payload_dependency:
                 # 检测依赖的变量是否都加入了
                 vars_name = list(self.payload_dependency[payload].keys())
@@ -239,4 +243,3 @@ class ContextVariableUtil:
             for _, d in self.context_payloads.items()
             for var_name, var_value in d.items()
         }
-

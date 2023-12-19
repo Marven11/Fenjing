@@ -189,7 +189,7 @@ class WafFuncGen:
         self,
         submitter: Submitter,
         callback: Union[Callable[[str, Dict], None], None] = None,
-        options: Union[Options, None] = None
+        options: Union[Options, None] = None,
     ):
         self.subm = submitter
         self.callback: Callable[[str, Dict], None] = (
@@ -349,7 +349,10 @@ class WafFuncGen:
         waf_hashes = self.waf_page_hash()
         long_param_hashes = self.long_param_hash()
         long_param_hashes = [h for h in long_param_hashes if h not in waf_hashes]
-        if self.options.replaced_keyword_strategy == REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING:
+        if (
+            self.options.replaced_keyword_strategy
+            == REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING
+        ):
             self.subm.add_tamperer(lambda s: self.doubletapping(s, replaced_keyword))
 
         # 随着检测payload一起提交的附加内容
@@ -366,7 +369,8 @@ class WafFuncGen:
             payload = extra_content + value
             for _ in range(5):
                 if (
-                    self.options.replaced_keyword_strategy == REPLACED_KEYWORDS_STRATEGY_AVOID
+                    self.options.replaced_keyword_strategy
+                    == REPLACED_KEYWORDS_STRATEGY_AVOID
                     and any(w in payload for w in replaced_keyword)
                 ):
                     return False

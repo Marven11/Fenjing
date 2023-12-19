@@ -85,8 +85,7 @@ def random_fill(form: Form) -> Dict[str, str]:
         Dict[str, str]: 随机填充的结果，键为表格项，值为表格项的值
     """
     return {
-        k: "".join(random.choices(string.ascii_lowercase, k=8))
-        for k in form["inputs"]
+        k: "".join(random.choices(string.ascii_lowercase, k=8)) for k in form["inputs"]
     }
 
 

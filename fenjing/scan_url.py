@@ -52,7 +52,9 @@ def burst_respond_params_data(
     Returns:
         Tuple[List[str], List[str]]: 产生回显的GET参数和POST参数
     """
-    words = re.findall(r"\w{1,30}", html_str) + re.findall(r"[a-zA-Z0-9_-]{1,30}", html_str)
+    words = re.findall(r"\w{1,30}", html_str) + re.findall(
+        r"[a-zA-Z0-9_-]{1,30}", html_str
+    )
     words = list(set(words))
     random.shuffle(words)
     if len(words) > PARAM_CHUNK_SIZE * 50:
@@ -74,7 +76,9 @@ def burst_respond_params_data(
             }
             resp = requester.request(method="GET", url=url, params=params)
             if resp:
-                respond_get_params |= set(k for k, v in params.items() if v in resp.text)
+                respond_get_params |= set(
+                    k for k, v in params.items() if v in resp.text
+                )
             resp = requester.request(method="POST", url=url, data=data)
             if resp:
                 respond_post_params |= set(k for k, v in data.items() if v in resp.text)
@@ -123,7 +127,10 @@ def yield_form(
             requester, target_url, resp.text
         )
         if respond_get_params and len(respond_get_params) < 5:
-            logger.warning("Found get params with burst: %s", colored("blue", repr(respond_get_params)))
+            logger.warning(
+                "Found get params with burst: %s",
+                colored("blue", repr(respond_get_params)),
+            )
             yield target_url, [
                 get_form(
                     action=urlparse(target_url).path,
@@ -133,7 +140,10 @@ def yield_form(
             ]
             found = True
         if respond_post_params and len(respond_get_params) < 5:
-            logger.warning("Found post params with burst: %s", colored("blue", repr(respond_post_params)))
+            logger.warning(
+                "Found post params with burst: %s",
+                colored("blue", repr(respond_post_params)),
+            )
             yield target_url, [
                 get_form(
                     action=urlparse(target_url).path,
