@@ -21,6 +21,7 @@ from .const import (
     OS_POPEN_READ,
 )
 from .cracker import Cracker
+from .options import Options
 from .form import get_form, Form
 from .full_payload_gen import FullPayloadGen
 from .requester import Requester
@@ -139,9 +140,11 @@ class CrackTaskThread(threading.Thread):
             self.cracker = Cracker(
                 self.submitter,
                 self.callback,
-                detect_mode=self.detect_mode,
-                environment=self.environment,
-                replaced_keyword_strategy=self.replaced_keyword_strategy,
+                options=Options(
+                    detect_mode=self.detect_mode,
+                    environment=self.environment,
+                    replaced_keyword_strategy=self.replaced_keyword_strategy,
+                )
             )
             if not self.cracker.has_respond():
                 continue
