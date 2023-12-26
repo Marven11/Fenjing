@@ -14,7 +14,7 @@
 
 ## 演示
 
-[![asciicast](assets/demo.svg)](https://asciinema.org/a/TCtEXFymWedBthfQPs3rnocL9)
+[![asciicast](assets/demo.svg)](https://asciinema.org/a/rewsTVvAPqH59GWNtn7QmZ6RU)
 
 ## 主要特性
 
