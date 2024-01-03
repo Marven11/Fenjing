@@ -1226,6 +1226,11 @@ def gen_positive_integer_dictlength(context: dict, value: int):
     target_list = [(LITERAL, "dict({}=x)|join|length".format("x" * value))]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
+@expression_gen
+def gen_positive_integer_cycleritemlength(context: dict, value: int):
+    target_list = [(LITERAL, "cycler({}).items|length".format(",".join("x" * value)))]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
 
 @expression_gen
 def gen_positive_integer_length(context: dict, value: int):
@@ -1467,6 +1472,11 @@ def gen_string_lower_c_literal2(context):
 @expression_gen
 def gen_string_lower_c_joindict(context):
     return [(EXPRESSION, precedence["filter"], [(LITERAL, "dict(c=x)|join")])]
+
+@expression_gen
+def gen_string_lower_c_joinnamespacedict(context):
+    return [(EXPRESSION, precedence["filter"], [(LITERAL, "namespace(c=x)._Namespace__attrs|join")])]
+
 
 
 @expression_gen
@@ -2338,6 +2348,7 @@ def gen_char_select(context, c):
             37: "7",
         },
         "(()|trim|list)[INDEX]": {0: "(", 1: ")"},
+        "cycler.__name__[INDEX]": {0: "C", 1: "y", 2: "c", 3: "l", 4: "e", 5: "r"},
     }
     matches = []
     for pattern, d in char_patterns.items():
@@ -2384,6 +2395,13 @@ def gen_char_dict(context, c):
     target_list = [(LITERAL, f"dict({c}=x)|join")]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
+@expression_gen
+def gen_char_namespacedict(context, c):
+    if not re.match("[A-Za-z]", c):
+        return [(UNSATISFIED,)]
+    target_list = [(LITERAL, f"namespace({c}=x)._Namespace__attrs|join")]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
 
 @expression_gen
 def gen_char_num(context, c):
@@ -2408,6 +2426,45 @@ def gen_char_num2(context, c):
         (INTEGER, int(c)),
         (LITERAL, ")|string"),
     ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_char_cyclerdoc(cotext, c):
+    doc = """Cycle through values by yield them one at a time, then restarting
+    once the end is reached. Available as ``cycler`` in templates.
+
+    Similar to ``loop.cycle``, but can be used outside loops or across
+    multiple loops. For example, render a list of folders and files in a
+    list, alternating giving them "odd" and "even" classes.
+
+    .. code-block:: html+jinja
+
+        {% set row_class = cycler("odd", "even") %}
+        <ul class="browser">
+        {% for folder in folders %}
+          <li class="folder {{ row_class.next() }}">{{ folder }}
+        {% endfor %}
+        {% for file in files %}
+          <li class="file {{ row_class.next() }}">{{ file }}
+        {% endfor %}
+        </ul>
+
+    :param items: Each positional argument will be yielded in the order
+        given for each cycle.
+
+    .. versionadded:: 2.1
+    """
+    alternatives = []
+    for i, ch in enumerate(doc):
+        if ch == c:
+            alternatives += [
+                [(LITERAL, f"cycler.__doc__[{i}]")],
+                [(LITERAL, f"cycler.__doc__|batch({i+1})|first|last")],
+            ]
+        if len(alternatives) > 100:  # for perfomance
+            break
+    target_list = [(ONEOF, *alternatives)]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -2718,6 +2775,35 @@ def gen_string_o2(context: dict, value: str):
 
 
 @expression_gen
+def gen_string_lowerfilternamespaceattrs1(context: dict, value: str):
+    if value.upper().lower() != value or not re.match(
+        r"^[A-Za-z_][A-Za-z0-9_]+$", value
+    ):
+        return [(UNSATISFIED,)]
+    chars = [str_escape(c, '"') for c in value.upper()]
+    target_list = [
+        (
+            LITERAL,
+            "namespace({}=x)._Namespace__attrs|first|lower".format("".join(chars)),
+        )
+    ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_string_lowerfilternamespaceattrs2(context: dict, value: str):
+    if value.upper().lower() != value or not re.match(
+        r"^[A-Za-z_][A-Za-z0-9_]+$", value
+    ):
+        return [(UNSATISFIED,)]
+    chars = [str_escape(c, '"') for c in value.upper()]
+    target_list = [
+        (LITERAL, "namespace({}=x)._Namespace__attrs|last|lower".format("".join(chars)))
+    ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
 def gen_string_splitdictjoin(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
@@ -2752,6 +2838,58 @@ def gen_string_splitdictjoin3(context: dict, value: str):
 
     target_list = [
         (LITERAL, "dict({})|join".format(",".join(f"{part}=x" for part in value)))
+    ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_string_splitnamespacedictjoin(context: dict, value: str):
+    if not re.match("^[a-zA-Z_]+$", value):
+        return [(UNSATISFIED,)]
+    parts = [value[i : i + 3] for i in range(0, len(value), 3)]
+
+    if len(set(parts)) != len(parts):
+        return [(UNSATISFIED,)]
+
+    target_list = [
+        (
+            LITERAL,
+            "namespace({})._Namespace__attrs|join".format(
+                ",".join(f"{part}=x" for part in parts)
+            ),
+        )
+    ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_string_splitnamespacedictjoin2(context: dict, value: str):
+    if not re.match("^[a-zA-Z_]+$", value):
+        return [(UNSATISFIED,)]
+    parts = [value[i : i + 3] for i in range(0, len(value), 3)]
+    targets = [
+        (LITERAL, "namespace({}=x)._Namespace__attrs|join".format(part))
+        for part in parts
+    ]
+    strings = [(EXPRESSION, precedence["filter"], [target]) for target in targets]
+    return [(STRING_CONCATMANY, strings)]
+
+
+@expression_gen
+def gen_string_splitnamespacedictjoin3(context: dict, value: str):
+    if not re.match("^[a-zA-Z_]+$", value):
+        return [(UNSATISFIED,)]
+
+    if len(set(value)) != len(value):
+        return [(UNSATISFIED,)]
+
+    target_list = [
+        (
+            LITERAL,
+            "namespace({})._Namespace__attrs|join".format(
+                ",".join(f"{part}=x" for part in value)
+            ),
+        )
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
@@ -3015,6 +3153,26 @@ def gen_string_stringaschars(context: dict, value: str):
     return [(STRING_CONCATMANY, targets)]
 
 
+@expression_gen
+def gen_string_splitdictjoincycler(context: dict, value: str):
+    if not re.match("^[a-zA-Z_]{1,20}$", value):
+        return [(UNSATISFIED,)]
+    parts = [value[i : i + 3] for i in range(0, len(value), 3)]
+
+    if len(set(parts)) != len(parts):
+        return [(UNSATISFIED,)]
+
+    target_list = [
+        (
+            LITERAL,
+            "cycler.next.__globals__.concat(dict({}))".format(
+                ",".join(f"{part}=x" for part in parts)
+            ),
+        )
+    ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
 # ---
 
 
@@ -3197,120 +3355,66 @@ def gen_chained_attribute_item_normal(context, obj_req, *attr_item_req):
 
 
 @expression_gen
-def gen_import_func_g(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (FLASK_CONTEXT_VAR, "g"),
-            (ATTRIBUTE, "pop"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-            (ITEM, "__import__"),
-        )
+def gen_builtins_dict_flaskattrs(context):
+    funcs_attrs = [
+        ("g", "pop"),
+        ("g", "get"),
+        ("session", "get"),
+        ("request", "close"),
     ]
+    alternatives = [
+        [
+            (
+                CHAINED_ATTRIBUTE_ITEM,
+                (FLASK_CONTEXT_VAR, obj_name),
+                (ATTRIBUTE, attr_name),
+                (ATTRIBUTE, "__globals__"),
+                (ITEM, "__builtins__"),
+            )
+        ]
+        for obj_name, attr_name in funcs_attrs
+    ]
+    return [(ONEOF, *alternatives)]
 
 
 @expression_gen
-def gen_import_func_lipsum(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (JINJA_CONTEXT_VAR, "lipsum"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-            (ITEM, "__import__"),
-        )
+def gen_builtins_dict_jinjaattrs(context):
+    funcs_attrs = [
+        ("cycler", "next"),
+        ("cycler", "reset"),
+        ("cycler", "__init__"),
+        ("joiner", "__init__"),
+        ("namespace", "__init__"),
     ]
+    alternatives = [
+        [
+            (
+                CHAINED_ATTRIBUTE_ITEM,
+                (JINJA_CONTEXT_VAR, obj_name),
+                (ATTRIBUTE, attr_name),
+                (ATTRIBUTE, "__globals__"),
+                (ITEM, "__builtins__"),
+            )
+        ]
+        for obj_name, attr_name in funcs_attrs
+    ]
+    return [(ONEOF, *alternatives)]
 
 
 @expression_gen
-def gen_import_func_joiner(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (JINJA_CONTEXT_VAR, "joiner"),
-            (ATTRIBUTE, "__init__"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-            (ITEM, "__import__"),
-        )
-    ]
-
-
-@expression_gen
-def gen_import_func_namespace(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (JINJA_CONTEXT_VAR, "namespace"),
-            (ATTRIBUTE, "__init__"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-            (ITEM, "__import__"),
-        )
-    ]
-
-
-# ---
-
-
-@expression_gen
-def gen_eval_func_g(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (FLASK_CONTEXT_VAR, "g"),
-            (ATTRIBUTE, "pop"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-            (ITEM, "eval"),
-        )
-    ]
-
-
-@expression_gen
-def gen_eval_func_g_get(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (FLASK_CONTEXT_VAR, "g"),
-            (ATTRIBUTE, "get"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-            (ITEM, "eval"),
-        )
-    ]
-
-
-@expression_gen
-def gen_eval_func_session(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (FLASK_CONTEXT_VAR, "session"),
-            (ATTRIBUTE, "get"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-            (ITEM, "eval"),
-        )
-    ]
-
-
-@expression_gen
-def gen_eval_func_lipsum(context):
+def gen_builtins_dict_lipsum(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
             (JINJA_CONTEXT_VAR, "lipsum"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
-            (ITEM, "eval"),
         )
     ]
 
 
 @expression_gen
-def gen_eval_func_unexist(context):
+def gen_builtins_dict_unexist(context):
     unexist = [
         [(LITERAL, "x")],
         [(LITERAL, "unexistfuckyou")],
@@ -3325,69 +3429,12 @@ def gen_eval_func_unexist(context):
             (ATTRIBUTE, "__init__"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
-            (ITEM, "eval"),
         )
     ]
 
 
 @expression_gen
-def gen_eval_func_joiner(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (JINJA_CONTEXT_VAR, "joiner"),
-            (ATTRIBUTE, "__init__"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-            (ITEM, "eval"),
-        )
-    ]
-
-
-@expression_gen
-def gen_eval_func_cycler(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (JINJA_CONTEXT_VAR, "cycler"),
-            (ATTRIBUTE, "__init__"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-            (ITEM, "eval"),
-        )
-    ]
-
-
-@expression_gen
-def gen_eval_func_namespace(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (JINJA_CONTEXT_VAR, "namespace"),
-            (ATTRIBUTE, "__init__"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-            (ITEM, "eval"),
-        )
-    ]
-
-
-@expression_gen
-def gen_eval_func_request(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (FLASK_CONTEXT_VAR, "request"),
-            (ATTRIBUTE, "close"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-            (ITEM, "eval"),
-        )
-    ]
-
-
-@expression_gen
-def gen_eval_func_safesplit(context):
+def gen_builtins_dict_safesplit(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
@@ -3395,13 +3442,12 @@ def gen_eval_func_safesplit(context):
             (ATTRIBUTE, "split"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
-            (ITEM, "eval"),
         )
     ]
 
 
 @expression_gen
-def gen_eval_func_safejoin(context):
+def gen_builtins_dict_safejoin(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
@@ -3409,13 +3455,12 @@ def gen_eval_func_safejoin(context):
             (ATTRIBUTE, "join"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
-            (ITEM, "eval"),
         )
     ]
 
 
 @expression_gen
-def gen_eval_func_safelower(context):
+def gen_builtins_dict_safelower(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
@@ -3423,13 +3468,12 @@ def gen_eval_func_safelower(context):
             (ATTRIBUTE, "lower"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
-            (ITEM, "eval"),
         )
     ]
 
 
 @expression_gen
-def gen_eval_func_safezfill(context):
+def gen_builtins_dict_safezfill(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
@@ -3437,9 +3481,24 @@ def gen_eval_func_safezfill(context):
             (ATTRIBUTE, "zfill"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
-            (ITEM, "eval"),
         )
     ]
+
+
+# ---
+
+
+@expression_gen
+def gen_import_func_general(context):
+    return [(ITEM, (BUILTINS_DICT,), "__import__")]
+
+
+# ---
+
+
+@expression_gen
+def gen_eval_func_general(context):
+    return [(ITEM, (BUILTINS_DICT,), "eval")]
 
 
 # ---

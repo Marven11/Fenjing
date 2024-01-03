@@ -237,6 +237,8 @@ class FullPayloadGen:
             append_targets (list): 指定更多需要生成的字符串
         """
         targets = [
+            "%",
+            "c",
             "%c",
             "__",
             "class",
@@ -270,6 +272,8 @@ class FullPayloadGen:
             "__mul__",
             "__mod__",
             "__truediv__",
+            "%",
+            "c",
             "%c",  # try to regenerate
         ] + append_targets
         if not self.prepared and not self.do_prepare():
