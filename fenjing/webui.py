@@ -1,5 +1,5 @@
-# pylint: skip-file
-# flake8: noqa
+"""webui后台的实现"""
+
 import logging
 import threading
 import uuid
@@ -34,11 +34,14 @@ tasks = {}
 
 
 class CallBackLogger:
+    """利用callback收集信息并以日志的形式保存的类"""
+
     def __init__(self, flash_messages, messages):
         self.flash_messages = flash_messages
         self.messages = messages
 
     def callback_prepare_fullpayloadgen(self, data):
+        """收集FullPayloadGen准备好后的信息"""
         self.messages.append("上下文payload测试完毕。")
         if data["context"]:
             context_repr = ", ".join(
@@ -46,32 +49,31 @@ class CallBackLogger:
             )
             self.messages.append(f"以下是在上下文中的值：{context_repr}")
         else:
-            self.messages.append(f"没有上下文payload可以通过waf。。。")
+            self.messages.append("没有上下文payload可以通过waf。。。")
         if not data["will_print"]:
-            self.messages.append(f"生成的payload将不会具有回显。")
+            self.messages.append("生成的payload将不会具有回显。")
 
     def callback_generate_fullpayload(self, data):
+        """收集FullPayloadGen生成payload的结果"""
         payload = (
             data["payload"]
             if len(data["payload"]) < 30
             else data["payload"][:30] + "..."
         )
-        self.messages.append(f"分析完毕，已为类型{data['gen_type']}生成payload {payload}")
+        self.messages.append(f"分析完毕，为{data['gen_type']}生成payload: {payload}")
         if not data["will_print"]:
-            self.messages.append(f"payload将不会产生回显")
+            self.messages.append("payload将不会产生回显")
 
     def callback_generate_payload(self, data):
+        """收集PayloadGen生成payload的中间结果"""
         payload_repr = data["payload"]
         if len(payload_repr) > 100:
             payload_repr = payload_repr[:100] + "..."
-        self.flash_messages.append(
-            "请求{req}对应的payload可以是{payload}".format(
-                req=f"{data['gen_type']}({', '.join(repr(arg) for arg in data['args'])})",
-                payload=payload_repr,
-            )
-        )
+        req = f"{data['gen_type']}({', '.join(repr(arg) for arg in data['args'])})"
+        self.flash_messages.append(f"请求{req}对应的payload可以是{payload_repr}")
 
     def callback_submit(self, data):
+        """收集表单的提交结果"""
         if data.get("type", "form"):
             self.flash_messages.append(
                 f"提交表单完成，返回值为{data['response'].status_code}，输入为{data['inputs']}，表单为{data['form']}"
@@ -82,6 +84,7 @@ class CallBackLogger:
             )
 
     def callback_test_form_input(self, data):
+        """收集测试表单的结果"""
         if not data["ok"]:
             return
         testsuccess_msg = "payload测试成功！" if data["test_success"] else "payload测试失败。"
@@ -89,8 +92,8 @@ class CallBackLogger:
         self.messages.append(testsuccess_msg + will_print_msg)
 
     def __call__(self, callback_type, data):
-        def default_handler(data):
-            return logger.warning(f"callback_type={callback_type} not found")
+        def default_handler(_):
+            return logger.warning("callback_type=%s not found", callback_type)
 
         return {
             CALLBACK_PREPARE_FULLPAYLOADGEN: self.callback_prepare_fullpayloadgen,
@@ -102,6 +105,7 @@ class CallBackLogger:
 
 
 class CrackTaskThread(threading.Thread):
+    """crack任务的线程，由webui调用并实际承载攻击任务"""
     def __init__(
         self,
         taskid,
@@ -124,6 +128,7 @@ class CrackTaskThread(threading.Thread):
         self.messages = []
         self.callback = CallBackLogger(self.flash_messages, self.messages)
         self.submitter: Union[Submitter, None] = None
+        self.full_payload_gen: Union[FullPayloadGen, None] = None
         self.cracker: Union[Cracker, None]
         self.requester = Requester(interval=interval, user_agent=DEFAULT_USER_AGENT)
 
@@ -144,21 +149,22 @@ class CrackTaskThread(threading.Thread):
                     detect_mode=self.detect_mode,
                     environment=self.environment,
                     replaced_keyword_strategy=self.replaced_keyword_strategy,
-                )
+                ),
             )
             if not self.cracker.has_respond():
                 continue
             self.full_payload_gen = self.cracker.crack()
             if self.full_payload_gen:
-                self.messages.append(f"WAF已绕过，现在可以执行Shell指令了")
+                self.messages.append("WAF已绕过，现在可以执行Shell指令了")
                 self.success = True
                 break
             continue
         if not self.success:
-            self.messages.append(f"WAF绕过失败")
+            self.messages.append("WAF绕过失败")
 
 
 class InteractiveTaskThread(threading.Thread):
+    """表单攻击成功后，为给定shell指令生成payload的线程"""
     def __init__(
         self,
         taskid: str,
@@ -180,22 +186,17 @@ class InteractiveTaskThread(threading.Thread):
         self.full_payload_gen.callback = self.callback
 
     def run(self):
-        self.messages.append(f"开始生成payload")
+        self.messages.append("开始生成payload")
         payload, will_print = self.full_payload_gen.generate(OS_POPEN_READ, self.cmd)
         if not payload:
-            self.messages.append(f"payload生成失败")
+            self.messages.append("payload生成失败")
             return
         if not will_print:
-            self.messages.append(f"此payload不会产生回显")
+            self.messages.append("此payload不会产生回显")
         resp = self.submitter.submit(payload)
         assert resp is not None
-        self.messages.append(f"提交payload的回显如下：")
+        self.messages.append("提交payload的回显如下：")
         self.messages.append(resp.text)
-
-
-@app.route("/")
-def index():
-    return render_template("index.html")
 
 
 def create_crack_task(
@@ -208,6 +209,7 @@ def create_crack_task(
     environment,
     replaced_keyword_strategy,
 ):
+    """创建对应的攻击任务（一个线程）"""
     assert url != "" and inputs != "", "wrong param"
     form = get_form(
         action=action or urlparse(url).path,
@@ -231,6 +233,7 @@ def create_crack_task(
 
 
 def create_interactive_id(cmd, last_task):
+    """根据给定的指令生成一个任务进行攻击"""
     assert cmd != "", "wrong param"
     submitter, full_payload_gen = (
         last_task.submitter,
@@ -244,13 +247,18 @@ def create_interactive_id(cmd, last_task):
     return taskid
 
 
+@app.route("/")
+def index():
+    """渲染主页"""
+    return render_template("index.html")
+
+
 @app.route(
     "/createTask",
-    methods=[
-        "POST",
-    ],
-)  # type: ignore
+    methods=["POST"],
+)
 def create_task():
+    """创建攻击任务"""
     if request.form.get("type", None) not in ["crack", "interactive"]:
         logging.info(request.form)
         return jsonify(
@@ -308,8 +316,9 @@ def create_task():
     methods=[
         "POST",
     ],
-)  # type: ignore
-def watchTask():
+)
+def watch_task():
+    """异步获取任务（一个线程）的运行状态"""
     if "taskid" not in request.form:
         return jsonify({"code": APICODE_WRONG_INPUT, "message": "taskid not provided"})
     if request.form["taskid"] not in tasks:
@@ -344,6 +353,7 @@ def watchTask():
 
 
 def main(host="127.0.0.1", port=11451):
+    """启动webui服务器"""
     app.run(host=host, port=port)
 
 
