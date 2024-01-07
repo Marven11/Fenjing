@@ -251,10 +251,13 @@ def create_task():
             )
         else:
             options = Options(
-                detect_mode=request.form["detect_mode"],
-                environment=request.form["environment"],
-                replaced_keyword_strategy=request.form["replaced_keyword_strategy"],
+                detect_mode=request.form.get("detect_mode", None),
+                environment=request.form.get("environment", None),
+                replaced_keyword_strategy=request.form.get(
+                    "replaced_keyword_strategy", None
+                ),
             )
+            print("Here")
             taskid = create_crack_task(
                 request.form["url"],
                 request.form["method"],
@@ -316,7 +319,7 @@ def watch_task():
                 "message": f"task not found: {request.form['taskid']}",
             }
         )
-    task: CrackTaskThread = tasks[request.form["taskid"]]
+    task: Union[CrackTaskThread, InteractiveTaskThread] = tasks[request.form["taskid"]]
     if isinstance(task, CrackTaskThread):
         return jsonify(
             {
