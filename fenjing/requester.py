@@ -4,14 +4,146 @@
 import logging
 import traceback
 import time
+import socket
+import ssl
+import re
 from urllib.parse import parse_qs
-
+from typing import Union, Tuple
 import requests
 
 from fenjing.colorize import colored
 from .const import DEFAULT_USER_AGENT
 
 logger = logging.getLogger("requester")
+
+# 处理bytes形式的HTTP请求的一系列函数
+
+
+def check_line_break(req_pattern: bytes) -> Union[None, bool]:
+    lb_pos = req_pattern.find(b"Host: ")
+    if not lb_pos:
+        return None
+    lb = req_pattern[lb_pos - 2 : lb_pos]
+    lb = bytes(c for c in lb if c in b"\r\n")
+    if lb == b"\r\n" or lb == b"\n\r":
+        return True
+    elif lb == b"\n":
+        return False
+    return None
+
+
+def fix_line_break(req_pattern: bytes):
+    line_header, sep, body = req_pattern.partition(b"\n\n")
+    return line_header.replace(b"\n", b"\r\n") + b"\r\n\r\n" + body
+
+
+def get_tail(req_pattern: bytes) -> Union[Tuple[bytes, int], None]:
+    lbs = [
+        b"\r\n",
+        b"\n\r",
+        b"\n",
+    ]
+    for lb in lbs:
+        if req_pattern[-len(lb) :] == lb:
+            count = 1
+            while req_pattern[-count * len(lb) :] == lb * count:
+                count += 1
+            count -= 1
+            return lb, count
+    return None
+
+
+def check_tail(req_pattern: bytes):
+    return get_tail(req_pattern)[1] == 2
+
+
+def fix_tail(req_pattern: bytes):
+    lb, count = get_tail(req_pattern)
+    if count <= 2:
+        return req_pattern + lb * (2 - count)
+    return req_pattern[: -len(lb) * 2 - count]
+
+
+class TCPRequester:
+    """通过创建TCP Socket直接发送原始请求的类"""
+
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        use_ssl: bool,
+        retry_times=5,
+        interval=0.05,
+    ):
+        self.host = host
+        self.port = port
+        self.use_ssl = use_ssl
+        self.interval = interval
+        self.retry_times = retry_times
+        self.interval = interval
+        self.last_request_time = None
+
+    def get_socket(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        if self.use_ssl:
+            sock = ssl.wrap_socket(sock)
+        sock.connect((self.host, self.port))
+        return sock
+
+    def recv_all(self, sock, bufsize=1024):
+        data = b""
+        while True:
+            chunk = sock.recv(bufsize)
+            if not chunk:
+                break
+            data += chunk
+        return data
+
+    def request_once(self, request: bytes):
+        if self.last_request_time:
+            duration = time.perf_counter() - self.last_request_time
+            if duration < self.interval:
+                time.sleep(self.interval - duration)
+        self.last_request_time = time.perf_counter()
+
+        try:
+            sock = self.get_socket()
+        except Exception as exception:
+            logger.warning("Get socket failed: %s", repr(exception))
+            logger.debug(traceback.format_exc())
+            return None
+
+        try:
+            sock.sendall(request)
+        except Exception as exception:
+            logger.warning("Send request failed: %s", repr(exception))
+            logger.debug(traceback.format_exc())
+            return None
+
+        response = None
+        try:
+            response = self.recv_all(sock)
+        except Exception as exception:
+            logger.warning("Receive response failed: %s", repr(exception))
+            logger.debug(traceback.format_exc())
+            return None
+        response = response.decode()
+        status_code_result = re.search(r"\d{3}", response.partition("\n")[0])
+        assert status_code_result is not None, "Failed to find status code: " + response
+        
+        try:
+            sock.close()
+        except Exception as exception:
+            logger.warning("Close socket failed, ignoring... %s", repr(exception))
+        
+        return int(status_code_result.group(0)), response.partition("\r\n\r\n")[2]
+
+    def request(self, request: bytes):
+        for _ in range(self.retry_times):
+            resp = self.request_once(request)
+            if resp is not None:
+                return resp
+        return None
 
 
 class HTTPRequester:

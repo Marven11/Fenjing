@@ -11,10 +11,19 @@ import os
 import click
 
 from fenjing import cli, waf_func_gen
+import tempfile
 
 SLEEP_INTERVAL = float(os.environ.get("SLEEP_INTERVAL", 0.01))
 VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
 waf_func_gen.logger.setLevel(logging.ERROR)
+
+TEST_REQUEST = """\
+GET /?name=PAYLOAD HTTP/1.1
+Host: 127.0.0.1:5000
+User-Agent: curl/8.0.1
+Accept: */*
+Connection: close
+"""
 
 class TestCLI(unittest.TestCase):
     def crack_test(self, params):
@@ -47,6 +56,16 @@ class TestCLI(unittest.TestCase):
         }
         ctx.params.update(params)
         cli.scan.invoke(ctx)
+
+    def crack_request_test(self, params):
+        ctx = click.Context(cli.crack_request)
+        ctx.params = {
+            param.name: param.default
+            for param in cli.crack_request.get_params(ctx)
+            if param.name != "help"
+        }
+        ctx.params.update(params)
+        cli.crack_request.invoke(ctx)
 
     def test_crack_basic(self):
         for uri in [
@@ -219,5 +238,25 @@ class TestCLI(unittest.TestCase):
                 "interval": SLEEP_INTERVAL,
                 "exec_cmd": "ls /",
                 "tamper_cmd": "rev"
+            }
+        )
+
+    def test_crack_request_basic(self):
+        protocol, sep, addr = VULUNSERVER_ADDR.partition("://")
+        host, sep, port = addr.partition(":")
+        temp_file = tempfile.NamedTemporaryFile()
+        # 获取临时文件的路径
+        temp_file_path = temp_file.name
+        # 写入数据到临时文件
+        with open(temp_file_path, 'w') as file:
+            file.write(TEST_REQUEST)
+        self.crack_request_test(
+            {
+                "host": host,
+                "port": int(port),
+                "request_file": temp_file_path,
+                "ssl": protocol == "https",
+                "interval": SLEEP_INTERVAL,
+                "exec_cmd": "ls /",
             }
         )

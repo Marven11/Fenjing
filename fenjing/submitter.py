@@ -9,7 +9,7 @@ from typing import List, Callable, Union, NamedTuple, Dict
 from urllib.parse import quote
 
 from .form import Form, fill_form
-from .requester import HTTPRequester
+from .requester import HTTPRequester, TCPRequester
 from .colorize import colored
 from .const import CALLBACK_SUBMIT
 
@@ -119,6 +119,27 @@ class BaseSubmitter:
             return None
         return HTTPResponse(resp.status_code, html.unescape(resp.text))
 
+class TCPSubmitter(BaseSubmitter):
+    def __init__(
+        self,
+        requester: TCPRequester,
+        pattern: bytes,
+        toreplace = b"PAYLOAD",
+        urlencode_payload = True,
+    ):
+
+        super().__init__()
+        self.pattern = pattern
+        self.toreplace = toreplace
+        self.urlencode_payload = urlencode_payload
+        self.req = requester
+
+    def submit_raw(self, raw_payload):
+        if self.urlencode_payload:
+            raw_payload = quote(raw_payload)
+        request = self.pattern.replace(self.toreplace, raw_payload.encode())
+        code, text = self.req.request(request)
+        return HTTPResponse(code, text)
 
 class RequestSubmitter(BaseSubmitter):
     """向一个url提交GET或POST数据"""
