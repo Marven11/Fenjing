@@ -4,7 +4,7 @@ import sys
 sys.path.append("..")  # noqa
 
 from fenjing.form import get_form
-from fenjing.requester import Requester
+from fenjing.requester import HTTPRequester
 
 from fenjing.submitter import FormSubmitter  # noqa
 
@@ -42,7 +42,7 @@ class FullPayloadGenTestCaseSimple(unittest.TestCase):
             url=VULUNSERVER_ADDR,
             form=get_form(action="/", inputs=["name"], method="GET"),
             target_field="name",
-            requester=Requester(interval=0.01),
+            requester=HTTPRequester(interval=0.01),
         )
 
     def test_string(self):

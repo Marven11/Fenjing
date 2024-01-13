@@ -24,7 +24,7 @@ from .cracker import Cracker
 from .options import Options
 from .form import get_form, Form
 from .full_payload_gen import FullPayloadGen
-from .requester import Requester
+from .requester import HTTPRequester
 from .submitter import Submitter, FormSubmitter
 
 
@@ -120,7 +120,7 @@ class CrackTaskThread(threading.Thread):
         self.submitter: Union[Submitter, None] = None
         self.full_payload_gen: Union[FullPayloadGen, None] = None
         self.cracker: Union[Cracker, None]
-        self.requester = Requester(interval=interval, user_agent=DEFAULT_USER_AGENT)
+        self.requester = HTTPRequester(interval=interval, user_agent=DEFAULT_USER_AGENT)
 
     def run(self):
         for input_field in self.form["inputs"]:

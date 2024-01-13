@@ -13,7 +13,7 @@ from string import ascii_lowercase
 
 
 from .payload_gen import TargetAndSubTargets, find_bad_exprs
-from .requester import Requester
+from .requester import HTTPRequester
 from .form import random_fill
 from .submitter import FormSubmitter, RequestSubmitter, Submitter
 from .colorize import colored
@@ -46,7 +46,7 @@ Result = namedtuple("Result", "full_payload_gen input_field")
 
 
 def guess_python_version(
-    url: str, requester: Requester
+    url: str, requester: HTTPRequester
 ) -> Literal[PYTHON_VERSION_UNKNOWN, PYTHON_VERSION_2, PYTHON_VERSION_3]:
     """猜测目标的python版本
 

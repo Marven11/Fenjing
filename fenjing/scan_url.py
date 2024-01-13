@@ -13,7 +13,7 @@ from typing import Union, Generator, Tuple, List
 from bs4 import BeautifulSoup
 
 from .form import get_form, parse_forms, Form
-from .requester import Requester
+from .requester import HTTPRequester
 from .colorize import colored
 
 logger = logging.getLogger("scan_url")
@@ -40,7 +40,7 @@ def parse_urls(html: Union[str, BeautifulSoup]) -> list:
 
 
 def burst_respond_params_data(
-    requester: Requester, url: str, html_str: str
+    requester: HTTPRequester, url: str, html_str: str
 ) -> Tuple[List[str], List[str]]:
     """根据初始HTML文本爆破对应的URL是否有对应的参数
 
@@ -87,7 +87,7 @@ def burst_respond_params_data(
 
 
 def yield_form(
-    requester: Requester, start_url: str
+    requester: HTTPRequester, start_url: str
 ) -> Generator[Tuple[str, List[Form]], None, None]:
     """根据起始URL扫描出所有的表格
 

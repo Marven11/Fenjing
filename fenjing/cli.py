@@ -23,7 +23,7 @@ from .colorize import colored, set_enable_coloring
 from .cracker import Cracker, EvalArgsModePayloadGen, guess_python_version
 from .form import Form, get_form
 from .full_payload_gen import FullPayloadGen
-from .requester import Requester
+from .requester import HTTPRequester
 from .submitter import Submitter, PathSubmitter, FormSubmitter, shell_tamperer
 from .scan_url import yield_form
 from .webui import main as webui_main
@@ -157,7 +157,7 @@ def parse_headers_cookies(headers_list: List[str], cookies: str) -> Dict[str, st
 def do_crack_form_pre(
     url: str,
     form: Form,
-    requester: Requester,
+    requester: HTTPRequester,
     detect_mode: str,
     replaced_keyword_strategy: str,
     environment: str,
@@ -204,7 +204,7 @@ def do_crack_form_pre(
 def do_crack_form_eval_args_pre(
     url: str,
     form: Form,
-    requester: Requester,
+    requester: HTTPRequester,
     detect_mode: str,
     replaced_keyword_strategy: str,
     environment: str,
@@ -251,7 +251,7 @@ def do_crack_form_eval_args_pre(
 
 def do_crack_path_pre(
     url: str,
-    requester: Requester,
+    requester: HTTPRequester,
     detect_mode: str,
     replaced_keyword_strategy: str,
     environment: str,
@@ -399,7 +399,7 @@ def crack(
         method=method,
         inputs=inputs.split(","),
     )
-    requester = Requester(
+    requester = HTTPRequester(
         interval=interval,
         user_agent=user_agent,
         headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
@@ -483,7 +483,7 @@ def crack_path(
     """
     assert url is not None, "Please provide URL!"
     print(TITLE)
-    requester = Requester(
+    requester = HTTPRequester(
         interval=interval,
         user_agent=user_agent,
         headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
@@ -549,7 +549,7 @@ def scan(
     扫描指定的网站
     """
     print(TITLE)
-    requester = Requester(
+    requester = HTTPRequester(
         interval=interval,
         user_agent=user_agent,
         headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),

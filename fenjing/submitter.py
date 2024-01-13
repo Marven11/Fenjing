@@ -9,7 +9,7 @@ from typing import List, Callable, Union, NamedTuple, Dict
 from urllib.parse import quote
 
 from .form import Form, fill_form
-from .requester import Requester
+from .requester import HTTPRequester
 from .colorize import colored
 from .const import CALLBACK_SUBMIT
 
@@ -130,7 +130,7 @@ class RequestSubmitter(BaseSubmitter):
         target_field: str,
         params: Union[Dict[str, str], None],
         data: Union[Dict[str, str], None],
-        requester: Requester,
+        requester: HTTPRequester,
     ):
         """传入目标的URL, method和提交的项
 
@@ -174,7 +174,7 @@ class FormSubmitter(BaseSubmitter):
         url: str,
         form: Form,
         target_field: str,
-        requester: Requester,
+        requester: HTTPRequester,
         callback: Union[Callable[[str, Dict], None], None] = None,
     ):
         """传入目标表格的url，form实例与目标表单项，以及用于提交HTTP请求的requester
@@ -214,7 +214,7 @@ class PathSubmitter(BaseSubmitter):
     def __init__(
         self,
         url: str,
-        requester: Requester,
+        requester: HTTPRequester,
         callback: Union[Callable[[str, Dict], None], None] = None,
     ):
         """传入目标URL和发送请求的Requester

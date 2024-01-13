@@ -14,7 +14,7 @@ from .const import DEFAULT_USER_AGENT
 logger = logging.getLogger("requester")
 
 
-class Requester:
+class HTTPRequester:
     """实际发送HTTP请求的类"""
 
     def __init__(

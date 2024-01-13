@@ -5,7 +5,7 @@ import sys
 
 sys.path.append("..")
 from fenjing.form import get_form
-from fenjing.requester import Requester
+from fenjing.requester import HTTPRequester
 import unittest
 import fenjing
 from typing import Union
@@ -39,7 +39,7 @@ class TestBase(unittest.TestCase):
                 url=VULUNSERVER_ADDR,
                 form=get_form(action="/", inputs=["name"], method="GET"),
                 target_field="name",
-                requester=Requester(interval=SLEEP_INTERVAL),
+                requester=HTTPRequester(interval=SLEEP_INTERVAL),
             ),
             self.local_blacklist,
         )
@@ -50,7 +50,7 @@ class TestBase(unittest.TestCase):
             url=VULUNSERVER_ADDR,
             form=get_form(action=remote_uri, inputs=["name"], method="GET"),
             target_field="name",
-            requester=Requester(interval=SLEEP_INTERVAL),
+            requester=HTTPRequester(interval=SLEEP_INTERVAL),
         )
 
     def setUp(self):
@@ -248,7 +248,7 @@ class TestPath(TestBase):
         self.local_blacklist = None
         self.subm = PathSubmitter(
             url=VULUNSERVER_ADDR + "/crackpath/",
-            requester=Requester(interval=SLEEP_INTERVAL),
+            requester=HTTPRequester(interval=SLEEP_INTERVAL),
         )
 
 
