@@ -17,7 +17,7 @@ from .const import DEFAULT_USER_AGENT
 logger = logging.getLogger("requester")
 
 # 处理bytes形式的HTTP请求的一系列函数
-
+Response = Tuple[int, str]
 
 def check_line_break(req_pattern: bytes) -> Union[None, bool]:
     """检查换行符，提取Host header前方的换行符并检查
