@@ -20,24 +20,48 @@ logger = logging.getLogger("requester")
 
 
 def check_line_break(req_pattern: bytes) -> Union[None, bool]:
-    lb_pos = req_pattern.find(b"Host: ")
-    if not lb_pos:
+    """检查换行符，提取Host header前方的换行符并检查
+
+    Args:
+        req_pattern (bytes): HTTP请求的模板
+
+    Returns:
+        Union[None, bool]: 检查结果，失败时为None
+    """
+    linebreak_pos = req_pattern.find(b"Host: ")
+    if not linebreak_pos:
         return None
-    lb = req_pattern[lb_pos - 2 : lb_pos]
-    lb = bytes(c for c in lb if c in b"\r\n")
-    if lb == b"\r\n" or lb == b"\n\r":
+    linebreak = req_pattern[linebreak_pos - 2 : linebreak_pos]
+    linebreak = bytes(c for c in linebreak if c in b"\r\n")
+    if linebreak == b"\r\n" or linebreak == b"\n\r":
         return True
-    elif lb == b"\n":
+    elif linebreak == b"\n":
         return False
     return None
 
 
-def fix_line_break(req_pattern: bytes):
-    line_header, sep, body = req_pattern.partition(b"\n\n")
+def fix_line_break(req_pattern: bytes) -> bytes:
+    """修正换行符
+
+    Args:
+        req_pattern (bytes): 需要修正的请求模板
+
+    Returns:
+        bytes: 修正结果
+    """
+    line_header, _, body = req_pattern.partition(b"\n\n")
     return line_header.replace(b"\n", b"\r\n") + b"\r\n\r\n" + body
 
 
 def get_tail(req_pattern: bytes) -> Union[Tuple[bytes, int], None]:
+    """获得HTTP请求结尾的换行符
+
+    Args:
+        req_pattern (bytes): 需要检查的请求模板
+
+    Returns:
+        Union[Tuple[bytes, int], None]: 检查结果，换行符以及数量
+    """
     lbs = [
         b"\r\n",
         b"\n\r",
@@ -53,11 +77,27 @@ def get_tail(req_pattern: bytes) -> Union[Tuple[bytes, int], None]:
     return None
 
 
-def check_tail(req_pattern: bytes):
+def check_tail(req_pattern: bytes) -> bool:
+    """检查HTTP结尾的换行符
+
+    Args:
+        req_pattern (bytes): 需要检查的HTTP请求模板
+
+    Returns:
+        bool: 检查结果
+    """
     return get_tail(req_pattern)[1] == 2
 
 
-def fix_tail(req_pattern: bytes):
+def fix_tail(req_pattern: bytes) -> bytes:
+    """修复HTTP请求结尾的换行符
+
+    Args:
+        req_pattern (bytes): 请求
+
+    Returns:
+        bytes: 修复结果
+    """
     lb, count = get_tail(req_pattern)
     if count <= 2:
         return req_pattern + lb * (2 - count)
@@ -80,17 +120,17 @@ class TCPRequester:
         self.use_ssl = use_ssl
         self.interval = interval
         self.retry_times = retry_times
-        self.interval = interval
         self.last_request_time = None
 
-    def get_socket(self):
+    def _get_socket(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if self.use_ssl:
-            sock = ssl.wrap_socket(sock)
+            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+            sock = ssl_context.wrap_socket(sock)
         sock.connect((self.host, self.port))
         return sock
 
-    def recv_all(self, sock, bufsize=1024):
+    def _recv_all(self, sock, bufsize=1024):
         data = b""
         while True:
             chunk = sock.recv(bufsize)
@@ -99,7 +139,7 @@ class TCPRequester:
             data += chunk
         return data
 
-    def request_once(self, request: bytes):
+    def _request_once(self, request: bytes):
         if self.last_request_time:
             duration = time.perf_counter() - self.last_request_time
             if duration < self.interval:
@@ -107,7 +147,7 @@ class TCPRequester:
         self.last_request_time = time.perf_counter()
 
         try:
-            sock = self.get_socket()
+            sock = self._get_socket()
         except Exception as exception:
             logger.warning("Get socket failed: %s", repr(exception))
             logger.debug(traceback.format_exc())
@@ -122,7 +162,7 @@ class TCPRequester:
 
         response = None
         try:
-            response = self.recv_all(sock)
+            response = self._recv_all(sock)
         except Exception as exception:
             logger.warning("Receive response failed: %s", repr(exception))
             logger.debug(traceback.format_exc())
@@ -130,17 +170,25 @@ class TCPRequester:
         response = response.decode()
         status_code_result = re.search(r"\d{3}", response.partition("\n")[0])
         assert status_code_result is not None, "Failed to find status code: " + response
-        
+
         try:
             sock.close()
         except Exception as exception:
             logger.warning("Close socket failed, ignoring... %s", repr(exception))
-        
+
         return int(status_code_result.group(0)), response.partition("\r\n\r\n")[2]
 
-    def request(self, request: bytes):
+    def request(self, request: bytes) -> Union[Response, None]:
+        """发送bytes形式的HTTP请求
+
+        Args:
+            request (bytes): 请求
+
+        Returns:
+            Union[Response, None]: 响应
+        """
         for _ in range(self.retry_times):
-            resp = self.request_once(request)
+            resp = self._request_once(request)
             if resp is not None:
                 return resp
         return None
@@ -172,6 +220,13 @@ class HTTPRequester:
         self.last_request_time = 0
         self.extra_params = {}
         self.extra_data = {}
+
+        if interval > 1:
+            logger.warning(
+                "Request interval might be %s: %.2fs between two requests.",
+                colored("yellow", "too large"),
+                interval,
+            )
 
         if headers:
             self.session.headers.update(headers)
