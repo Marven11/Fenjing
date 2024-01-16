@@ -637,7 +637,7 @@ def scan(
 @click.option("--ssl/--no-ssl", default=False, help="是否使用SSL")
 @click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则进入交互模式")
 @click.option("--urlencode-payload", default=True, help="是否对payload进行urlencode")
-@click.option("--raw", is_flag=True, default=False, help="是否对payload进行urlencode")
+@click.option("--raw", is_flag=True, default=False, help="不检查请求的换行符等")
 @click.option(
     "--detect-mode", default=DETECT_MODE_ACCURATE, help="检测模式，可为accurate或fast"
 )
@@ -670,6 +670,9 @@ def crack_request(
     interval: float,
     tamper_cmd: str,
 ):
+    """
+    从文本文件中读取请求并攻击目标，文本文件中用`PAYLOAD`标记payload插入位置
+    """
     request_file = Path(request_file)
     if not request_file.is_file():
         logger.error("File doesn't exist: %s", request_file)
