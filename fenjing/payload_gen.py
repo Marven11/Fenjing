@@ -1881,6 +1881,33 @@ def gen_string_percent_lower_c_literal2(context):
 
 
 @expression_gen
+def gen_string_percent_lower_c_literal3(context):
+    target_list = [(LITERAL, '"%""c"')]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
+def gen_string_percent_lower_c_literal5(context):
+    target_list = [
+        (ONEOF, *[
+            [(LITERAL, "'%'")],
+            [(LITERAL, '"%"')],
+        ]),
+        (ONEOF, *[
+            [(LITERAL, " ")],
+            [(LITERAL, "\t")],
+            [(LITERAL, "\n")],
+            [(LITERAL, "\r")],
+        ]),
+        (ONEOF, *[
+            [(LITERAL, "'c'")],
+            [(LITERAL, '"c"')],
+        ]),
+    ]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
 def gen_string_percent_lower_c_context(context):
     if "%c" not in context.values():
         return [(UNSATISFIED,)]
@@ -2523,8 +2550,8 @@ def gen_string_twostringconcat2(context: dict, value: str):
             ONEOF,
             *[
                 [
-                    (LITERAL, "'{}'".format(str_escape(value[:i], '"'))),
-                    (LITERAL, "'{}'".format(str_escape(value[i:], '"'))),
+                    (LITERAL, '"{}"'.format(str_escape(value[:i], '"'))),
+                    (LITERAL, '"{}"'.format(str_escape(value[i:], '"'))),
                 ]
                 for i in range(1, len(value) - 1)
             ],
@@ -2690,6 +2717,12 @@ def gen_string_concat2(context: dict, value: str):
 @expression_gen
 def gen_string_concat3(context: dict, value: str):
     target_list = [(LITERAL, "".join('"{}"'.format(str_escape(c, '"')) for c in value))]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
+def gen_string_concat4(context: dict, value: str):
+    target_list = [(LITERAL, " ".join('"{}"'.format(str_escape(c, '"')) for c in value))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
 
