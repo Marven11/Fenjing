@@ -1115,6 +1115,24 @@ def gen_positive_integer_unicodehex(context: dict, value: int):
 
 
 @expression_gen
+def gen_positive_integer_hexunderline(context: dict, value: int):
+    if value < 0:
+        return [(UNSATISFIED,)]
+    digits = hex(value)[2:]
+    literal = "0x_{}".format("_".join(digits))
+    return [(EXPRESSION, precedence["literal"], [(LITERAL, literal)])]
+
+@expression_gen
+def gen_positive_integer_octunderline(context: dict, value: int):
+    if value < 0:
+        return [(UNSATISFIED,)]
+    digits = oct(value)[2:]
+    literal = "0o_{}".format("_".join(digits))
+    return [(EXPRESSION, precedence["literal"], [(LITERAL, literal)])]
+
+
+
+@expression_gen
 def gen_positive_integer_sum(context: dict, value: int):
     if value < 0:
         return [(UNSATISFIED,)]
