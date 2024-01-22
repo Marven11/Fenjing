@@ -308,6 +308,9 @@ class CacheByRepr:
                 return v
         raise KeyError(f"Not found: {repr_k}")
 
+    def __delitem__(self, k):
+        del self.cache[repr(k)]
+
     def __contains__(self, k):
         repr_k = repr(k)
         for k_store, _ in self.cache.get(repr_k, []):
@@ -690,6 +693,10 @@ class PayloadGenerator:
         if result is None:
             return None
         return result
+
+    def delete_from_cache(self, gen_type, *args):
+        if (gen_type, *args) in self.cache_by_repr:
+            del self.cache_by_repr[(gen_type, *args)]
 
 
 @expression_gen
@@ -1811,12 +1818,20 @@ def gen_string_percent_lipsumcomplex(context):
 @expression_gen
 def gen_string_percent_urlencodelong(context):
     target_list = [
-        (LITERAL, "(lipsum,)|map("),
+        (ONEOF,
+            [(LITERAL, "(lipsum,)|map(")],
+            [(LITERAL, "(cycler,)|map(")],
+            [(LITERAL, "(joiner,)|map(")],
+            [(LITERAL, "(namespace,)|map(")],
+        ),
         (
             ONEOF,
-            [(LITERAL, "dict(ur=x,le=x,nco=x,de=x)|join")],
             [(LITERAL, "'ur''lencode'")],
             [(LITERAL, '"ur""lencode"')],
+            [(LITERAL, "dict(urlencode=x)|first")],
+            [(LITERAL, "dict(ur=x,lenc=x,ode=x)|join")],
+            [(LITERAL, "dict(ur=x,le=x,nco=x,de=x)|join")],
+            [(VARIABLE_OF, 'urlencode')],
         ),
         (LITERAL, ")|first|first"),
     ]

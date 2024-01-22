@@ -363,7 +363,7 @@ class WafFuncGen:
         )
 
         # WAF函数，只有在payload一定可以通过WAF时才返回True
-        @lru_cache(1000)
+        @lru_cache(10000)
         def waf_func(value):
             nonlocal extra_content, extra_passed, replaced_keyword
             payload = extra_content + value

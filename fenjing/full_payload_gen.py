@@ -224,6 +224,8 @@ class FullPayloadGen:
         # 需要清除缓存，否则生成器只会使用缓存的表达式而不会使用加入的变量
         if clean_cache:
             self.payload_gen.cache_by_repr.clear()
+        else:
+            self.payload_gen.delete_from_cache(STRING, value)
         logger.info(
             "Adding %s with %s",
             colored("yellow", repr(value)),
@@ -238,6 +240,7 @@ class FullPayloadGen:
             append_targets (list): 指定更多需要生成的字符串
         """
         targets = [
+            "urlencode",
             "%",
             "c",
             "%c",
@@ -290,7 +293,7 @@ class FullPayloadGen:
         for target in targets:
             if target in self.added_extra_context_vars:
                 continue
-            result = self.try_add_context_var_string(target, clean_cache=True)
+            result = self.try_add_context_var_string(target, clean_cache=False)
             if not result:
                 logger.warning("Failed generating %s", colored("yellow", repr(target)))
                 continue
