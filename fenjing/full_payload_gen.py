@@ -115,6 +115,7 @@ class FullPayloadGen:
         self.waf_func = waf_func
         self.prepared = False
         self.extra_context_vars_prepared = False
+        self.added_extra_context_vars = set()
         self._callback: Callable[[str, Dict], None] = (
             callback if callback else (lambda x, y: None)
         )
@@ -281,18 +282,20 @@ class FullPayloadGen:
         if not self.waf_func("{%set %}"):
             logger.warning("Payload %s cannot pass WAF.", colored("blue", "{%set %}"))
             return
-        if self.extra_context_vars_prepared:
-            return
-        self.extra_context_vars_prepared = True
 
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
         logger.info(
             "Adding some string variables...",
         )
         for target in targets:
+            if target in self.added_extra_context_vars:
+                continue
             result = self.try_add_context_var_string(target, clean_cache=True)
             if not result:
                 logger.warning("Failed generating %s", colored("yellow", repr(target)))
+                continue
+            self.added_extra_context_vars.add(target)
+
 
     def add_context_variable(
         self,
