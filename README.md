@@ -64,6 +64,49 @@ docker build -t fenjing .
 docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
 ```
 
+然后开始使用：
+
+### webui
+
+你可以直接在webui里指定参数并自动攻击
+
+![webui-example](assets/webui-example.png)
+
+这里攻击的是一个GET参数：name
+
+在左边填入并点击开始分析，然后在右边输入命令就行了
+
+### scan
+
+在终端可以用scan功能，猜测某个页面的参数并自动攻击：
+
+`python -m fenjing scan --url 'http://xxxx:xxx/yyy'`
+
+### crack
+
+也可以用crack功能，手动指定参数进行攻击：
+
+`python -m fenjing crack --url 'http://xxxx:xxx/yyy' --detect-mode fast --inputs aaa,bbb --method GET`
+
+这里提供了aaa和bbb两个参数进行攻击，并使用`--detect-mode fast`加速攻击速度
+
+### crack-request
+
+还可以将HTTP请求写进一个文本文件里（比如说`req.txt`）然后进行攻击
+
+文本文件内容如下：
+
+```http
+GET /?name=PAYLOAD HTTP/1.1
+Host: 127.0.0.1:5000
+Connection: close
+
+```
+
+命令如下：
+
+`python -m fenjing crack-request -f req.txt --host '127.0.0.1' --port 5000`
+
 ## 支持的绕过规则
 
 ### 关键字符绕过：

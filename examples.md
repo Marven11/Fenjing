@@ -1,7 +1,3 @@
-## 注意
-
-不要使用windows的cmd跑脚本，要不然就会像[这位](https://github.com/Marven11/Fenjing/issues/3)一样出问题
-
 ## 启动webui
 
 webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使用方式请直接使用命令行或者作为库调用
@@ -22,6 +18,10 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
 攻击对应的路径：
 - `python -m fenjing crack-path --url 'http://xxx.xxx/hello/'`
 - 只需要提供路径的前缀即可
+
+从文本文件中读取HTTP请求：
+- `python -m fenjing crack-request -f req.txt --host '127.0.0.1' --port 5000`
+- 需要提供HTTP请求文件的路径、目标的IP和端口
 
 通用设置
 - 指定请求间隔：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --interval 0.1`
