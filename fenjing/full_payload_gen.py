@@ -12,6 +12,7 @@ from .context_vars import (
     ContextVariableUtil,
 )
 from .const import (
+    DETECT_MODE_FAST,
     CALLBACK_PREPARE_FULLPAYLOADGEN,
     CALLBACK_GENERATE_FULLPAYLOAD,
     STRING,
@@ -299,7 +300,6 @@ class FullPayloadGen:
                 continue
             self.added_extra_context_vars.add(target)
 
-
     def add_context_variable(
         self,
         payload: str,
@@ -352,13 +352,15 @@ class FullPayloadGen:
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
         assert isinstance(self.outer_pattern, str)
 
-        # 添加一系列值为字符串的变量，需要从生成目标中取出需要生成的字符串
-        extra_strings = []
-        if gen_type == OS_POPEN_READ:
-            extra_strings = [args[0]]
-        elif gen_type == EVAL and args[0][0] == STRING:
-            extra_strings = [args[0][1]]
-        self.prepare_extra_context_vars(extra_strings)
+        # 在生成模式不是快速时生成一系列的字符串变量以减少嵌套括号
+        if self.options != DETECT_MODE_FAST:
+            # 添加一系列值为字符串的变量，需要从生成目标中取出需要生成的字符串
+            extra_strings = []
+            if gen_type == OS_POPEN_READ:
+                extra_strings = [args[0]]
+            elif gen_type == EVAL and args[0][0] == STRING:
+                extra_strings = [args[0][1]]
+            self.prepare_extra_context_vars(extra_strings)
 
         logger.info("Start generating final expression...")
 
