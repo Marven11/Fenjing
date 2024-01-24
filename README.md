@@ -207,6 +207,9 @@ Connection: close
   - 攻击某个路径（如`http://xxx.xxx/hello/<payload>`）存在的漏洞
   - 参数大致上和crack相同，但是只需要提供对应的路径
   - 示例：`python -m fenjing crack-path --url 'http://xxx/hello/'`
+- crack-request: 读取某个请求文件进行攻击
+  - 读取文件里的请求，将其中的`PAYLOAD`替换成实际的payload然后提交
+  - 根据HTTP格式会默认对请求进行urlencode, 可以使用`--urlencode-payload 0`关闭
 
 一些特殊的选项：
 - `--eval-args-payload`：将payload放在GET参数x中提交
@@ -264,6 +267,28 @@ Options:
   --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
   --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
   --proxy TEXT                    请求时使用的代理
+  --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --help                          Show this message and exit.
+
+Usage: python -m fenjing crack-request [OPTIONS]
+
+  从文本文件中读取请求并攻击目标，文本文件中用`PAYLOAD`标记payload插入位置
+
+Options:
+  -h, --host TEXT                 目标的host，可为IP或域名
+  -p, --port INTEGER              目标的端口
+  -f, --request-file TEXT         保存在文本文件中的请求，其中payload处为PAYLOAD
+  --toreplace BYTES               请求文件中payload的占位符
+  --ssl / --no-ssl                是否使用SSL
+  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则进入交互模式
+  --urlencode-payload BOOLEAN     是否对payload进行urlencode
+  --raw                           不检查请求的换行符等
+  --detect-mode TEXT              检测模式，可为accurate或fast
+  --replaced-keyword-strategy TEXT
+                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
+  --environment TEXT              模板的执行环境，默认为flask的render_template_string函数
+  --retry-times INTEGER           重试次数
+  --interval FLOAT                请求间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
   --help                          Show this message and exit.
 
