@@ -626,6 +626,12 @@ def scan(
         do_crack(full_payload_gen, submitter, exec_cmd)
         return
     logger.warning("Scan failed...")
+    logger.warning(
+        "Try to pass params manualy: "
+        + "python -m fenjing crack %s --inputs aaa,bbb --method GET",
+        url,
+    )
+
     raise RunFailed()
 
 
