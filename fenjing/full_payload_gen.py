@@ -22,6 +22,12 @@ from .const import (
 from .options import Options
 
 logger = logging.getLogger("full_payload_gen")
+set_value_patterns = [
+    ("{%set NAME=EXPR%}", "{%set =%}"),
+    ("{%set\tNAME=EXPR%}", "{%set\t=%}"),
+    ("{%set\nNAME=EXPR%}", "{%set\n=%}"),
+    ("{%set\rNAME=EXPR%}", "{%set\r=%}"),
+]
 
 
 def get_outer_pattern(
@@ -198,7 +204,12 @@ class FullPayloadGen:
         """
         if not self.prepared and not self.do_prepare():
             return False
-        if not self.waf_func("{%set %}"):
+        pattern = None
+        for fill_pattern, test_pattern in set_value_patterns:
+            if self.waf_func(test_pattern):
+                pattern = fill_pattern
+                break
+        if pattern is None:
             return False
 
         ret = self.payload_gen.generate_detailed(STRING, value)
@@ -214,9 +225,7 @@ class FullPayloadGen:
             return False
 
         # 保存payload、对应的变量以及payload依赖的变量
-        payload = "{%set NAME=EXPR%}".replace("NAME", var_name).replace(
-            "EXPR", expression
-        )
+        payload = pattern.replace("NAME", var_name).replace("EXPR", expression)
         success = self.add_context_variable(
             payload, {var_name: value}, check_waf=True, depends_on=used_context
         )
@@ -283,10 +292,11 @@ class FullPayloadGen:
         ] + append_targets
         if not self.prepared and not self.do_prepare():
             return
-        if not self.waf_func("{%set %}"):
-            logger.warning("Payload %s cannot pass WAF.", colored("blue", "{%set %}"))
+        if not any(
+            self.waf_func(test_pattern) for _, test_pattern in set_value_patterns
+        ):
+            logger.warning("We cannot set any variable through {%set %}, continue...")
             return
-
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
         logger.info(
             "Adding some string variables...",
