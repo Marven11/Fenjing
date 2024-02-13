@@ -4,19 +4,14 @@
 
 from typing import Callable, Dict, Union
 
-from .const import CONFIG
+from .const import CONFIG, WafFunc
 from .full_payload_gen import FullPayloadGen
 
 full_payload_store: Dict[int, FullPayloadGen] = {}
 
 
 def config_payload(
-    waf_func: Callable[
-        [
-            str,
-        ],
-        bool,
-    ]
+    waf_func: WafFunc
 ) -> Union[str, None]:
     """根据提供的waf函数生成读取config的payload
 

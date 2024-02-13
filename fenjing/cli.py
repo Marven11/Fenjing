@@ -679,10 +679,10 @@ def crack_request(
     """
     从文本文件中读取请求并攻击目标，文本文件中用`PAYLOAD`标记payload插入位置
     """
-    request_file = Path(request_file)
-    if not request_file.is_file():
-        logger.error("File doesn't exist: %s", request_file)
-    request_pattern = request_file.read_bytes()
+    request_filepath = Path(request_file)
+    if not request_filepath.is_file():
+        logger.error("File doesn't exist: %s", request_filepath)
+    request_pattern = request_filepath.read_bytes()
     if not raw and not check_tail(request_pattern):
         logger.warning("Request doesn't ends with '\\r\\n\\r\\n', fixing...")
         logger.warning("You can use `--raw` flag to disable this")

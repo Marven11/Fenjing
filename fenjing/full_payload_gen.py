@@ -193,6 +193,7 @@ class FullPayloadGen:
         """
         if not self.prepared and not self.do_prepare():
             return False
+        assert self.payload_gen, "We should have payload_gen after preparation"
         pattern = None
         for fill_pattern, test_pattern in set_value_patterns:
             if self.waf_func(test_pattern):
@@ -232,7 +233,7 @@ class FullPayloadGen:
         )
         return True
 
-    def prepare_extra_context_vars(self, append_targets: Union[List, None] = None):
+    def prepare_extra_context_vars(self, append_targets: List[str]):
         """生成一系列字符串的变量并加入到context payloads中
 
         Args:
@@ -322,6 +323,7 @@ class FullPayloadGen:
         """
         if not self.prepared:
             raise RuntimeError("Please run .do_prepare() first")
+        assert self.payload_gen is not None
         success = self.context_vars.add_payload(
             payload=payload,
             variables=context_vars,
@@ -349,7 +351,7 @@ class FullPayloadGen:
         if not self.prepared and not self.do_prepare():
             return None
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
-        assert isinstance(self.outer_pattern, str)
+        assert isinstance(self.outer_pattern, str) and self.will_print is not None
 
         # 在生成模式不是快速时生成一系列的字符串变量以减少嵌套括号
         if self.options != DETECT_MODE_FAST:

@@ -229,7 +229,7 @@ class ContextVariableUtil:
         self.context_payloads[payload] = variables
         return True
 
-    def get_payload(self, used_context: Context = None):
+    def get_payload(self, used_context: Context):
         if not self.prepared:
             self.do_prepare()
         answer = ""

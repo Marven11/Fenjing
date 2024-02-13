@@ -138,7 +138,10 @@ class TCPSubmitter(BaseSubmitter):
         if self.urlencode_payload:
             raw_payload = quote(raw_payload)
         request = self.pattern.replace(self.toreplace, raw_payload.encode())
-        code, text = self.req.request(request)
+        result = self.req.request(request)
+        if result is None:
+            return None
+        code, text = result
         return HTTPResponse(code, text)
 
 class RequestSubmitter(BaseSubmitter):

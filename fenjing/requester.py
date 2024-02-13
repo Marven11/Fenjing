@@ -53,14 +53,15 @@ def fix_line_break(req_pattern: bytes) -> bytes:
     return line_header.replace(b"\n", b"\r\n") + b"\r\n\r\n" + body
 
 
-def get_tail(req_pattern: bytes) -> Union[Tuple[bytes, int], None]:
+def get_tail(req_pattern: bytes) -> Tuple[Union[bytes, None], int]:
     """获得HTTP请求结尾的换行符
 
     Args:
         req_pattern (bytes): 需要检查的请求模板
 
     Returns:
-        Union[Tuple[bytes, int], None]: 检查结果，换行符以及数量
+        Tuple[Union[bytes, None], int]: 检查结果，换行符以及数量
+            找不到时返回None, 0
     """
     lbs = [
         b"\r\n",
@@ -74,7 +75,7 @@ def get_tail(req_pattern: bytes) -> Union[Tuple[bytes, int], None]:
                 count += 1
             count -= 1
             return lb, count
-    return None
+    return None, 0
 
 
 def check_tail(req_pattern: bytes) -> bool:
@@ -99,6 +100,8 @@ def fix_tail(req_pattern: bytes) -> bytes:
         bytes: 修复结果
     """
     lb, count = get_tail(req_pattern)
+    if lb is None:
+        return req_pattern
     if count <= 2:
         return req_pattern + lb * (2 - count)
     return req_pattern[: -len(lb) * 2 - count]

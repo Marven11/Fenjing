@@ -127,7 +127,7 @@ else:
 ExpressionGeneratorReturn = TypeVar("ExpressionGeneratorReturn", bound=List[Target])
 ExpressionGenerator = Callable[..., ExpressionGeneratorReturn]
 TargetAndSubTargets = List[Tuple[Target, List[Target]]]
-PayloadGeneratorResult = Tuple[str, ContextVariable, Union[TargetAndSubTargets, None]]
+PayloadGeneratorResult = Tuple[str, ContextVariable, TargetAndSubTargets]
 
 expression_gens: DefaultDict[str, List[ExpressionGenerator]] = defaultdict(list)
 logger = logging.getLogger("payload_gen")

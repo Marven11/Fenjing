@@ -8,7 +8,7 @@ import random
 import string
 
 from urllib.parse import urlparse
-from typing import Union, Generator, Tuple, List
+from typing import Union, Generator, Tuple, List, Set
 
 from bs4 import BeautifulSoup
 
@@ -20,6 +20,7 @@ from .wordlist import HTTP_PARAMS_LIST
 logger = logging.getLogger("scan_url")
 PARAM_CHUNK_SIZE = 150
 PARAM_MAXIMUM_COUNT = 5
+
 
 def parse_urls(html: Union[str, BeautifulSoup]) -> list:
     """从html中解析出所有的链接
@@ -53,16 +54,19 @@ def burst_respond_params_data(
     Returns:
         Tuple[List[str], List[str]]: 产生回显的GET参数和POST参数
     """
-    words = re.findall(r"\w{1,30}", html_str) + re.findall(
-        r"[a-zA-Z0-9_-]{1,30}", html_str
-    ) + HTTP_PARAMS_LIST
+    words: List[str] = (
+        re.findall(r"\w{1,30}", html_str)
+        + re.findall(r"[a-zA-Z0-9_-]{1,30}", html_str)
+        + HTTP_PARAMS_LIST
+    )
     words = list(set(words))
     random.shuffle(words)
     if len(words) > PARAM_CHUNK_SIZE * 100:
         logger.warning("found %d params, don't burst", len(words))
         return [], []
     logger.warning("Bursting %d params...", len(words))
-    respond_get_params, respond_post_params = set(), set()
+    respond_get_params: Set[str] = set()
+    respond_post_params: Set[str] = set()
 
     for i in range(0, len(words), PARAM_CHUNK_SIZE):
         words_chunk = words[i : i + PARAM_CHUNK_SIZE]
@@ -85,7 +89,7 @@ def burst_respond_params_data(
                 respond_post_params |= set(k for k, v in data.items() if v in resp.text)
                 break
 
-    return respond_get_params, respond_post_params
+    return list(respond_get_params), list(respond_post_params)
 
 
 def yield_form(
@@ -117,7 +121,7 @@ def yield_form(
         if resp is None:
             logger.warning("Fetch URL %s failed!", target_url)
             continue
-        
+
         html = BeautifulSoup(resp.text, "html.parser")
         forms = parse_forms(target_url, html)
 
