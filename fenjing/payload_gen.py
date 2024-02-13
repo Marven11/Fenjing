@@ -3061,6 +3061,21 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
 
 
 @expression_gen
+def gen_string_formatpercent1(context: dict, value: str):
+    # (('%c'*n)%(97,98,99))
+    if len(value) != 1:
+        return [(UNSATISFIED, )]
+    number_tuple = [(ENCLOSE_UNDER, precedence["mod"], (INTEGER, ord(value)))]
+    return [
+        (
+            MOD,
+            (STRING_MANY_PERCENT_LOWER_C, len(value)),
+            (EXPRESSION, precedence["mod"], number_tuple),
+        )
+    ]
+
+
+@expression_gen
 def gen_string_formatpercent(context: dict, value: str):
     # (('%c'*n)%(97,98,99))
     number_tuple = (
