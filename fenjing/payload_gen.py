@@ -333,11 +333,11 @@ class PayloadGenerator:
 
     def __init__(
         self,
-        waf_func: Callable[[str], bool],
+        waf_func: WafFunc,
         context: Union[Dict, None] = None,
         callback: Union[Callable[[str, Dict], None], None] = None,
         options: Union[Options, None] = None,
-        waf_expr_func: Union[Callable[[str], bool], None] = None,
+        waf_expr_func: Union[WafFunc, None] = None,
     ):
         self.waf_func = (
             waf_func

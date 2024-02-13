@@ -1,6 +1,7 @@
 """根据指定的表单生成对应的WAF函数
 
 """
+
 import logging
 import random
 import string
@@ -19,6 +20,7 @@ from .const import (
     REPLACED_KEYWORDS_STRATEGY_AVOID,
     REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING,
     REPLACED_KEYWORDS_STRATEGY_IGNORE,
+    WafFunc,
 )
 from .colorize import colored
 from .submitter import Submitter
@@ -339,11 +341,11 @@ class WafFuncGen:
             payload = payload.replace(k, v)
         return payload
 
-    def generate(self) -> Callable:
+    def generate(self) -> WafFunc:
         """生成WAF函数
 
         Returns:
-            Callable: WAF函数
+            WafFunc: WAF函数
         """
         replaced_keyword = self.replaced_keyword()
         waf_hashes = self.waf_page_hash()
@@ -393,7 +395,10 @@ class WafFuncGen:
                 # 产生关键词替换
                 replaced_list = find_pieces(result.text, payload)
                 if replaced_list:
-                    logger.info("发现了新的关键词替换：%s", colored("yellow", repr(replaced_list)))
+                    logger.info(
+                        "发现了新的关键词替换：%s",
+                        colored("yellow", repr(replaced_list)),
+                    )
                     replaced_keyword += replaced_list
                     # 如果策略为“忽略”则返回True, 否则返回False
                     return (

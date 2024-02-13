@@ -18,8 +18,10 @@ from .const import (
     STRING,
     OS_POPEN_READ,
     EVAL,
+    WafFunc,
 )
 from .options import Options
+
 
 logger = logging.getLogger("full_payload_gen")
 set_value_patterns = [
@@ -101,23 +103,10 @@ class FullPayloadGen:
 
     def __init__(
         self,
-        waf_func: Callable[
-            [
-                str,
-            ],
-            bool,
-        ],
+        waf_func: WafFunc,
         callback: Union[Callable[[str, Dict], None], None] = None,
         options: Union[Options, None] = None,
-        waf_expr_func: Union[
-            Callable[
-                [
-                    str,
-                ],
-                bool,
-            ],
-            None,
-        ] = None,
+        waf_expr_func: Union[WafFunc, None] = None,
     ):
         self.waf_func = waf_func
         self.prepared = False

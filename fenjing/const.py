@@ -1,5 +1,6 @@
 """所有常用常数
 """
+from typing import Callable
 
 DEFAULT_USER_AGENT = "Fenjing/0.1"
 
@@ -95,6 +96,8 @@ PYTHON_VERSION_3 = "python3"
 REPLACED_KEYWORDS_STRATEGY_AVOID = "avoid"  # 避免使用这些keywords
 REPLACED_KEYWORDS_STRATEGY_IGNORE = "ignore"  # 忽略检测出的keywords并继续使用
 REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING = "doubletapping"  # 对payload使用doubletapping
+
+WafFunc = Callable[[str], bool]
 
 DANGEROUS_KEYWORDS = [
     '"',
