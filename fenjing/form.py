@@ -10,18 +10,16 @@ from urllib.parse import urlparse, urlunparse
 
 from bs4 import BeautifulSoup
 
-logger = logging.getLogger("utils.form")
-Form = Dict[
-    str,
-    Union[str, set],
-]
 if sys.version_info >= (3, 8):
     from typing import Literal
+else:
+    from typing_extensions import Literal
 
-    Form = Dict[
-        Literal["action", "inputs", "method"],
-        Union[str, set],
-    ]
+logger = logging.getLogger("utils.form")
+Form = Dict[
+    Literal["action", "inputs", "method"],
+    Union[str, set],
+]
 
 
 def get_form(action: str, inputs: Iterable, method: str = "POST") -> Form:
