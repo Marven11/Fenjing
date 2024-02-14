@@ -206,9 +206,10 @@ class FullPayloadGen:
 
         if len(expression) - len(repr(value)) < 3:
             logger.warning(
-                "Generated expression %s is too simple, won't add it for efficiency reason.",
+                "Generated expression %s is too simple, skip it.",
                 colored("blue", expression),
             )
+            return False
 
         # 变量名需要可以通过waf且不重复
         var_name = self.context_vars.generate_related_variable_name(value)
@@ -287,6 +288,7 @@ class FullPayloadGen:
             "__truediv__",
             "%",
             "c",
+            "%s%%s",
             "%c",  # try to regenerate
         ] + append_targets
         if not self.prepared and not self.do_prepare():

