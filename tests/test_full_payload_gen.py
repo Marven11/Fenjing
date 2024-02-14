@@ -15,19 +15,23 @@ import os
 from fenjing import FullPayloadGen, const, options
 import unittest
 import random
+import jinja2
 
 fenjing.full_payload_gen.logger.setLevel(logging.ERROR)
 fenjing.payload_gen.logger.setLevel(logging.ERROR)
 
+VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
 
-def get_full_payload_gen(blacklist, detect_mode=fenjing.const.DetectMode.ACCURATE):
+
+def get_full_payload_gen(
+    blacklist,
+    detect_mode=fenjing.const.DetectMode.ACCURATE,
+    environment=fenjing.const.TemplateEnvironment.FLASK,
+):
     return FullPayloadGen(
         lambda x: all(word not in x for word in blacklist),
-        options=options.Options(detect_mode=detect_mode),
+        options=options.Options(detect_mode=detect_mode, environment=environment),
     )
-
-
-VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
 
 
 class FullPayloadGenTestCaseSimple(unittest.TestCase):
@@ -189,9 +193,10 @@ class FullPayloadGenTestCaseStringFormat1(FullPayloadGenTestCaseSimple):
             "read",
             "\\",
             "=",
-            "%"
+            "%",
         ]
         self.full_payload_gen = get_full_payload_gen(self.blacklist)
+
 
 class FullPayloadGenTestCaseStringFormat2(FullPayloadGenTestCaseSimple):
     def setUp(self) -> None:
@@ -215,9 +220,10 @@ class FullPayloadGenTestCaseStringFormat2(FullPayloadGenTestCaseSimple):
             "\\",
             "=",
             "%",
-            "|format"
+            "|format",
         ]
         self.full_payload_gen = get_full_payload_gen(self.blacklist)
+
 
 class FullPayloadGenTestCaseSubs(FullPayloadGenTestCaseSimple):
     def setUp(self) -> None:
@@ -243,8 +249,23 @@ class FullPayloadGenTestCaseSubs(FullPayloadGenTestCaseSimple):
 class FullPayloadGenTestCaseMul(FullPayloadGenTestCaseSimple):
     def setUp(self) -> None:
         super().setUp()
-        self.blacklist = ["-", "~", "__", '"', "'", "sum", "dict", "length", "0", "1", "2", "3", "4"]
+        self.blacklist = [
+            "-",
+            "~",
+            "__",
+            '"',
+            "'",
+            "sum",
+            "dict",
+            "length",
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+        ]
         self.full_payload_gen = get_full_payload_gen(self.blacklist)
+
 
 class FullPayloadGenTestCaseRandom(FullPayloadGenTestCaseSimple):
     def setUp(self) -> None:
@@ -267,6 +288,11 @@ class FullPayloadGenTestCaseRandom(FullPayloadGenTestCaseSimple):
                     "_",
                     ".",
                     "+",
+                    "-",
+                    "*",
+                    "/",
+                    " ",
+                    "))",
                     "~",
                     "{{",
                     "0",
@@ -292,7 +318,7 @@ class FullPayloadGenTestCaseRandom(FullPayloadGenTestCaseSimple):
                 ],
                 k=25,
             )
-            for _ in range(50)
+            for _ in range(200)
         ]
         self.full_payload_gens = [
             get_full_payload_gen(
@@ -303,6 +329,19 @@ class FullPayloadGenTestCaseRandom(FullPayloadGenTestCaseSimple):
                         fenjing.const.DetectMode.FAST,
                     ]
                 ),
+                environment=fenjing.const.TemplateEnvironment.JINJA2,
             )
             for blacklist in self.blacklists
         ]
+
+    def test_os_popen_read(self):
+        for full_payload_gen, blacklist in zip(self.full_payload_gens, self.blacklists):
+            payload, _ = full_payload_gen.generate(
+                const.OS_POPEN_READ, "echo fen  jing;"
+            )
+            assert payload is not None, repr(blacklist)
+            try:
+                result = jinja2.Template(payload).render()
+            except Exception as exc:
+                raise RuntimeError(repr(blacklist)) from exc
+            assert "fen jing" in result, repr(blacklist)

@@ -56,6 +56,7 @@ class PayloadGenTestsTargetRules(unittest.TestCase):
 
     def test_targets(self):
         targets = [
+            (const.VARIABLE_OF, "%c"),
             (const.ZERO, ),
             (const.INTEGER, 11),
             (const.INTEGER, 123),
