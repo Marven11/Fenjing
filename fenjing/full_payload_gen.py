@@ -3,12 +3,11 @@
 """
 
 import logging
-from typing import Callable, Tuple, Union, Dict, Any, List, Literal
+import sys
 
 from . import payload_gen
 from .colorize import colored
 from .context_vars import (
-    context_payloads_stmts,
     get_context_vars_manager,
     ContextVariableManager,
 )
@@ -25,6 +24,10 @@ from .const import (
 )
 from .options import Options
 
+if sys.version_info >= (3, 8):
+    from typing import Callable, Tuple, Union, Dict, Any, List, Literal
+else:
+    from typing_extensions import Callable, Tuple, Union, Dict, Any, List, Literal
 
 logger = logging.getLogger("full_payload_gen")
 
