@@ -90,7 +90,9 @@ class CallBackLogger:
         """收集测试表单的结果"""
         if not data["ok"]:
             return
-        testsuccess_msg = "payload测试成功！" if data["test_success"] else "payload测试失败。"
+        testsuccess_msg = (
+            "payload测试成功！" if data["test_success"] else "payload测试失败。"
+        )
         will_print_msg = "其会产生回显。" if data["will_print"] else "其不会产生回显。"
         self.messages.append(testsuccess_msg + will_print_msg)
 
@@ -255,13 +257,15 @@ def create_task():
         else:
             options = Options()
             if request.form.get("detect_mode", None):
-                options.detect_mode=DetectMode(request.form.get("detect_mode", None))
+                options.detect_mode = DetectMode(request.form.get("detect_mode", None))
             if request.form.get("environment", None):
-                options.environment=TemplateEnvironment(request.form.get("environment", None))
+                options.environment = TemplateEnvironment(
+                    request.form.get("environment", None)
+                )
             if request.form.get("replaced_keyword_strategy", None):
-                options.replaced_keyword_strategy=ReplacedKeywordStrategy(request.form.get(
-                    "replaced_keyword_strategy", None
-                ))
+                options.replaced_keyword_strategy = ReplacedKeywordStrategy(
+                    request.form.get("replaced_keyword_strategy", None)
+                )
             taskid = create_crack_task(
                 request.form["url"],
                 request.form["method"],

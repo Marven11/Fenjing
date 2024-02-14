@@ -119,13 +119,14 @@ class BaseSubmitter:
             return None
         return HTTPResponse(resp.status_code, html.unescape(resp.text))
 
+
 class TCPSubmitter(BaseSubmitter):
     def __init__(
         self,
         requester: TCPRequester,
         pattern: bytes,
-        toreplace = b"PAYLOAD",
-        urlencode_payload = True,
+        toreplace=b"PAYLOAD",
+        urlencode_payload=True,
     ):
 
         super().__init__()
@@ -143,6 +144,7 @@ class TCPSubmitter(BaseSubmitter):
             return None
         code, text = result
         return HTTPResponse(code, text)
+
 
 class RequestSubmitter(BaseSubmitter):
     """向一个url提交GET或POST数据"""

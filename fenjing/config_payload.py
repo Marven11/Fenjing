@@ -10,9 +10,7 @@ from .full_payload_gen import FullPayloadGen
 full_payload_store: Dict[int, FullPayloadGen] = {}
 
 
-def config_payload(
-    waf_func: WafFunc
-) -> Union[str, None]:
+def config_payload(waf_func: WafFunc) -> Union[str, None]:
     """根据提供的waf函数生成读取config的payload
 
     Args:

@@ -1,5 +1,6 @@
 """所有常用常数
 """
+
 from typing import Callable
 from enum import Enum
 
@@ -75,20 +76,24 @@ CALLBACK_TEST_FORM_INPUT = "test_form_input"
 APICODE_OK = 200
 APICODE_WRONG_INPUT = 401
 
+
 class DetectMode(Enum):
     """程序检测的目标模式：快速或精确"""
+
     FAST = "fast"
     ACCURATE = "accurate"
 
 
 class TemplateEnvironment(Enum):
     """模板的执行环境：flask或者普通的Jinja"""
+
     FLASK = "flask"
     JINJA2 = "jinja2"
 
 
 class PythonEnvironment(Enum):
     """模板的python执行环境：手动指定python3或者python2，或者让脚本猜测"""
+
     UNKNOWN = "unknown"
     PYTHON2 = "python2"
     PYTHON3 = "python3"
@@ -96,6 +101,7 @@ class PythonEnvironment(Enum):
 
 class ReplacedKeywordStrategy(Enum):
     """在WAF替换危险keywords时的策略"""
+
     AVOID = "avoid"
     IGNORE = "ignore"
     DOUBLETAPPING = "doubletapping"
@@ -103,6 +109,7 @@ class ReplacedKeywordStrategy(Enum):
 
 class AutoFix500Code(Enum):
     """是否开启自动修复500响应码"""
+
     ENABLED = "enabled"
     DISABLED = "disabled"
 

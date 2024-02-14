@@ -44,9 +44,7 @@ logger = logging.getLogger("cracker")
 Result = namedtuple("Result", "full_payload_gen input_field")
 
 
-def guess_python_version(
-    url: str, requester: HTTPRequester
-) -> PythonEnvironment:
+def guess_python_version(url: str, requester: HTTPRequester) -> PythonEnvironment:
     """猜测目标的python版本
 
     Args:
@@ -62,7 +60,11 @@ def guess_python_version(
     version_regexp = re.search(r"Python/(\d)", resp.headers.get("Server", ""))
     if not version_regexp:
         return PythonEnvironment.UNKNOWN
-    result = PythonEnvironment.PYTHON3 if version_regexp.group(1) == "3" else PythonEnvironment.PYTHON2
+    result = (
+        PythonEnvironment.PYTHON3
+        if version_regexp.group(1) == "3"
+        else PythonEnvironment.PYTHON2
+    )
     logger.info("Target is %s", colored("blue", result.value, bold=True))
     return result
 
