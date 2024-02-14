@@ -291,7 +291,7 @@ def jinja_env_waf():
     name = request.args.get("name", "world")
     if not waf_pass(name):
         return "Nope"
-    template = Template("Hello {.format(name)name}")
+    template = Template("Hello {}".format(name))
     # return render_template_string(template)
     return template.render()
 
