@@ -3001,8 +3001,6 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
     )
     bytes_targets_noendbracket = [
         (LITERAL, "lipsum["),
-        (VARIABLE_OF, "__globals__"),
-        (LITERAL, "]["),
         (VARIABLE_OF, "__builtins__"),
         (LITERAL, "]["),
         (VARIABLE_OF, "bytes"),
@@ -3049,10 +3047,6 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
     )
     bytes_targets_noendbracket = [
         (LITERAL, "lipsum|attr("),
-        (VARIABLE_OF, "__globals__"),
-        (LITERAL, ")|attr("),
-        (VARIABLE_OF, "__getitem__"),
-        (LITERAL, ")("),
         (VARIABLE_OF, "__builtins__"),
         (LITERAL, ")|attr("),
         (VARIABLE_OF, "__getitem__"),
@@ -3481,8 +3475,7 @@ def gen_builtins_dict_flaskattrs(context):
                 CHAINED_ATTRIBUTE_ITEM,
                 (FLASK_CONTEXT_VAR, obj_name),
                 (ATTRIBUTE, attr_name),
-                (ATTRIBUTE, "__globals__"),
-                (ITEM, "__builtins__"),
+                (ATTRIBUTE, "__builtins__"),
             )
         ]
         for obj_name, attr_name in funcs_attrs
@@ -3505,8 +3498,7 @@ def gen_builtins_dict_jinjaattrs(context):
                 CHAINED_ATTRIBUTE_ITEM,
                 (JINJA_CONTEXT_VAR, obj_name),
                 (ATTRIBUTE, attr_name),
-                (ATTRIBUTE, "__globals__"),
-                (ITEM, "__builtins__"),
+                (ATTRIBUTE, "__builtins__"),
             )
         ]
         for obj_name, attr_name in funcs_attrs
@@ -3520,8 +3512,7 @@ def gen_builtins_dict_lipsum(context):
         (
             CHAINED_ATTRIBUTE_ITEM,
             (JINJA_CONTEXT_VAR, "lipsum"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
+            (ATTRIBUTE, "__builtins__"),
         )
     ]
 
@@ -3540,7 +3531,6 @@ def gen_builtins_dict_unexist(context):
             CHAINED_ATTRIBUTE_ITEM,
             (EXPRESSION, precedence["literal"], [(ONEOF, *unexist)]),
             (ATTRIBUTE, "__init__"),
-            (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
         )
     ]
@@ -3553,7 +3543,6 @@ def gen_builtins_dict_safesplit(context):
             CHAINED_ATTRIBUTE_ITEM,
             (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "split"),
-            (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
         )
     ]
@@ -3566,7 +3555,6 @@ def gen_builtins_dict_safejoin(context):
             CHAINED_ATTRIBUTE_ITEM,
             (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "join"),
-            (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
         )
     ]
@@ -3579,7 +3567,6 @@ def gen_builtins_dict_safelower(context):
             CHAINED_ATTRIBUTE_ITEM,
             (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "lower"),
-            (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
         )
     ]
@@ -3592,7 +3579,6 @@ def gen_builtins_dict_safezfill(context):
             CHAINED_ATTRIBUTE_ITEM,
             (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "zfill"),
-            (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
         )
     ]
