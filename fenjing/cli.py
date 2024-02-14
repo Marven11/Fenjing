@@ -88,7 +88,7 @@ def do_submit_cmdexec(
     Args:
         cmd (str): payload对应的命令
         submitter (Submitter): 实际发送请求的submitter
-        full_payload_gen_like (FullPayloadGen): 生成payload的FullPayloadGen
+        full_payload_gen_like (Union[FullPayloadGen, EvalArgsModePayloadGen]): 生成payload的FullPayloadGen
 
     Returns:
         str: 回显
@@ -178,14 +178,16 @@ def do_crack_form_pre(
     environment: TemplateEnvironment,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[FullPayloadGen, Submitter], None]:
-    """攻击一个表单并获得结果
+    """攻击一个表单并获得用于生成payload的参数
 
     Args:
-        url (str): 表单所在的url
-        form (Form): 表单
-        requester (HTTPRequester): 发起请求的类
-        detect_mode (str): 分析模式
-        tamper_cmd (Union[str, None]): tamper命令，用于在提交时修改payload
+        url (str): 目标URL
+        form (Form): 目标表单
+        requester (HTTPRequester): 用于发送请求的requester
+        detect_mode (DetectMode): 检测模式
+        replaced_keyword_strategy (ReplacedKeywordStrategy): 如何处理被替换的关键字
+        environment (TemplateEnvironment): 目标的模板渲染环境
+        tamper_cmd (Union[str, None]): 对payload进行修改的修改命令
 
     Returns:
         Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
@@ -228,14 +230,16 @@ def do_crack_form_eval_args_pre(
     """攻击一个表单并获得结果，但是将payload放在GET/POST参数中提交
 
     Args:
-        url (str): 表单所在的url
-        form (Form): 表单
-        requester (HTTPRequester): 发起请求的类
-        detect_mode (str): 分析模式
-        tamper_cmd (Union[str, None]): tamper命令，用于在提交时修改payload
+        url (str): 目标url
+        form (Form): 目标表格
+        requester (HTTPRequester): 提交请求的requester
+        detect_mode (DetectMode): 检测模式
+        replaced_keyword_strategy (ReplacedKeywordStrategy): 如何对待被替换的关键字
+        environment (TemplateEnvironment): 模板的渲染环境
+        tamper_cmd (Union[str, None]): tamper命令
 
     Returns:
-        Union[Tuple[Submitter, bool], None]: 攻击结果
+        Union[Tuple[Submitter, EvalArgsModePayloadGen], None]: 攻击结果
     """
     python_version = guess_python_version(url, requester)
     for input_field in form["inputs"]:
@@ -275,9 +279,11 @@ def do_crack_path_pre(
     """攻击一个路径并获得payload生成器
 
     Args:
-        url (str): 需要攻击的url
+        url (str): 目标url
         requester (HTTPRequester): 发送请求的类
-        detect_mode (str): 分析模式
+        detect_mode (DetectMode): 分析模式
+        replaced_keyword_strategy (ReplacedKeywordStrategy): 如何对待被替换的关键字
+        environment (TemplateEnvironment): 模板渲染环境
         tamper_cmd (Union[str, None]): tamper命令
 
     Returns:
@@ -313,14 +319,25 @@ def do_crack_request_pre(
 
     Args:
         submitter (TCPSubmitter): 发送payload的类
-        detect_mode (str): 攻击模式
-        replaced_keyword_strategy (str): 被替换关键字的策略
-        environment (str): 模板执行环境
-        tamper_cmd (Union[str, None]): tamper命令
+        detect_mode (DetectMode): 攻击模式
+        replaced_keyword_strategy (ReplacedKeywordStrategy): 如何对待被替换的关键字
+        environment (TemplateEnvironment): 模板执行环境
 
     Returns:
         Union[FullPayloadGen, None]: 攻击结果
     """
+    # 根据指定的请求文件进行攻击并获得结果
+
+    # Args:
+    #     submitter (TCPSubmitter): 发送payload的类
+    #     detect_mode (str): 攻击模式
+    #     replaced_keyword_strategy (str): 被替换关键字的策略
+    #     environment (str): 模板执行环境
+    #     tamper_cmd (Union[str, None]): tamper命令
+
+    # Returns:
+    #     Union[FullPayloadGen, None]: 攻击结果
+    # 
     options = Options(
         detect_mode=detect_mode,
         replaced_keyword_strategy=replaced_keyword_strategy,

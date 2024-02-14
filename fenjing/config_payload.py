@@ -14,10 +14,10 @@ def config_payload(waf_func: WafFunc) -> Union[str, None]:
     """根据提供的waf函数生成读取config的payload
 
     Args:
-        waf_func (Callable[[str, ], bool]): waf函数，判断提供的payload能否通过waf, 能则返回True
+        waf_func (WafFunc): waf函数，判断提供的payload能否通过waf, 能则返回True
 
     Returns:
-        str|None: payload
+        Union[str, None]: payload
     """
     full_payload = None
     if id(waf_func) not in full_payload_store:
