@@ -116,6 +116,14 @@ class AutoFix500Code(Enum):
 
 WafFunc = Callable[[str], bool]
 
+SET_STMT_PATTERNS = [
+    ("{%set NAME=EXPR%}", "{%set =%}"),
+    ("{%set\tNAME=EXPR%}", "{%set\t=%}"),
+    ("{%set\nNAME=EXPR%}", "{%set\n=%}"),
+    ("{%set\rNAME=EXPR%}", "{%set\r=%}"),
+    ("{%set(NAME)=EXPR%}", "{%set(a)=%}"),
+]
+
 DANGEROUS_KEYWORDS = [
     '"',
     "%",

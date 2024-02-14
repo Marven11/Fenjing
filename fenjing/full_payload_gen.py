@@ -8,11 +8,13 @@ from typing import Callable, Tuple, Union, Dict, Any, List
 from . import payload_gen
 from .colorize import colored
 from .context_vars import (
-    context_payloads_all,
-    ContextVariableUtil,
+    context_payloads_stmts,
+    get_context_vars_manager,
+    ContextVariableManager,
 )
 from .const import (
     DetectMode,
+    SET_STMT_PATTERNS,
     CALLBACK_PREPARE_FULLPAYLOADGEN,
     CALLBACK_GENERATE_FULLPAYLOAD,
     STRING,
@@ -24,13 +26,6 @@ from .options import Options
 
 
 logger = logging.getLogger("full_payload_gen")
-set_value_patterns = [
-    ("{%set NAME=EXPR%}", "{%set =%}"),
-    ("{%set\tNAME=EXPR%}", "{%set\t=%}"),
-    ("{%set\nNAME=EXPR%}", "{%set\n=%}"),
-    ("{%set\rNAME=EXPR%}", "{%set\r=%}"),
-    ("{%set(NAME)=EXPR%}", "{%set(a)=%}"),
-]
 
 
 def get_outer_pattern(
@@ -116,7 +111,7 @@ class FullPayloadGen:
         self._callback: Callable[[str, Dict], None] = (
             callback if callback else (lambda x, y: None)
         )
-        self.context_vars = ContextVariableUtil(waf_func, context_payloads_all)
+        self.context_vars: Union[ContextVariableManager, None] = None
         self.outer_pattern, self.will_print = None, None
         self.payload_gen = None
         self.options = options if options else Options()
@@ -150,7 +145,7 @@ class FullPayloadGen:
         if self.prepared:
             return True
 
-        self.context_vars.do_prepare()
+        self.context_vars = get_context_vars_manager(self.waf_func)
 
         self.outer_pattern, self.will_print = get_outer_pattern(self.waf_func)
         if not self.outer_pattern:
@@ -194,9 +189,9 @@ class FullPayloadGen:
         """
         if not self.prepared and not self.do_prepare():
             return False
-        assert self.payload_gen, "We should have payload_gen after preparation"
+        assert self.payload_gen and self.context_vars, "We should have these prepared"
         pattern = None
-        for fill_pattern, test_pattern in set_value_patterns:
+        for fill_pattern, test_pattern in SET_STMT_PATTERNS:
             if self.waf_func(test_pattern):
                 pattern = fill_pattern
                 break
@@ -285,7 +280,7 @@ class FullPayloadGen:
         if not self.prepared and not self.do_prepare():
             return
         if not any(
-            self.waf_func(test_pattern) for _, test_pattern in set_value_patterns
+            self.waf_func(test_pattern) for _, test_pattern in SET_STMT_PATTERNS
         ):
             logger.warning("We cannot set any variable through {%set %}, continue...")
             return
@@ -325,7 +320,7 @@ class FullPayloadGen:
         """
         if not self.prepared:
             raise RuntimeError("Please run .do_prepare() first")
-        assert self.payload_gen is not None
+        assert self.payload_gen is not None and self.context_vars is not None
         success = self.context_vars.add_payload(
             payload=payload,
             variables=context_vars,
@@ -352,7 +347,7 @@ class FullPayloadGen:
         # 需要准备context payload和表达式外部的包裹，然后使用assert检查是否正确
         if not self.prepared and not self.do_prepare():
             return None
-        assert self.payload_gen is not None, "when prepared, we should have payload_gen"
+        assert self.payload_gen is not None and self.context_vars is not None
         assert isinstance(self.outer_pattern, str) and self.will_print is not None
 
         # 在生成模式不是快速时生成一系列的字符串变量以减少嵌套括号

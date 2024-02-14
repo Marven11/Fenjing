@@ -30,7 +30,7 @@ from .const import (
 )
 from .waf_func_gen import WafFuncGen
 from .full_payload_gen import FullPayloadGen
-from .context_vars import ContextVariableUtil
+from .context_vars import ContextVariableManager
 from .options import Options
 
 
@@ -227,7 +227,7 @@ class Cracker:
                     + "You can try generating payloads anyway.",
                 )
 
-    def expr_waf_not500(self, tree, outer_pattern, context_vars: ContextVariableUtil):
+    def expr_waf_not500(self, tree, outer_pattern, context_vars: ContextVariableManager):
         def is_expr_bad(expr):
             payload = context_vars.get_payload(
                 context_vars.get_context()
