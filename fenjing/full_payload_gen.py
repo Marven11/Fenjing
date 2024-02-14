@@ -29,6 +29,7 @@ set_value_patterns = [
     ("{%set\tNAME=EXPR%}", "{%set\t=%}"),
     ("{%set\nNAME=EXPR%}", "{%set\n=%}"),
     ("{%set\rNAME=EXPR%}", "{%set\r=%}"),
+    ("{%set(NAME)=EXPR%}", "{%set(a)=%}"),
 ]
 
 
