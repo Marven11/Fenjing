@@ -275,6 +275,7 @@ class FullPayloadGen:
             "truediv",
             "pos",
             "concat",
+            "big",
             "__class__",
             "__globals__",
             "__init__",

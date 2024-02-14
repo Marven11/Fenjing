@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """一个可以被SSTI的服务器
 """
 import random
@@ -123,20 +124,19 @@ def garbasecollect(resp):
 @app.route("/", methods=["GET", "POST"])
 def index():
     name = request.args.get("name", "world")
-    template = f"""
-Hello, {name}
-<form action="/" method="GET">
-<input type="text" name="name" id="">
-<input type="submit" value="">
-</form>
-"""
+    template = """
+    Hello, {}
+    <form action="/" method="GET">
+    <input type="text" name="name" id="">
+    <input type="submit" value="">
+    </form>""".format(name)
 
     return render_template_string(template)
 
 
 @app.route("/nonrespond", methods=["GET", "POST"])
 def nonrespond():
-    template = f"Hello, World!"
+    template = "Hello, World!"
 
     return render_template_string(template)
 
@@ -154,14 +154,14 @@ def verifyheader():
     if "114514" not in cookie_data:
         return "Set data as 114514 in cookie!"
     name = request.args.get("name", "world")
-    template = f"Hello, {name}"
+    template = "Hello, {}".format(name)
 
     return render_template_string(template)
 
 
 @app.route("/crackpath/<name>")
 def crackpath(name):
-    return render_template_string(f"Hello, {name}!")
+    return render_template_string("Hello, {}!".format(name))
 
 
 @app.route("/scan_burstkeywords", methods=["GET", "POST"])
@@ -171,7 +171,7 @@ def scan_burstkeywords():
         return "Tell me your name with GET param!"
     if not waf_pass(name):
         return "Nope"
-    template = f"Hello, {name}"
+    template = "Hello, {}".format(name)
     return render_template_string(template)
 
 @app.route("/static_waf", methods=["GET", "POST"])
@@ -179,7 +179,7 @@ def static_waf():
     name = request.args.get("name", "world")
     if not waf_pass(name):
         return "Nope"
-    template = f"Hello, {name}"
+    template = "Hello, {}".format(name)
     return render_template_string(template)
 
 
@@ -231,7 +231,7 @@ def dynamic_waf():
     name = request.args.get("name", "world")
     if not waf_pass(name):
         return waf_words(name)[0]
-    template = f"Hello, {name}"
+    template = "Hello, {}".format(name)
     return render_template_string(template)
 
 
@@ -240,7 +240,7 @@ def weird_waf():
     name = request.args.get("name", "world")
     if not waf_pass(name) and len(name) < 10 and random.random() < 0.9:
         return "Naidesu"
-    template = f"Hello, {name}"
+    template = "Hello, {}".format(name)
     return render_template_string(template)
 
 
@@ -249,8 +249,8 @@ def reversed_waf():
     name = request.args.get("name", "world")[::-1]
     if not waf_pass(name):
         return "Nope"
-    template = f"""
-Hello, {name}
+    template = "Hello, {}".format(name) + """
+
 <form action="/reversed_waf" method="GET">
 <input type="text" name="name" id="">
 <input type="submit" value="">
@@ -264,7 +264,7 @@ def lengthlimit1_waf():
     name = request.args.get("name", "world")
     if not lengthlimit1_waf_pass(name):
         return "Nope"
-    template = f"Hello, {name}"
+    template = "Hello, {}".format(name)
     return render_template_string(template)
 
 
@@ -273,7 +273,7 @@ def lengthlimit2_waf():
     name = request.args.get("name", "world")
     if not lengthlimit2_waf_pass(name):
         return "Nope"
-    template = f"Hello, {name}"
+    template = "Hello, {}".format(name)
     return render_template_string(template)
 
 @app.route("/replace_waf", methods=["GET", "POST"])
@@ -283,7 +283,7 @@ def replace_waf():
     for word in words:
         if len(word) >= 3:
             name = name.replace(word, "")
-    template = f"Hello, {name}"
+    template = "Hello, {}".format(name)
     return render_template_string(template)
 
 @app.route("/jinja_env_waf", methods=["GET", "POST"])
@@ -291,7 +291,7 @@ def jinja_env_waf():
     name = request.args.get("name", "world")
     if not waf_pass(name):
         return "Nope"
-    template = Template(f"Hello, {name}")
+    template = Template("Hello {.format(name)name}")
     # return render_template_string(template)
     return template.render()
 
@@ -299,7 +299,7 @@ def jinja_env_waf():
 def crackpath_extra(name):
     isdebug = request.args.get("debug") is not None
     if isdebug:
-        return render_template_string(f"Hello, {name}!")
+        return render_template_string("Hello, {}!".format(name))
     return "Error: Not debug"
 
 if __name__ == "__main__":

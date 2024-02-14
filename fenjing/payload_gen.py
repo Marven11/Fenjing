@@ -1179,12 +1179,13 @@ def gen_positive_integer_unicode(context: dict, value: int):
         [(LITERAL, payload)] for payload in transform_int_chars_unicode(str(value)[1:])
     ]
     return [
+        (REQUIRE_PYTHON3,),
         (
             EXPRESSION,
             precedence["literal"],
             [(LITERAL, str(value)[0]), (ONEOF, *payload_targets)],
         )
-    ] + [(REQUIRE_PYTHON3,)]
+    ]
 
 
 @expression_gen
@@ -1197,7 +1198,7 @@ def gen_positive_integer_unicodehex(context: dict, value: int):
         for payload in transform_int_chars_unicode(value_hex_literal)
     ]
     targets_list = [(LITERAL, "0x"), (ONEOF, *payload_targets)]
-    return [(EXPRESSION, precedence["literal"], targets_list)] + [(REQUIRE_PYTHON3,)]
+    return [(REQUIRE_PYTHON3,), (EXPRESSION, precedence["literal"], targets_list)]
 
 
 @expression_gen
@@ -1748,7 +1749,7 @@ def gen_string_percent_lipsum2(context):
         (
             EXPRESSION,
             precedence["function_call"],
-            [(LITERAL, "lipsum.__builtins__.chr(37)")],
+            [(LITERAL, "lipsum.__globals__.__builtins__.chr(37)")],
         )
     ]
 
@@ -1761,6 +1762,8 @@ def gen_string_percent_lipsum3(context):
             precedence["function_call"],
             [
                 (LITERAL, "lipsum["),
+                (VARIABLE_OF, "__globals__"),
+                (LITERAL, "]["),
                 (VARIABLE_OF, "__builtins__"),
                 (LITERAL, "]["),
                 (VARIABLE_OF, "chr"),
@@ -1781,6 +1784,8 @@ def gen_string_percent_lipsum4(context):
             precedence["filter_with_function_call"],
             [
                 (LITERAL, "lipsum|attr("),
+                (VARIABLE_OF, "__globals__"),
+                (LITERAL, ")|attr("),
                 (VARIABLE_OF, "__getitem__"),
                 (LITERAL, ")("),
                 (VARIABLE_OF, "__builtins__"),
@@ -1864,7 +1869,7 @@ def gen_string_percent_dictbatch(context):
         (INTEGER, 37),
         (LITERAL, ")"),
     ]
-    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
+    return [(EXPRESSION, precedence["filter_with_function_call"], target_list), (REQUIRE_PYTHON3, )]
 
 
 @expression_gen
@@ -1888,7 +1893,7 @@ def gen_string_percent_lipsumcomplex(context):
         (INTEGER, 22),
         (LITERAL, ")|list|first|last)*"),
         (INTEGER, 2),
-        (LITERAL, "+dict(glo=x,bals=x)|join+(lipsum|escape|batch("),
+        (LITERAL, "+dict(gl=x,obals=x)|join+(lipsum|escape|batch("),
         (INTEGER, 22),
         (LITERAL, ")|list|first|last)*"),
         (INTEGER, 2),
@@ -1921,8 +1926,8 @@ def gen_string_percent_urlencodelong(context):
             [(LITERAL, "'ur''lencode'")],
             [(LITERAL, '"ur""lencode"')],
             [(LITERAL, "dict(urlencode=x)|first")],
-            [(LITERAL, "dict(ur=x,lenc=x,ode=x)|join")],
-            [(LITERAL, "dict(ur=x,le=x,nco=x,de=x)|join")],
+            [(LITERAL, "dict(ur=x,lenc=x,ode=x)|join"), (REQUIRE_PYTHON3, )],
+            [(LITERAL, "dict(ur=x,le=x,nco=x,de=x)|join"), (REQUIRE_PYTHON3, )],
             [(VARIABLE_OF, 'urlencode')],
         ),
         (LITERAL, ")|first|first"),
@@ -2056,7 +2061,7 @@ def gen_string_percent_lower_c_dictjoin(context):
         (STRING_LOWERC,),
         (LITERAL, ",x)])|join"),
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3, )]
 
 
 @expression_gen
@@ -2365,193 +2370,209 @@ def gen_char_percent(context, c):
     target_list = [(UNSATISFIED,)] if c != "%" else [(STRING_PERCENT,)]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
+char_patterns = {
+    "(dict|trim|list)[INDEX]": {
+        1: "c",
+        2: "l",
+        3: "a",
+        4: "s",
+        5: "s",
+        6: " ",
+        7: "'",
+        8: "d",
+        9: "i",
+        10: "c",
+        11: "t",
+    },
+    "dict|trim|list|batch(INDEX)|first|last": {
+        2: "c",
+        3: "l",
+        4: "a",
+        5: "s",
+        6: "s",
+        7: " ",
+        8: "'",
+        9: "d",
+        10: "i",
+        11: "c",
+        12: "t",
+    },
+    "({}|select()|trim|list)[INDEX]": {
+        1: "g",
+        2: "e",
+        3: "n",
+        4: "e",
+        5: "r",
+        6: "a",
+        7: "t",
+        8: "o",
+        9: "r",
+        10: " ",
+        11: "o",
+        12: "b",
+        13: "j",
+        14: "e",
+        15: "c",
+        16: "t",
+        17: " ",
+        18: "s",
+        19: "e",
+        20: "l",
+        21: "e",
+        22: "c",
+        23: "t",
+        24: "_",
+        25: "o",
+        26: "r",
+        27: "_",
+        28: "r",
+        29: "e",
+        30: "j",
+        31: "e",
+        32: "c",
+        33: "t",
+        34: " ",
+        35: "a",
+        36: "t",
+    },
+    "{}|select()|trim|list|batch(INDEX)|first|last": {
+        2: "g",
+        3: "e",
+        4: "n",
+        5: "e",
+        6: "r",
+        7: "a",
+        8: "t",
+        9: "o",
+        10: "r",
+        11: " ",
+        12: "o",
+        13: "b",
+        14: "j",
+        15: "e",
+        16: "c",
+        17: "t",
+        18: " ",
+        19: "s",
+        20: "e",
+        21: "l",
+        22: "e",
+        23: "c",
+        24: "t",
+        25: "_",
+        26: "o",
+        27: "r",
+        28: "_",
+        29: "r",
+        30: "e",
+        31: "j",
+        32: "e",
+        33: "c",
+        34: "t",
+        35: " ",
+        36: "a",
+        37: "t",
+    },
+    "(lipsum|trim|list)[INDEX]": {
+        1: "f",
+        2: "u",
+        3: "n",
+        4: "c",
+        5: "t",
+        6: "i",
+        7: "o",
+        8: "n",
+        9: " ",
+        10: "g",
+        11: "e",
+        12: "n",
+        13: "e",
+        14: "r",
+        15: "a",
+        16: "t",
+        17: "e",
+        18: "_",
+        19: "l",
+        20: "o",
+        21: "r",
+        22: "e",
+        23: "m",
+        24: "_",
+        25: "i",
+        26: "p",
+        27: "s",
+        28: "u",
+        29: "m",
+        30: " ",
+        31: "a",
+        32: "t",
+        33: " ",
+        34: "0",
+        35: "x",
+        36: "7",
+    },
+    "lipsum|trim|list|batch(INDEX)|first|last": {
+        2: "f",
+        3: "u",
+        4: "n",
+        5: "c",
+        6: "t",
+        7: "i",
+        8: "o",
+        9: "n",
+        10: " ",
+        11: "g",
+        12: "e",
+        13: "n",
+        14: "e",
+        15: "r",
+        16: "a",
+        17: "t",
+        18: "e",
+        19: "_",
+        20: "l",
+        21: "o",
+        22: "r",
+        23: "e",
+        24: "m",
+        25: "_",
+        26: "i",
+        27: "p",
+        28: "s",
+        29: "u",
+        30: "m",
+        31: " ",
+        32: "a",
+        33: "t",
+        34: " ",
+        35: "0",
+        36: "x",
+        37: "7",
+    },
+    "(()|trim|list)[INDEX]": {0: "(", 1: ")"},
+    "cycler.__name__[INDEX]": {0: "C", 1: "y", 2: "c", 3: "l", 4: "e", 5: "r"},
+}
 
 @expression_gen
-def gen_char_select(context, c):
-    char_patterns = {
-        "(dict|trim|list)[INDEX]": {
-            1: "c",
-            2: "l",
-            3: "a",
-            4: "s",
-            5: "s",
-            6: " ",
-            7: "'",
-            8: "d",
-            9: "i",
-            10: "c",
-            11: "t",
-        },
-        "dict|trim|list|batch(INDEX)|first|last": {
-            2: "c",
-            3: "l",
-            4: "a",
-            5: "s",
-            6: "s",
-            7: " ",
-            8: "'",
-            9: "d",
-            10: "i",
-            11: "c",
-            12: "t",
-        },
-        "({}|select()|trim|list)[INDEX]": {
-            1: "g",
-            2: "e",
-            3: "n",
-            4: "e",
-            5: "r",
-            6: "a",
-            7: "t",
-            8: "o",
-            9: "r",
-            10: " ",
-            11: "o",
-            12: "b",
-            13: "j",
-            14: "e",
-            15: "c",
-            16: "t",
-            17: " ",
-            18: "s",
-            19: "e",
-            20: "l",
-            21: "e",
-            22: "c",
-            23: "t",
-            24: "_",
-            25: "o",
-            26: "r",
-            27: "_",
-            28: "r",
-            29: "e",
-            30: "j",
-            31: "e",
-            32: "c",
-            33: "t",
-            34: " ",
-            35: "a",
-            36: "t",
-        },
-        "{}|select()|trim|list|batch(INDEX)|first|last": {
-            2: "g",
-            3: "e",
-            4: "n",
-            5: "e",
-            6: "r",
-            7: "a",
-            8: "t",
-            9: "o",
-            10: "r",
-            11: " ",
-            12: "o",
-            13: "b",
-            14: "j",
-            15: "e",
-            16: "c",
-            17: "t",
-            18: " ",
-            19: "s",
-            20: "e",
-            21: "l",
-            22: "e",
-            23: "c",
-            24: "t",
-            25: "_",
-            26: "o",
-            27: "r",
-            28: "_",
-            29: "r",
-            30: "e",
-            31: "j",
-            32: "e",
-            33: "c",
-            34: "t",
-            35: " ",
-            36: "a",
-            37: "t",
-        },
-        "(lipsum|trim|list)[INDEX]": {
-            1: "f",
-            2: "u",
-            3: "n",
-            4: "c",
-            5: "t",
-            6: "i",
-            7: "o",
-            8: "n",
-            9: " ",
-            10: "g",
-            11: "e",
-            12: "n",
-            13: "e",
-            14: "r",
-            15: "a",
-            16: "t",
-            17: "e",
-            18: "_",
-            19: "l",
-            20: "o",
-            21: "r",
-            22: "e",
-            23: "m",
-            24: "_",
-            25: "i",
-            26: "p",
-            27: "s",
-            28: "u",
-            29: "m",
-            30: " ",
-            31: "a",
-            32: "t",
-            33: " ",
-            34: "0",
-            35: "x",
-            36: "7",
-        },
-        "lipsum|trim|list|batch(INDEX)|first|last": {
-            2: "f",
-            3: "u",
-            4: "n",
-            5: "c",
-            6: "t",
-            7: "i",
-            8: "o",
-            9: "n",
-            10: " ",
-            11: "g",
-            12: "e",
-            13: "n",
-            14: "e",
-            15: "r",
-            16: "a",
-            17: "t",
-            18: "e",
-            19: "_",
-            20: "l",
-            21: "o",
-            22: "r",
-            23: "e",
-            24: "m",
-            25: "_",
-            26: "i",
-            27: "p",
-            28: "s",
-            29: "u",
-            30: "m",
-            31: " ",
-            32: "a",
-            33: "t",
-            34: " ",
-            35: "0",
-            36: "x",
-            37: "7",
-        },
-        "(()|trim|list)[INDEX]": {0: "(", 1: ")"},
-        "cycler.__name__[INDEX]": {0: "C", 1: "y", 2: "c", 3: "l", 4: "e", 5: "r"},
-    }
+def gen_char_selectpy3(context, c):
+    
     matches = []
     for pattern, d in char_patterns.items():
+        for index, value in d.items():
+            if value == c:
+                matches.append([(LITERAL, pattern.replace("INDEX", str(index)))])
+    if not matches:
+        return [(UNSATISFIED,)]
+    target_list = [(ONEOF, *matches)]
+    return [(REQUIRE_PYTHON3, ), (EXPRESSION, precedence["filter"], target_list)]
+
+@expression_gen
+def gen_char_selectpy2(context, c):
+    
+    matches = []
+    for pattern, d in char_patterns.items():
+        if "dict" in pattern:
+            continue
         for index, value in d.items():
             if value == c:
                 matches.append([(LITERAL, pattern.replace("INDEX", str(index)))])
@@ -3071,7 +3092,7 @@ def gen_string_splitdictjoin(context: dict, value: str):
     target_list = [
         (LITERAL, "dict({})|join".format(",".join(f"{part}=x" for part in parts)))
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3, )]
 
 
 @expression_gen
@@ -3081,7 +3102,7 @@ def gen_string_splitdictjoin2(context: dict, value: str):
     parts = [value[i : i + 3] for i in range(0, len(value), 3)]
     targets = [(LITERAL, "dict({}=x)|join".format(part)) for part in parts]
     strings = [(EXPRESSION, precedence["filter"], [target]) for target in targets]
-    return [(STRING_CONCATMANY, strings)]
+    return [(STRING_CONCATMANY, strings), (REQUIRE_PYTHON3, )]
 
 
 @expression_gen
@@ -3095,7 +3116,7 @@ def gen_string_splitdictjoin3(context: dict, value: str):
     target_list = [
         (LITERAL, "dict({})|join".format(",".join(f"{part}=x" for part in value)))
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3, )]
 
 
 @expression_gen
@@ -3159,6 +3180,8 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
     )
     bytes_targets_noendbracket = [
         (LITERAL, "lipsum["),
+        (VARIABLE_OF, "__globals__"),
+        (LITERAL, "]["),
         (VARIABLE_OF, "__builtins__"),
         (LITERAL, "]["),
         (VARIABLE_OF, "bytes"),
@@ -3205,6 +3228,10 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
     )
     bytes_targets_noendbracket = [
         (LITERAL, "lipsum|attr("),
+        (VARIABLE_OF, "__globals__"),
+        (LITERAL, ")|attr("),
+        (VARIABLE_OF, "__getitem__"),
+        (LITERAL, ")("),
         (VARIABLE_OF, "__builtins__"),
         (LITERAL, ")|attr("),
         (VARIABLE_OF, "__getitem__"),
@@ -3248,9 +3275,13 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
 def gen_string_intbytes1(context: dict, value: str):
     if not all(x < 128 for x in value.encode()):
         return [(UNSATISFIED, )]
-    n = int.from_bytes(value.encode())
-    payload = f"({n}).to_bytes({len(value)}).decode()"
-    return [(EXPRESSION, precedence["function_call"], [(LITERAL, payload)]), (REQUIRE_PYTHON3, )]
+    n = int.from_bytes(value.encode(), "big")
+    targets = [
+        (LITERAL, f"({n}).to_bytes({len(value)}"),
+        (ONEOF, [(LITERAL, "'big'")], [(LITERAL, '"big"')], [(VARIABLE_OF, "big")]),
+        (LITERAL, ").decode()")
+    ]
+    return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3, )]
 
 
 @expression_gen
@@ -3444,7 +3475,7 @@ def gen_string_splitdictjoincycler(context: dict, value: str):
             ),
         )
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3, )]
 
 
 # ---
@@ -3642,7 +3673,8 @@ def gen_builtins_dict_flaskattrs(context):
                 CHAINED_ATTRIBUTE_ITEM,
                 (FLASK_CONTEXT_VAR, obj_name),
                 (ATTRIBUTE, attr_name),
-                (ATTRIBUTE, "__builtins__"),
+                (ATTRIBUTE, "__globals__"),
+                (ITEM, "__builtins__"),
             )
         ]
         for obj_name, attr_name in funcs_attrs
@@ -3665,7 +3697,8 @@ def gen_builtins_dict_jinjaattrs(context):
                 CHAINED_ATTRIBUTE_ITEM,
                 (JINJA_CONTEXT_VAR, obj_name),
                 (ATTRIBUTE, attr_name),
-                (ATTRIBUTE, "__builtins__"),
+                (ATTRIBUTE, "__globals__"),
+                (ITEM, "__builtins__"),
             )
         ]
         for obj_name, attr_name in funcs_attrs
@@ -3679,7 +3712,8 @@ def gen_builtins_dict_lipsum(context):
         (
             CHAINED_ATTRIBUTE_ITEM,
             (JINJA_CONTEXT_VAR, "lipsum"),
-            (ATTRIBUTE, "__builtins__"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
         )
     ]
 
@@ -3698,6 +3732,7 @@ def gen_builtins_dict_unexist(context):
             CHAINED_ATTRIBUTE_ITEM,
             (EXPRESSION, precedence["literal"], [(ONEOF, *unexist)]),
             (ATTRIBUTE, "__init__"),
+            (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
         )
     ]
@@ -3710,6 +3745,7 @@ def gen_builtins_dict_safesplit(context):
             CHAINED_ATTRIBUTE_ITEM,
             (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "split"),
+            (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
         )
     ]
@@ -3722,6 +3758,7 @@ def gen_builtins_dict_safejoin(context):
             CHAINED_ATTRIBUTE_ITEM,
             (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "join"),
+            (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
         )
     ]
@@ -3734,6 +3771,7 @@ def gen_builtins_dict_safelower(context):
             CHAINED_ATTRIBUTE_ITEM,
             (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "lower"),
+            (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
         )
     ]
@@ -3746,6 +3784,7 @@ def gen_builtins_dict_safezfill(context):
             CHAINED_ATTRIBUTE_ITEM,
             (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "zfill"),
+            (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
         )
     ]
