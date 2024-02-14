@@ -288,6 +288,7 @@ class FullPayloadGen:
             "__truediv__",
             "%",
             "c",
+            "%s%s",
             "%s%%s",
             "%c",  # try to regenerate
         ] + append_targets

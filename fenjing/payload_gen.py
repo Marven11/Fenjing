@@ -255,7 +255,7 @@ def tree_precedence(tree):
     for target, sub_target_tree in tree:
         if target[0] in [LITERAL, UNSATISFIED]:
             pass
-        elif target[0] in [PLUS, MULTIPLY, MOD, ATTRIBUTE, ITEM]:
+        elif target[0] in [PLUS, MULTIPLY, MOD, ATTRIBUTE, ITEM, MODULE_OS, FUNCTION_CALL]:
             # might be transformed into filters
             sub_target_answer = tree_precedence(sub_target_tree)
             if sub_target_answer:
@@ -743,11 +743,12 @@ def gen_string_concat_tilde(context: dict, a, b):
 @expression_gen
 def gen_string_concat_format(context: dict, a, b):
     target_list = [
-        (ONEOF, [(LITERAL, "'%s%%s'")], [(LITERAL, '"%s%%s"')], [(VARIABLE_OF, "%s%%s")]),
-        (LITERAL, "%"),
-        (ENCLOSE_UNDER, precedence["mod"], a),
-        (LITERAL, "%"),
-        (ENCLOSE_UNDER, precedence["mod"], b),
+        (ONEOF, [(LITERAL, "'%s%s'")], [(LITERAL, '"%s%s"')], [(VARIABLE_OF, "%s%s")]),
+        (LITERAL, "%("),
+        a,
+        (LITERAL, ","),
+        b,
+        (LITERAL, ")"),
     ]
     return [(EXPRESSION, precedence["mod"], target_list)]
 
@@ -2579,10 +2580,10 @@ def gen_char_flaskg(context, c):
         14: "f",
     }
     matches = []
-    pattern = "g|e|batch(INDEX)|first|last"
+    pattern = "|e|batch(INDEX)|first|last"
     for index, value in d.items():
         if value == c:
-            matches.append([(LITERAL, pattern.replace("INDEX", str(index)))])
+            matches.append([(FLASK_CONTEXT_VAR, "g"), (LITERAL, pattern.replace("INDEX", str(index)))])
     target_list = [(ONEOF, *matches)]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
