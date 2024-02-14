@@ -146,7 +146,7 @@ class FullPayloadGen:
         if self.prepared:
             return True
 
-        self.context_vars = get_context_vars_manager(self.waf_func)
+        self.context_vars = get_context_vars_manager(self.waf_func, self.options)
 
         self.outer_pattern, self.will_print = get_outer_pattern(self.waf_func)
         if not self.outer_pattern:

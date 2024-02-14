@@ -1421,7 +1421,10 @@ def gen_positive_integer_numbersum2(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_count(context: dict, value: int):
-    target_list = [(LITERAL, "({})|count".format(",".join("x" * value)))]
+    s = ",".join("x" * value)
+    if value == 1:
+        s += ","
+    target_list = [(LITERAL, "({})|count".format(s))]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -1992,7 +1995,7 @@ def gen_string_percent_replaceformat3(context):
         (INTEGER, 37),
         (LITERAL, ")"),
     ]
-    return [(EXPRESSION, precedence["function_call"], target_list)]
+    return [(EXPRESSION, precedence["function_call"], target_list), (REQUIRE_PYTHON3, )]
 
 
 # ---
