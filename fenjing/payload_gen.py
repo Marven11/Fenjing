@@ -46,6 +46,7 @@ if sys.version_info >= (3, 8):
     LiteralTarget = Tuple[Literal["literal"], str]
     ExpressionTarget = Tuple[Literal["expression"], int, List["Target"]]
     EncloseUnderTarget = Tuple[Literal["enclose_under"], int, List["Target"]]
+    EncloseTarget = Tuple[Literal["enclose"], List["Target"]]
     UnsatisfiedTarget = Tuple[Literal["unsatisfied"],]
     OneofTarget = Tuple[Literal["oneof"], List["Target"]]
     WithContextVarTarget = Tuple[Literal["with_context_var"], str]
@@ -81,6 +82,7 @@ if sys.version_info >= (3, 8):
         LiteralTarget,
         ExpressionTarget,
         EncloseUnderTarget,
+        EncloseTarget,
         UnsatisfiedTarget,
         OneofTarget,
         WithContextVarTarget,
@@ -115,6 +117,7 @@ else:
     LiteralTarget = Tuple
     ExpressionTarget = Tuple
     EncloseUnderTarget = Tuple
+    EncloseTarget = Tuple
     UnsatisfiedTarget = Tuple
     OneofTarget = Tuple
     WithContextVarTarget = Tuple
@@ -412,7 +415,7 @@ class PayloadGenerator:
         """
         # if self.options.detect_mode == DETECT_MODE_ACCURATE and not self.waf_func(target[1]):
         #     return None
-        return (target[1], {}, None)
+        return (target[1], {}, [])
 
     @register_generate_func(lambda self, target: target in self.cache_by_repr)
     def cache_generate(self, target: Target) -> Union[PayloadGeneratorResult, None]:
@@ -526,7 +529,7 @@ class PayloadGenerator:
         Returns:
             _type_: 生成结果
         """
-        return ("", {target[1]: self.context[target[1]]}, None)
+        return ("", {target[1]: self.context[target[1]]}, [])
 
     @register_generate_func(lambda self, target: target[0] == JINJA_CONTEXT_VAR)
     def jinja_context_var_generate(
@@ -540,7 +543,7 @@ class PayloadGenerator:
         Returns:
             _type_: 生成结果
         """
-        return (target[1], {}, None)
+        return (target[1], {}, [])
 
     @register_generate_func(lambda self, target: target[0] == FLASK_CONTEXT_VAR)
     def flask_context_var_generate(
@@ -556,7 +559,7 @@ class PayloadGenerator:
         """
         if self.options.environment != ENVIRONMENT_FLASK:
             return None
-        return (target[1], {}, None)
+        return (target[1], {}, [])
 
     @register_generate_func(lambda self, target: target[0] == REQUIRE_PYTHON3)
     def require_python3_generate(
@@ -572,7 +575,7 @@ class PayloadGenerator:
         """
         if self.options.python_version != PYTHON_VERSION_3:
             return None
-        return ("", {}, None)
+        return ("", {}, [])
 
     @register_generate_func(lambda self, target: True)
     def common_generate(self, gen_req: Target) -> Union[PayloadGeneratorResult, None]:
@@ -700,7 +703,7 @@ class PayloadGenerator:
 
 
 @expression_gen
-def gen_variable_of_context(context: dict, var_value) -> List[LiteralTarget]:
+def gen_variable_of_context(context: dict, var_value):
     variables = [name for name, value in context.items() if value == var_value]
     if not variables:
         return [(UNSATISFIED,)]
@@ -710,7 +713,7 @@ def gen_variable_of_context(context: dict, var_value) -> List[LiteralTarget]:
 
 # ---
 @expression_gen
-def gen_enclose_normal(context: dict, target) -> List[LiteralTarget]:
+def gen_enclose_normal(context: dict, target):
     return [
         (EXPRESSION, precedence["enclose"], [(LITERAL, "("), target, (LITERAL, ")")])
     ]
@@ -720,12 +723,12 @@ def gen_enclose_normal(context: dict, target) -> List[LiteralTarget]:
 
 
 @expression_gen
-def gen_string_concat_plus(context: dict, a, b) -> List[LiteralTarget]:
+def gen_string_concat_plus(context: dict, a, b):
     return [(PLUS, a, b)]
 
 
 @expression_gen
-def gen_string_concat_tilde(context: dict, a, b) -> List[LiteralTarget]:
+def gen_string_concat_tilde(context: dict, a, b):
     target_list = [
         (ENCLOSE_UNDER, precedence["tilde"], a),
         (LITERAL, "~"),
@@ -738,7 +741,7 @@ def gen_string_concat_tilde(context: dict, a, b) -> List[LiteralTarget]:
 
 
 @expression_gen
-def gen_string_concatmany_onebyone(context: dict, parts) -> List[LiteralTarget]:
+def gen_string_concatmany_onebyone(context: dict, parts):
     answer = parts[0]
     for part in parts[1:]:
         answer = (STRING_CONCAT, answer, part)
@@ -746,7 +749,7 @@ def gen_string_concatmany_onebyone(context: dict, parts) -> List[LiteralTarget]:
 
 
 @expression_gen
-def gen_string_concatmany_join(context: dict, parts) -> List[LiteralTarget]:
+def gen_string_concatmany_join(context: dict, parts):
     target_list = (
         [
             (LITERAL, "("),

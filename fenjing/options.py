@@ -10,6 +10,8 @@ from .const import (
     PYTHON_VERSION_UNKNOWN,
     PYTHON_VERSION_2,
     PYTHON_VERSION_3,
+    AUTOFIX_500_ENABLED,
+    AUTOFIX_500_DISABLED,
 )
 import sys
 
@@ -33,3 +35,6 @@ class Options:
     python_version: Literal[
         PYTHON_VERSION_UNKNOWN, PYTHON_VERSION_2, PYTHON_VERSION_3
     ] = PYTHON_VERSION_UNKNOWN
+    autofix_500: Literal[AUTOFIX_500_ENABLED, AUTOFIX_500_DISABLED] = (
+        AUTOFIX_500_ENABLED
+    )

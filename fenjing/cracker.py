@@ -28,6 +28,7 @@ from .const import (
     PYTHON_VERSION_UNKNOWN,
     PYTHON_VERSION_2,
     PYTHON_VERSION_3,
+    AUTOFIX_500_ENABLED,
 )
 from .waf_func_gen import WafFuncGen
 from .full_payload_gen import FullPayloadGen
@@ -262,7 +263,10 @@ class Cracker:
             return None
         full_payload_gen, will_print, test_result, tree = result
         self.log_with_result(will_print, test_result)
-        if test_result == "FAIL_500":
+        if (
+            test_result == "FAIL_500"
+            and self.options.autofix_500 == AUTOFIX_500_ENABLED
+        ):
             logger.info(colored("yellow", "Start fixing status code 500.", bold=True))
             logger.info(
                 colored(

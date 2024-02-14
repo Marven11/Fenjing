@@ -97,6 +97,11 @@ REPLACED_KEYWORDS_STRATEGY_AVOID = "avoid"  # 避免使用这些keywords
 REPLACED_KEYWORDS_STRATEGY_IGNORE = "ignore"  # 忽略检测出的keywords并继续使用
 REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING = "doubletapping"  # 对payload使用doubletapping
 
+# 是否开启自动修复500
+
+AUTOFIX_500_ENABLED = "autofix_500_enabled"
+AUTOFIX_500_DISABLED = "autofix_500_disabled"
+
 WafFunc = Callable[[str], bool]
 
 DANGEROUS_KEYWORDS = [
