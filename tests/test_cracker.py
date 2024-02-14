@@ -18,7 +18,7 @@ import logging
 import os
 
 VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
-SLEEP_INTERVAL = float(os.environ.get("SLEEP_INTERVAL", 0.01))
+SLEEP_INTERVAL = float(os.environ.get("SLEEP_INTERVAL", 0.002))
 
 class WrappedSubmitter(Submitter):
     def __init__(self, subm, blacklist):
