@@ -12,7 +12,7 @@ from .context_vars import (
     ContextVariableUtil,
 )
 from .const import (
-    DETECT_MODE_FAST,
+    DetectMode,
     CALLBACK_PREPARE_FULLPAYLOADGEN,
     CALLBACK_GENERATE_FULLPAYLOAD,
     STRING,
@@ -118,7 +118,7 @@ class FullPayloadGen:
         self.context_vars = ContextVariableUtil(waf_func, context_payloads_all)
         self.outer_pattern, self.will_print = None, None
         self.payload_gen = None
-        self.options = options if options else None
+        self.options = options if options else Options()
         self.waf_expr_func = waf_expr_func
 
     @property
@@ -354,7 +354,7 @@ class FullPayloadGen:
         assert isinstance(self.outer_pattern, str) and self.will_print is not None
 
         # 在生成模式不是快速时生成一系列的字符串变量以减少嵌套括号
-        if self.options != DETECT_MODE_FAST:
+        if self.options.detect_mode != DetectMode.FAST:
             # 添加一系列值为字符串的变量，需要从生成目标中取出需要生成的字符串
             extra_strings = []
             if gen_type == OS_POPEN_READ:

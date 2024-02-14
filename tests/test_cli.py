@@ -10,7 +10,7 @@ import os
 
 import click
 
-from fenjing import cli, waf_func_gen
+from fenjing import cli, waf_func_gen, options
 import tempfile
 
 SLEEP_INTERVAL = float(os.environ.get("SLEEP_INTERVAL", 0.01))
@@ -154,7 +154,7 @@ class TestCLI(unittest.TestCase):
                 "exec_cmd": "ls /",
                 "interval": SLEEP_INTERVAL,
                 "eval_args_payload": True,
-                "environment": "flask"
+                "environment": options.TemplateEnvironment.FLASK
             }
         )
 

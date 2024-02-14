@@ -1,6 +1,7 @@
 """所有常用常数
 """
 from typing import Callable
+from enum import Enum
 
 DEFAULT_USER_AGENT = "Fenjing/0.1"
 
@@ -74,33 +75,37 @@ CALLBACK_TEST_FORM_INPUT = "test_form_input"
 APICODE_OK = 200
 APICODE_WRONG_INPUT = 401
 
-# 程序检测的目标模式：快速或精确
-
-DETECT_MODE_FAST = "fast"
-DETECT_MODE_ACCURATE = "accurate"
-
-# 模板的执行环境：flask或者普通的Jinja
-
-ENVIRONMENT_FLASK = "flask"
-ENVIRONMENT_JINJA = "jinja"
+class DetectMode(Enum):
+    """程序检测的目标模式：快速或精确"""
+    FAST = "fast"
+    ACCURATE = "accurate"
 
 
-# 模板的python执行环境：手动指定python3或者python2，或者让脚本猜测
+class TemplateEnvironment(Enum):
+    """模板的执行环境：flask或者普通的Jinja"""
+    FLASK = "flask"
+    JINJA2 = "jinja2"
 
-PYTHON_VERSION_UNKNOWN = "python_version_unknown"
-PYTHON_VERSION_2 = "python2"
-PYTHON_VERSION_3 = "python3"
 
-# 在WAF替换危险keywords时的策略
+class PythonEnvironment(Enum):
+    """模板的python执行环境：手动指定python3或者python2，或者让脚本猜测"""
+    UNKNOWN = "unknown"
+    PYTHON2 = "python2"
+    PYTHON3 = "python3"
 
-REPLACED_KEYWORDS_STRATEGY_AVOID = "avoid"  # 避免使用这些keywords
-REPLACED_KEYWORDS_STRATEGY_IGNORE = "ignore"  # 忽略检测出的keywords并继续使用
-REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING = "doubletapping"  # 对payload使用doubletapping
 
-# 是否开启自动修复500
+class ReplacedKeywordStrategy(Enum):
+    """在WAF替换危险keywords时的策略"""
+    AVOID = "avoid"
+    IGNORE = "ignore"
+    DOUBLETAPPING = "doubletapping"
 
-AUTOFIX_500_ENABLED = "autofix_500_enabled"
-AUTOFIX_500_DISABLED = "autofix_500_disabled"
+
+class AutoFix500Code(Enum):
+    """是否开启自动修复500响应码"""
+    ENABLED = "enabled"
+    DISABLED = "disabled"
+
 
 WafFunc = Callable[[str], bool]
 

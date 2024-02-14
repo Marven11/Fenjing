@@ -18,6 +18,8 @@ from .form import random_fill
 from .submitter import FormSubmitter, RequestSubmitter, Submitter
 from .colorize import colored
 from .const import (
+    PythonEnvironment,
+    AutoFix500Code,
     ATTRIBUTE,
     CHAINED_ATTRIBUTE_ITEM,
     STRING,
@@ -25,10 +27,6 @@ from .const import (
     EVAL,
     OS_POPEN_READ,
     FLASK_CONTEXT_VAR,
-    PYTHON_VERSION_UNKNOWN,
-    PYTHON_VERSION_2,
-    PYTHON_VERSION_3,
-    AUTOFIX_500_ENABLED,
 )
 from .waf_func_gen import WafFuncGen
 from .full_payload_gen import FullPayloadGen
@@ -48,7 +46,7 @@ Result = namedtuple("Result", "full_payload_gen input_field")
 
 def guess_python_version(
     url: str, requester: HTTPRequester
-) -> Literal[PYTHON_VERSION_UNKNOWN, PYTHON_VERSION_2, PYTHON_VERSION_3]:
+) -> PythonEnvironment:
     """猜测目标的python版本
 
     Args:
@@ -56,16 +54,16 @@ def guess_python_version(
         requester (Requester): 用于发送请求的requester
 
     Returns:
-        Literal[PYTHON_VERSION_UNKNOWN, PYTHON_VERSION_2, PYTHON_VERSION_3]: python版本
+        PythonEnvironment: python版本
     """
     resp = requester.request(method="GET", url=url)
     if resp is None:
-        return PYTHON_VERSION_UNKNOWN
+        return PythonEnvironment.UNKNOWN
     version_regexp = re.search(r"Python/(\d)", resp.headers.get("Server", ""))
     if not version_regexp:
-        return PYTHON_VERSION_UNKNOWN
-    result = PYTHON_VERSION_3 if version_regexp.group(1) == "3" else PYTHON_VERSION_2
-    logger.info("Target is %s", colored("blue", result, bold=True))
+        return PythonEnvironment.UNKNOWN
+    result = PythonEnvironment.PYTHON3 if version_regexp.group(1) == "3" else PythonEnvironment.PYTHON2
+    logger.info("Target is %s", colored("blue", result.value, bold=True))
     return result
 
 
@@ -265,7 +263,7 @@ class Cracker:
         self.log_with_result(will_print, test_result)
         if (
             test_result == "FAIL_500"
-            and self.options.autofix_500 == AUTOFIX_500_ENABLED
+            and self.options.autofix_500 == AutoFix500Code.ENABLED
         ):
             logger.info(colored("yellow", "Start fixing status code 500.", bold=True))
             logger.info(

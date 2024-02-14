@@ -10,15 +10,15 @@ from pathlib import Path
 import click
 
 from .const import (
-    ENVIRONMENT_JINJA,
+    DetectMode,
+    TemplateEnvironment,
+    PythonEnvironment,
+    ReplacedKeywordStrategy,
     OS_POPEN_READ,
     CONFIG,
     EVAL,
-    REPLACED_KEYWORDS_STRATEGY_AVOID,
     STRING,
     DEFAULT_USER_AGENT,
-    DETECT_MODE_ACCURATE,
-    PYTHON_VERSION_UNKNOWN,
 )
 from .colorize import colored, set_enable_coloring
 from .cracker import Cracker, EvalArgsModePayloadGen, guess_python_version
@@ -172,9 +172,9 @@ def do_crack_form_pre(
     url: str,
     form: Form,
     requester: HTTPRequester,
-    detect_mode: str,
-    replaced_keyword_strategy: str,
-    environment: str,
+    detect_mode: DetectMode,
+    replaced_keyword_strategy: ReplacedKeywordStrategy,
+    environment: TemplateEnvironment,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[FullPayloadGen, Submitter], None]:
     """攻击一个表单并获得结果
@@ -219,9 +219,9 @@ def do_crack_form_eval_args_pre(
     url: str,
     form: Form,
     requester: HTTPRequester,
-    detect_mode: str,
-    replaced_keyword_strategy: str,
-    environment: str,
+    detect_mode: DetectMode,
+    replaced_keyword_strategy: ReplacedKeywordStrategy,
+    environment: TemplateEnvironment,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[Submitter, EvalArgsModePayloadGen], None]:
     """攻击一个表单并获得结果，但是将payload放在GET/POST参数中提交
@@ -266,9 +266,9 @@ def do_crack_form_eval_args_pre(
 def do_crack_path_pre(
     url: str,
     requester: HTTPRequester,
-    detect_mode: str,
-    replaced_keyword_strategy: str,
-    environment: str,
+    detect_mode: DetectMode,
+    replaced_keyword_strategy: ReplacedKeywordStrategy,
+    environment: TemplateEnvironment,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[FullPayloadGen, Submitter], None]:
     """攻击一个路径并获得payload生成器
@@ -304,9 +304,9 @@ def do_crack_path_pre(
 
 def do_crack_request_pre(
     submitter: TCPSubmitter,
-    detect_mode: str,
-    replaced_keyword_strategy: str,
-    environment: str,
+    detect_mode: DetectMode,
+    replaced_keyword_strategy: ReplacedKeywordStrategy,
+    environment: TemplateEnvironment,
 ) -> Union[FullPayloadGen, None]:
     """根据指定的请求文件进行攻击并获得结果
 
@@ -324,7 +324,7 @@ def do_crack_request_pre(
         detect_mode=detect_mode,
         replaced_keyword_strategy=replaced_keyword_strategy,
         environment=environment,
-        python_version=PYTHON_VERSION_UNKNOWN,
+        python_version=PythonEnvironment.UNKNOWN,
     )
     cracker = Cracker(submitter=submitter, options=options)
     if not cracker.has_respond():
@@ -392,17 +392,19 @@ def main():
 @click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option(
-    "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
+    "--detect-mode", type=DetectMode, default=DetectMode.ACCURATE, help="分析模式，可为accurate或fast"
 )
 @click.option(
     "--replaced-keyword-strategy",
-    default=REPLACED_KEYWORDS_STRATEGY_AVOID,
+    default=ReplacedKeywordStrategy.AVOID,
+    type=ReplacedKeywordStrategy,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
-    default=ENVIRONMENT_JINJA,
-    help="模板的执行环境，默认为flask的render_template_string函数",
+    default=TemplateEnvironment.JINJA2,
+    type=TemplateEnvironment,
+    help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
 )
 @click.option(
     "--eval-args-payload",
@@ -424,9 +426,9 @@ def crack(
     inputs: str,
     exec_cmd: str,
     interval: float,
-    detect_mode: str,
-    replaced_keyword_strategy: str,
-    environment: str,
+    detect_mode: DetectMode,
+    replaced_keyword_strategy: ReplacedKeywordStrategy,
+    environment: TemplateEnvironment,
     eval_args_payload: bool,
     user_agent: str,
     header: tuple,
@@ -491,17 +493,19 @@ def crack(
 @click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则成功后进入交互模式")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option(
-    "--detect-mode", default=DETECT_MODE_ACCURATE, help="分析模式，可为accurate或fast"
+    "--detect-mode", type=DetectMode, default=DetectMode.ACCURATE, help="分析模式，可为accurate或fast"
 )
 @click.option(
     "--replaced-keyword-strategy",
-    default=REPLACED_KEYWORDS_STRATEGY_AVOID,
+    default=ReplacedKeywordStrategy.AVOID,
+    type=ReplacedKeywordStrategy,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
-    default=ENVIRONMENT_JINJA,
-    help="模板的执行环境，默认为flask的render_template_string函数",
+    default=TemplateEnvironment.JINJA2,
+    type=TemplateEnvironment,
+    help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
 )
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
@@ -514,9 +518,9 @@ def crack_path(
     url: str,
     exec_cmd: str,
     interval: float,
-    detect_mode: str,
-    replaced_keyword_strategy: str,
-    environment: str,
+    detect_mode: DetectMode,
+    replaced_keyword_strategy: ReplacedKeywordStrategy,
+    environment: TemplateEnvironment,
     user_agent: str,
     header: tuple,
     cookies: str,
@@ -558,17 +562,19 @@ def crack_path(
 @click.option("--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则进入交互模式")
 @click.option("--interval", default=0.0, help="每次请求的间隔")
 @click.option(
-    "--detect-mode", default=DETECT_MODE_ACCURATE, help="检测模式，可为accurate或fast"
+    "--detect-mode", type=DetectMode, default=DetectMode.ACCURATE, help="检测模式，可为accurate或fast"
 )
 @click.option(
     "--replaced-keyword-strategy",
-    default=REPLACED_KEYWORDS_STRATEGY_AVOID,
+    default=ReplacedKeywordStrategy.AVOID,
+    type=ReplacedKeywordStrategy,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
-    default=ENVIRONMENT_JINJA,
-    help="模板的执行环境，默认为flask的render_template_string函数",
+    default=TemplateEnvironment.JINJA2,
+    type=TemplateEnvironment,
+    help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
 )
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
@@ -645,17 +651,19 @@ def scan(
 @click.option("--urlencode-payload", default=True, help="是否对payload进行urlencode")
 @click.option("--raw", is_flag=True, default=False, help="不检查请求的换行符等")
 @click.option(
-    "--detect-mode", default=DETECT_MODE_ACCURATE, help="检测模式，可为accurate或fast"
+    "--detect-mode", type=DetectMode, default=DetectMode.ACCURATE, help="检测模式，可为accurate或fast"
 )
 @click.option(
     "--replaced-keyword-strategy",
-    default=REPLACED_KEYWORDS_STRATEGY_AVOID,
+    default=ReplacedKeywordStrategy.AVOID,
+    type=ReplacedKeywordStrategy,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
-    default=ENVIRONMENT_JINJA,
-    help="模板的执行环境，默认为flask的render_template_string函数",
+    default=TemplateEnvironment.JINJA2,
+    type=TemplateEnvironment,
+    help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
 )
 @click.option("--retry-times", default=5, help="重试次数")
 @click.option("--interval", default=0.05, help="请求间隔")
@@ -669,9 +677,9 @@ def crack_request(
     exec_cmd: str,
     urlencode_payload: bool,
     raw: bool,
-    detect_mode: str,
-    replaced_keyword_strategy: str,
-    environment: str,
+    detect_mode: DetectMode,
+    replaced_keyword_strategy: ReplacedKeywordStrategy,
+    environment: TemplateEnvironment,
     retry_times: int,
     interval: float,
     tamper_cmd: str,

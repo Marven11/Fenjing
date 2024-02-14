@@ -14,12 +14,9 @@ from functools import lru_cache
 from typing import Dict, Callable, Tuple, Union, List
 
 from .const import (
-    DETECT_MODE_ACCURATE,
-    DETECT_MODE_FAST,
+    DetectMode,
+    ReplacedKeywordStrategy,
     DANGEROUS_KEYWORDS,
-    REPLACED_KEYWORDS_STRATEGY_AVOID,
-    REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING,
-    REPLACED_KEYWORDS_STRATEGY_IGNORE,
     WafFunc,
 )
 from .colorize import colored
@@ -207,7 +204,7 @@ class WafFuncGen:
         """
         test_keywords = (
             grouped_payloads(2) + dangerous_keywords
-            if self.options.detect_mode == DETECT_MODE_ACCURATE
+            if self.options.detect_mode == DetectMode.ACCURATE
             else grouped_payloads(4)
         )
         hashes: List[int] = []
@@ -273,7 +270,7 @@ class WafFuncGen:
         extra = "".join(random.choices(string.ascii_lowercase, k=4))
         test_payloads = (
             dangerous_keywords
-            if self.options.detect_mode == DETECT_MODE_ACCURATE
+            if self.options.detect_mode == DetectMode.ACCURATE
             else grouped_payloads(4, sep=extra)
         )
         keywords = []
@@ -353,7 +350,7 @@ class WafFuncGen:
         long_param_hashes = [h for h in long_param_hashes if h not in waf_hashes]
         if (
             self.options.replaced_keyword_strategy
-            == REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING
+            == ReplacedKeywordStrategy.DOUBLETAPPING
         ):
             self.subm.add_tamperer(lambda s: self.doubletapping(s, replaced_keyword))
 
@@ -372,7 +369,7 @@ class WafFuncGen:
             for _ in range(5):
                 if (
                     self.options.replaced_keyword_strategy
-                    == REPLACED_KEYWORDS_STRATEGY_AVOID
+                    == ReplacedKeywordStrategy.AVOID
                     and any(w in payload for w in replaced_keyword)
                 ):
                     return False
@@ -403,7 +400,7 @@ class WafFuncGen:
                     # 如果策略为“忽略”则返回True, 否则返回False
                     return (
                         self.options.replaced_keyword_strategy
-                        == REPLACED_KEYWORDS_STRATEGY_IGNORE
+                        == ReplacedKeywordStrategy.IGNORE
                     )
                 # 去除下方的规则，因为如果我们没有fuzz出所有的waf页面，而此时extra_content
                 # 不在waf页面中的话，我们应该更加保守地认为payload应该是被waf拦住了
@@ -414,7 +411,7 @@ class WafFuncGen:
                 #     return True
                 # 页面的hash和waf的相同，但是用户要求检测模式为快速
                 # 因此我们选择直接返回False
-                if self.options.detect_mode == DETECT_MODE_FAST:
+                if self.options.detect_mode == DetectMode.FAST:
                     logger.debug("快速模式直接返回False")
                     return False
                 # 如果extra_content之前检测过，则可以确定不是它产生的问题，返回False

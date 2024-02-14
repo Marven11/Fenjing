@@ -351,7 +351,7 @@ class PayloadGenerator:
         self.cache_by_repr = CacheByRepr()
         self.used_count = defaultdict(int)
         self.options = options if options else Options()
-        if self.options.detect_mode == DETECT_MODE_FAST:
+        if self.options.detect_mode == DetectMode.FAST:
             for k, v in gen_weight_default.items():
                 self.used_count[k] += v
         self.callback = callback if callback else (lambda x, y: None)
@@ -413,8 +413,6 @@ class PayloadGenerator:
         Returns:
             Union[PayloadGeneratorResult, None]: 生成结果
         """
-        # if self.options.detect_mode == DETECT_MODE_ACCURATE and not self.waf_func(target[1]):
-        #     return None
         return (target[1], {}, [])
 
     @register_generate_func(lambda self, target: target in self.cache_by_repr)
@@ -557,7 +555,7 @@ class PayloadGenerator:
         Returns:
             _type_: 生成结果
         """
-        if self.options.environment != ENVIRONMENT_FLASK:
+        if self.options.environment != TemplateEnvironment.FLASK:
             return None
         return (target[1], {}, [])
 
@@ -573,7 +571,7 @@ class PayloadGenerator:
         Returns:
             _type_: 生成结果
         """
-        if self.options.python_version != PYTHON_VERSION_3:
+        if self.options.python_version != PythonEnvironment.PYTHON3:
             return None
         return ("", {}, [])
 
@@ -594,7 +592,7 @@ class PayloadGenerator:
             return None
 
         gens = expression_gens[gen_type].copy()
-        if self.options.detect_mode == DETECT_MODE_FAST:
+        if self.options.detect_mode == DetectMode.FAST:
             gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         for gen in gens:
             logger.debug("Trying gen rule: %s", gen.__name__)

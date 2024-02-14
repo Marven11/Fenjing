@@ -10,6 +10,9 @@ from typing import Union
 from flask import Flask, render_template, request, jsonify
 
 from .const import (
+    DetectMode,
+    ReplacedKeywordStrategy,
+    TemplateEnvironment,
     CALLBACK_GENERATE_FULLPAYLOAD,
     CALLBACK_GENERATE_PAYLOAD,
     CALLBACK_PREPARE_FULLPAYLOADGEN,
@@ -250,14 +253,15 @@ def create_task():
                 }
             )
         else:
-            options = Options(
-                detect_mode=request.form.get("detect_mode", None),
-                environment=request.form.get("environment", None),
-                replaced_keyword_strategy=request.form.get(
+            options = Options()
+            if request.form.get("detect_mode", None):
+                options.detect_mode=DetectMode(request.form.get("detect_mode", None))
+            if request.form.get("environment", None):
+                options.environment=TemplateEnvironment(request.form.get("environment", None))
+            if request.form.get("replaced_keyword_strategy", None):
+                options.replaced_keyword_strategy=ReplacedKeywordStrategy(request.form.get(
                     "replaced_keyword_strategy", None
-                ),
-            )
-            print("Here")
+                ))
             taskid = create_crack_task(
                 request.form["url"],
                 request.form["method"],

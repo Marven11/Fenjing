@@ -1,17 +1,10 @@
 from dataclasses import dataclass
 from .const import (
-    DETECT_MODE_ACCURATE,
-    DETECT_MODE_FAST,
-    REPLACED_KEYWORDS_STRATEGY_AVOID,
-    REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING,
-    REPLACED_KEYWORDS_STRATEGY_IGNORE,
-    ENVIRONMENT_FLASK,
-    ENVIRONMENT_JINJA,
-    PYTHON_VERSION_UNKNOWN,
-    PYTHON_VERSION_2,
-    PYTHON_VERSION_3,
-    AUTOFIX_500_ENABLED,
-    AUTOFIX_500_DISABLED,
+    DetectMode,
+    TemplateEnvironment,
+    PythonEnvironment,
+    ReplacedKeywordStrategy,
+    AutoFix500Code,
 )
 import sys
 
@@ -25,16 +18,8 @@ else:
 class Options:
     """影响到攻击逻辑的选项"""
 
-    detect_mode: Literal[DETECT_MODE_ACCURATE, DETECT_MODE_FAST] = DETECT_MODE_ACCURATE
-    replaced_keyword_strategy: Literal[
-        REPLACED_KEYWORDS_STRATEGY_AVOID,
-        REPLACED_KEYWORDS_STRATEGY_DOUBLETAPPING,
-        REPLACED_KEYWORDS_STRATEGY_IGNORE,
-    ] = REPLACED_KEYWORDS_STRATEGY_AVOID
-    environment: Literal[ENVIRONMENT_FLASK, ENVIRONMENT_JINJA] = ENVIRONMENT_FLASK
-    python_version: Literal[
-        PYTHON_VERSION_UNKNOWN, PYTHON_VERSION_2, PYTHON_VERSION_3
-    ] = PYTHON_VERSION_UNKNOWN
-    autofix_500: Literal[AUTOFIX_500_ENABLED, AUTOFIX_500_DISABLED] = (
-        AUTOFIX_500_ENABLED
-    )
+    detect_mode: DetectMode = DetectMode.ACCURATE
+    environment: TemplateEnvironment = TemplateEnvironment.FLASK
+    replaced_keyword_strategy: ReplacedKeywordStrategy = ReplacedKeywordStrategy.AVOID
+    python_version: PythonEnvironment = PythonEnvironment.UNKNOWN
+    autofix_500: AutoFix500Code = AutoFix500Code.ENABLED

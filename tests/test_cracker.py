@@ -9,6 +9,7 @@ from fenjing.requester import HTTPRequester
 import unittest
 import fenjing
 from typing import Union
+from fenjing.const import TemplateEnvironment, ReplacedKeywordStrategy
 from fenjing.cracker import Cracker
 from fenjing.options import Options
 from fenjing.submitter import FormSubmitter, PathSubmitter, Submitter, HTTPResponse
@@ -655,7 +656,7 @@ class TestLengthLimit2WAF(TestBase):
         self.setup_remote_waf("/lengthlimit2_waf")
 
     def test_waf(self):
-        cracker = Cracker(self.subm, options=Options(environment="flask"))
+        cracker = Cracker(self.subm, options=Options(environment=TemplateEnvironment.FLASK))
         result = cracker.crack_eval_args()
         assert result is not None
         subm, will_print = result
@@ -670,25 +671,25 @@ class TestReplacedWAFAvoid(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/replace_waf")
-        self.cracker_other_opts = {"options": Options(replaced_keyword_strategy="avoid")}
+        self.cracker_other_opts = {"options": Options(replaced_keyword_strategy=ReplacedKeywordStrategy.AVOID)}
 
 
 class TestReplacedWAFDoubleTapping(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/replace_waf")
-        self.cracker_other_opts = {"options": Options(replaced_keyword_strategy="doubletapping")}
+        self.cracker_other_opts = {"options": Options(replaced_keyword_strategy=ReplacedKeywordStrategy.DOUBLETAPPING)}
 
 
 class TestJinjaEnv(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/jinja_env_waf")
-        self.cracker_other_opts = {"options": Options(environment="jinja")}
+        self.cracker_other_opts = {"options": Options(environment=TemplateEnvironment.JINJA2)}
 
 
 class TestFix500(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/jinja_env_waf")
-        self.cracker_other_opts = {"options": Options(environment="flask")}
+        self.cracker_other_opts = {"options": Options(environment=TemplateEnvironment.FLASK)}
