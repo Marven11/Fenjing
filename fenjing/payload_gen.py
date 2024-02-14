@@ -1744,7 +1744,7 @@ def gen_string_percent_lipsum1(context):
         (
             EXPRESSION,
             precedence["function_call"],
-            [(LITERAL, "lipsum['__builti''ns__']['chr'](37)")],
+            [(LITERAL, "lipsum['__glob''al''s__']['__builti''ns__']['chr'](37)")],
         )
     ]
 
@@ -2556,6 +2556,34 @@ char_patterns = {
     },
     "(()|trim|list)[INDEX]": {0: "(", 1: ")"},
     "cycler.__name__[INDEX]": {0: "C", 1: "y", 2: "c", 3: "l", 4: "e", 5: "r"},
+    "(xn,)|e|batch(INDEX)|first|last": {
+        1: '(',
+        2: 'U',
+        3: 'n',
+        4: 'd',
+        5: 'e',
+        6: 'f',
+        7: 'i',
+        8: 'n',
+        9: 'e',
+        10: 'd',
+        11: ',',
+        12: ')',
+    },
+    "((xn,)|e)[INDEX]": {
+        0: '(',
+        1: 'U',
+        2: 'n',
+        3: 'd',
+        4: 'e',
+        5: 'f',
+        6: 'i',
+        7: 'n',
+        8: 'e',
+        9: 'd',
+        10: ',',
+        11: ')',
+    }
 }
 
 @expression_gen
@@ -2656,6 +2684,22 @@ def gen_char_num2(context, c):
 
 
 @expression_gen
+def gen_char_lipsumdoc(context, c):
+    lipsum_doc = """Generate some lorem ipsum for the template."""
+    if c not in lipsum_doc:
+        return [(UNSATISFIED, )]
+    return [(EXPRESSION, precedence["item"], [
+        (JINJA_CONTEXT_VAR, "lipsum"),
+        (LITERAL, "["),
+        (VARIABLE_OF, "__doc__"),
+        (LITERAL, "]["),
+        (INTEGER, lipsum_doc.index(c)),
+        (LITERAL, "]")
+    ])]
+
+
+
+@expression_gen
 def gen_char_cyclerdoc(cotext, c):
     doc = """Cycle through values by yield them one at a time, then restarting
     once the end is reached. Available as ``cycler`` in templates.
@@ -2692,6 +2736,44 @@ def gen_char_cyclerdoc(cotext, c):
             break
     target_list = [(ONEOF, *alternatives)]
     return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_char_cycledoc2(context, c):
+    doc = """Cycle through values by yield them one at a time, then restarting
+    once the end is reached. Available as ``cycler`` in templates.
+
+    Similar to ``loop.cycle``, but can be used outside loops or across
+    multiple loops. For example, render a list of folders and files in a
+    list, alternating giving them "odd" and "even" classes.
+
+    .. code-block:: html+jinja
+
+        {% set row_class = cycler("odd", "even") %}
+        <ul class="browser">
+        {% for folder in folders %}
+          <li class="folder {{ row_class.next() }}">{{ folder }}
+        {% endfor %}
+        {% for file in files %}
+          <li class="file {{ row_class.next() }}">{{ file }}
+        {% endfor %}
+        </ul>
+
+    :param items: Each positional argument will be yielded in the order
+        given for each cycle.
+
+    .. versionadded:: 2.1
+    """
+    if c not in doc:
+        return [(UNSATISFIED, )]
+    return [(EXPRESSION, precedence["item"], [
+        (JINJA_CONTEXT_VAR, "cycler"),
+        (LITERAL, "["),
+        (VARIABLE_OF, "__doc__"),
+        (LITERAL, "]["),
+        (INTEGER, doc.index(c)),
+        (LITERAL, "]")
+    ])]
 
 
 @expression_gen
