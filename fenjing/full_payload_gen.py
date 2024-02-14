@@ -3,7 +3,7 @@
 """
 
 import logging
-from typing import Callable, Tuple, Union, Dict, Any, List
+from typing import Callable, Tuple, Union, Dict, Any, List, Literal
 
 from . import payload_gen
 from .colorize import colored
@@ -178,7 +178,7 @@ class FullPayloadGen:
         )
         return True
 
-    def try_add_context_var(self, value: str, clean_cache=True) -> bool:
+    def try_add_context_var(self, value: str, clean_cache=True) -> Literal["success", "failed", "skip"]:
         """尝试添加{%set xxx=yyy%}形式的payload，为最终的payload添加变量
 
         Args:
@@ -186,10 +186,10 @@ class FullPayloadGen:
             clean_cache (bool, optional): 是否清除payload_gen的缓存. Defaults to True.
 
         Returns:
-            bool: 是否成功
+            Literal["success", "failed", "skip"]: 是否成功
         """
         if not self.prepared and not self.do_prepare():
-            return False
+            return "failed"
         assert self.payload_gen and self.context_vars, "We should have these prepared"
         pattern = None
         for fill_pattern, test_pattern in SET_STMT_PATTERNS:
@@ -197,11 +197,11 @@ class FullPayloadGen:
                 pattern = fill_pattern
                 break
         if pattern is None:
-            return False
+            return "failed"
         value_type = {str: STRING, int: INTEGER}[type(value)]
         ret = self.payload_gen.generate_detailed(value_type, value)
         if ret is None:
-            return False
+            return "failed"
         expression, used_context, _ = ret
 
         if len(expression) - len(repr(value)) < 3:
@@ -209,14 +209,14 @@ class FullPayloadGen:
                 "Generated expression %s is too simple, skip it.",
                 colored("blue", expression),
             )
-            return False
+            return "skip"
 
         # 变量名需要可以通过waf且不重复
         var_name = self.context_vars.generate_related_variable_name(value)
         if not var_name:
             var_name = self.context_vars.generate_random_variable_name()
         if not var_name:
-            return False
+            return "failed"
 
         # 保存payload、对应的变量以及payload依赖的变量
         payload = pattern.replace("NAME", var_name).replace("EXPR", expression)
@@ -224,7 +224,7 @@ class FullPayloadGen:
             payload, {var_name: value}, check_waf=True, depends_on=used_context
         )
         if not success:
-            return False
+            return "failed"
         # 需要清除缓存，否则生成器只会使用缓存的表达式而不会使用加入的变量
         if clean_cache:
             self.payload_gen.cache_by_repr.clear()
@@ -235,7 +235,7 @@ class FullPayloadGen:
             colored("yellow", repr(value)),
             colored("blue", payload),
         )
-        return True
+        return "success"
 
     def prepare_extra_context_vars(self, append_targets: List[str]):
         """生成一系列字符串的变量并加入到context payloads中
@@ -308,10 +308,12 @@ class FullPayloadGen:
             if target in self.added_extra_context_vars:
                 continue
             result = self.try_add_context_var(target, clean_cache=False)
-            if not result:
+            if result == "failed":
                 logger.warning("Failed generating %s", colored("yellow", repr(target)))
                 continue
-            self.added_extra_context_vars.add(target)
+            if result == "success":
+                self.added_extra_context_vars.add(target)
+            # if result == "skip":
 
     def add_context_variable(
         self,
