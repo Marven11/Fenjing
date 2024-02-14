@@ -125,19 +125,11 @@ class ContextVariableUtil:
         self.payload_dependency = {}
         self.prepared = False
 
-    def filter_by_waf(self, waf: Union[Waf, None] = None):
-        """根据WAF函数过滤context payload
-
-        Args:
-            waf (Union[Waf, None], optional): 用于过滤的waf函数，默认使用init传入的waf函数. Defaults to None.
-        """
-        if waf is None:
-            waf = self.waf
-        self.context_payloads = filter_by_waf(self.context_payloads, self.waf)
-
     def do_prepare(self):
         """准备函数，会被自动调用"""
-        self.filter_by_waf()
+        if self.prepared:
+            return
+        self.context_payloads = filter_by_waf(self.context_payloads, self.waf)
         self.prepared = True
 
     def is_variable_exists(self, var_name: str) -> bool:

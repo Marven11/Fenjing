@@ -1027,6 +1027,24 @@ def gen_zero_3(context: dict):
 def gen_zero_4(context: dict):
     return [(EXPRESSION, precedence["filter"], [(LITERAL, "{}|urlencode|count")])]
 
+@expression_gen
+def gen_zero_cycler(context: dict):
+    return [(EXPRESSION, precedence["attribute"], [(LITERAL, "cycler(cycler).pos")])]
+
+
+@expression_gen
+def gen_zero_cycler2(context: dict):
+    targets = [
+        (LITERAL, "cycler(cycler)["),
+        (ONEOF, [
+            (LITERAL, "'pos'"),
+            (LITERAL, '"pos"'),
+            (VARIABLE_OF, "pos"),
+        ]),
+        (LITERAL, "]")
+    ]
+    return [(EXPRESSION, precedence["item"], targets)]
+
 
 @expression_gen
 def gen_zero_emptylength(context: dict):
@@ -1394,6 +1412,24 @@ def gen_positive_integer_indexoftrue(context: dict, value: int):
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
+@expression_gen
+def gen_positive_integer_indexofglobal(context: dict, value: int):
+    alternatives = []
+    if value <= 1 or value > 150:
+        return [(UNSATISFIED,)]
+    for global_var in ["lipsum", "namespace", "cycler", "joiner"]:
+        falses = [(LITERAL, "False,") for _ in range(value - 1)]
+        target_list = (
+            [
+                (LITERAL, "("),
+            ]
+            + falses
+            + [(LITERAL, f",{global_var}).index({global_var})")]
+        )
+        alternatives.append(target_list)
+    return [(EXPRESSION, precedence["function_call"], [(ONEOF, *alternatives)])]
+    
+
 # ---
 
 
@@ -1637,12 +1673,22 @@ def gen_string_percent_urlencode2(context):
 
 
 @expression_gen
+def gen_string_percent_lipsum1(context):
+    return [
+        (
+            EXPRESSION,
+            precedence["function_call"],
+            [(LITERAL, "lipsum['__builti''ns__']['chr'](37)")],
+        )
+    ]
+
+@expression_gen
 def gen_string_percent_lipsum2(context):
     return [
         (
             EXPRESSION,
             precedence["function_call"],
-            [(LITERAL, "lipsum['__glob''als__']['__builti''ns__']['chr'](37)")],
+            [(LITERAL, "lipsum.__builtins__.chr(37)")],
         )
     ]
 
@@ -1653,21 +1699,8 @@ def gen_string_percent_lipsum3(context):
         (
             EXPRESSION,
             precedence["function_call"],
-            [(LITERAL, "lipsum.__globals__.__builtins__.chr(37)")],
-        )
-    ]
-
-
-@expression_gen
-def gen_string_percent_lipsum4(context):
-    return [
-        (
-            EXPRESSION,
-            precedence["function_call"],
             [
                 (LITERAL, "lipsum["),
-                (VARIABLE_OF, "__globals__"),
-                (LITERAL, "]["),
                 (VARIABLE_OF, "__builtins__"),
                 (LITERAL, "]["),
                 (VARIABLE_OF, "chr"),
@@ -1680,16 +1713,14 @@ def gen_string_percent_lipsum4(context):
 
 
 @expression_gen
-def gen_string_percent_lipsum5(context):
-    # lipsum|attr("__globals__")|attr("__getitem__")("__builtins__")|attr("__getitem__")("chr")(37)
+def gen_string_percent_lipsum4(context):
+    # lipsum|attr("__getitem__")("__builtins__")|attr("__getitem__")("chr")(37)
     return [
         (
             EXPRESSION,
             precedence["filter_with_function_call"],
             [
                 (LITERAL, "lipsum|attr("),
-                (VARIABLE_OF, "__globals__"),
-                (LITERAL, ")|attr("),
                 (VARIABLE_OF, "__getitem__"),
                 (LITERAL, ")("),
                 (VARIABLE_OF, "__builtins__"),

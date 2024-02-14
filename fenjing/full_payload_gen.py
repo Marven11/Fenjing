@@ -265,6 +265,7 @@ class FullPayloadGen:
             "decode",
             "chr",
             "truediv",
+            "pos",
             "__class__",
             "__globals__",
             "__init__",
