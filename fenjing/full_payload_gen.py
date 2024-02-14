@@ -18,6 +18,7 @@ from .const import (
     CALLBACK_PREPARE_FULLPAYLOADGEN,
     CALLBACK_GENERATE_FULLPAYLOAD,
     STRING,
+    INTEGER,
     OS_POPEN_READ,
     EVAL,
     WafFunc,
@@ -177,7 +178,7 @@ class FullPayloadGen:
         )
         return True
 
-    def try_add_context_var_string(self, value: str, clean_cache=True) -> bool:
+    def try_add_context_var(self, value: str, clean_cache=True) -> bool:
         """尝试添加{%set xxx=yyy%}形式的payload，为最终的payload添加变量
 
         Args:
@@ -197,11 +198,17 @@ class FullPayloadGen:
                 break
         if pattern is None:
             return False
-
-        ret = self.payload_gen.generate_detailed(STRING, value)
+        value_type = {str: STRING, int: INTEGER}[type(value)]
+        ret = self.payload_gen.generate_detailed(value_type, value)
         if ret is None:
             return False
         expression, used_context, _ = ret
+
+        if len(expression) - len(repr(value)) < 3:
+            logger.warning(
+                "Generated expression %s is too simple, won't add it for efficiency reason.",
+                colored("blue", expression),
+            )
 
         # 变量名需要可以通过waf且不重复
         var_name = self.context_vars.generate_related_variable_name(value)
@@ -236,6 +243,10 @@ class FullPayloadGen:
             append_targets (list): 指定更多需要生成的字符串
         """
         targets = [
+            1,
+            4,
+            37,  # '%'
+            128,
             "urlencode",
             "%",
             "c",
@@ -262,6 +273,7 @@ class FullPayloadGen:
             "chr",
             "truediv",
             "pos",
+            "concat",
             "__class__",
             "__globals__",
             "__init__",
@@ -291,7 +303,7 @@ class FullPayloadGen:
         for target in targets:
             if target in self.added_extra_context_vars:
                 continue
-            result = self.try_add_context_var_string(target, clean_cache=False)
+            result = self.try_add_context_var(target, clean_cache=False)
             if not result:
                 logger.warning("Failed generating %s", colored("yellow", repr(target)))
                 continue

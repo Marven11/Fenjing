@@ -760,6 +760,49 @@ def gen_string_concatmany_join(context: dict, parts):
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
+# lipsum.__globals__.concat(("a", "b"))
+
+@expression_gen
+def gen_string_concatmany_lipsumglobals1(context: dict, parts):
+    target_list = (
+        [
+            (LITERAL, "lipsum.__globals__.concat(("),
+        ]
+        + join_target(sep=(LITERAL, ","), targets=parts)
+        + [
+            (LITERAL, "))"),
+        ]
+    )
+    return [(EXPRESSION, precedence["function_call"], target_list)]
+
+@expression_gen
+def gen_string_concatmany_lipsumglobals2(context: dict, parts):
+    return [
+        (LITERAL, "lipsum["),
+        (VARIABLE_OF, "__globals__"),
+        (LITERAL, "]["),
+        (VARIABLE_OF, "concat"),
+        (LITERAL, "](("),
+        *join_target(sep=(LITERAL, ","), targets=parts),
+        (LITERAL, "))"),
+    ]
+
+
+@expression_gen
+def gen_string_concatmany_lipsumglobals3(context: dict, parts):
+    return [
+        (LITERAL, "lipsum|attr("),
+        (VARIABLE_OF, "__globals__"),
+        (LITERAL, ")|attr("),
+        (VARIABLE_OF, "__getitem__"),
+        (LITERAL, ")("),
+        (VARIABLE_OF, "concat"),
+        (LITERAL, ")(("),
+        *join_target(sep=(LITERAL, ","), targets=parts),
+        (LITERAL, "))"),
+    ]
+
+
 # ---
 
 

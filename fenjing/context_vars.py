@@ -73,19 +73,47 @@ context_payloads_exprs = {
     "lipsum|escape|batch(22)|first|last": "_",
     "{}|select()|trim|list|batch(25)|first|last": "_",
     "{}|select()|trim|list|attr(dict(po=x,p=x)|join)(24)": "_",
-    "{}|escape|first|count": 1,
+    "dict(x=x)|length": 1,
+    "dict(x=x)|count": 1,
+    "dict(a=x,b=x,c=x)|length": 3,
     "dict(a=x,b=x,c=x)|count": 3,
+    "dict(aaaaa=x)|first|length": 5,
+    "dict(aaaaa=x)|first|count": 5,
+
+    "lipsum.__doc__|length": 43,
+    "namespace.__doc__|length": 126,
+    "{}|escape|first|count": 1,
     "{}|escape|urlencode|count": 6,
-    "joiner|urlencode|wordcount": 7,
     "{}|escape|list|escape|count": 26,
+    "joiner|urlencode|wordcount": 7,
     "namespace|escape|count": 46,
     "cycler|escape|urlencode|count": 65,
     "namespace|escape|urlencode|escape|urlencode|count": 90,
-    ("cycler|escape|urlencode|escape|urlenc"
-    + "ode|escape|urlencode|escape|urlencode|count"): 131,
+    (
+        "cycler|escape|urlencode|escape|urlenc"
+        + "ode|escape|urlencode|escape|urlencode|count"
+    ): 131,
     "{}|escape|urlencode|list|escape|urlencode|count": 178,
-    "lipsum|escape|urlencode|list|escape|urlencode|count": 2015
+    "lipsum|escape|urlencode|list|escape|urlencode|count": 2015,
 }
+
+digit_looks_similiar = {
+    "0": "o",
+    "1": "i",
+    "2": "z",
+    "3": "e",
+    "4": "a",
+    "5": "s",
+    "6": "b",
+    "7": "t",
+    "8": "x",
+    "9": "q",
+}
+
+def digit_to_similiar_alpha(s: str):
+    for d, c in digit_looks_similiar.items():
+        s = s.replace(d, c)
+    return s
 
 
 def filter_by_waf(
@@ -152,7 +180,7 @@ class ContextVariableManager:
         all_vars = set(v for d in self.context_payloads.values() for v in d)
         return var_name in all_vars
 
-    def generate_related_variable_name(self, value: str) -> Union[str, None]:
+    def generate_related_variable_name(self, value: Any) -> Union[str, None]:
         """生成一个和value相关的变量名，如globals => gl或go，用于提升最终payload的可读性
 
         Args:
@@ -161,7 +189,8 @@ class ContextVariableManager:
         Returns:
             Union[str, None]: 结果
         """
-        value = "".join(re.findall("[a-zA-Z]+", value)).lower()
+        value = "".join(re.findall("[a-zA-Z0-9]+", repr(value))).lower()
+        value = digit_to_similiar_alpha(value)
         if len(value) < 2:
             return None
         for c in value[1:]:
