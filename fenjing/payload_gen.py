@@ -658,6 +658,8 @@ class PayloadGenerator:
             MULTIPLY,
             STRING_CONCAT,
             MOD,
+            STRING_CONCATMANY,
+            VARIABLE_OF,
         ):
             logger.info(
                 "{failed} generating {gen_type}({args_repl}), it might not be an issue.".format(
