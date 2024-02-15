@@ -255,13 +255,13 @@ def tree_precedence(tree):
     for target, sub_target_tree in tree:
         if target[0] in [LITERAL, UNSATISFIED]:
             pass
+        elif target[0] == EXPRESSION:
+            answer = min(answer, target[1])
         elif target[0] in [PLUS, MULTIPLY, MOD, ATTRIBUTE, ITEM, MODULE_OS, FUNCTION_CALL]:
             # might be transformed into filters
             sub_target_answer = tree_precedence(sub_target_tree)
             if sub_target_answer:
                 answer = min(answer, sub_target_answer)
-        elif target[0] == EXPRESSION:
-            answer = min(answer, target[1])
         elif target[0] in precedence:
             answer = min(answer, precedence[target[0]])
         elif sub_target_tree:
@@ -923,6 +923,37 @@ def gen_mod_func2(context: dict, a, b):
 
 # ---
 
+@expression_gen
+def gen_function_call_forattr(context: dict, function_target, args_target_list):
+    target_list = (
+        [
+            (ENCLOSE_UNDER, precedence["function_call"], function_target),
+            (LITERAL, "("),
+        ]
+        + join_target((LITERAL, ","), args_target_list)
+        + [
+            (LITERAL, ")"),
+        ]
+    )
+    return [(EXPRESSION, precedence["function_call"], target_list)]
+
+
+@expression_gen
+def gen_function_call_forattr2(context: dict, function_target, args_target_list):
+    target_list = (
+        [
+            (ENCLOSE_UNDER, precedence["function_call"], function_target),
+            (LITERAL, "("),
+        ]
+        + join_target((LITERAL, ","), args_target_list)
+        + [
+            (LITERAL, ","),
+            (LITERAL, ")"),
+        ]
+    )
+    return [(EXPRESSION, precedence["function_call"], target_list)]
+
+
 
 @expression_gen
 def gen_function_call_forfilter1(context: dict, function_target, args_target_list):
@@ -953,37 +984,6 @@ def gen_function_call_forfilter2(context: dict, function_target, args_target_lis
         ]
     )
     return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
-
-
-@expression_gen
-def gen_function_call_forattr(context: dict, function_target, args_target_list):
-    target_list = (
-        [
-            (ENCLOSE_UNDER, precedence["function_call"], function_target),
-            (LITERAL, "("),
-        ]
-        + join_target((LITERAL, ","), args_target_list)
-        + [
-            (LITERAL, ")"),
-        ]
-    )
-    return [(EXPRESSION, precedence["function_call"], target_list)]
-
-
-@expression_gen
-def gen_function_call_forattr2(context: dict, function_target, args_target_list):
-    target_list = (
-        [
-            (ENCLOSE_UNDER, precedence["function_call"], function_target),
-            (LITERAL, "("),
-        ]
-        + join_target((LITERAL, ","), args_target_list)
-        + [
-            (LITERAL, ","),
-            (LITERAL, ")"),
-        ]
-    )
-    return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
 # ---
