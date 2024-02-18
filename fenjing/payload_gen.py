@@ -271,6 +271,41 @@ def tree_precedence(tree):
     return answer if answer != float("inf") else None
 
 
+def targets_from_pattern(pattern: str, mapping: Dict[str, Target]) -> List[Target]:
+    """根据pattern将字符串转换成对应的target列表
+    示例："'abcde'[NUM]", {"NUM": (INTEGER, 1)} ---> [
+        (LITERAL, "'abcde'["),
+        (INTEGER, 1),
+        (LITERAL, "]")
+    ]
+
+    Args:
+        pattern (str): 给定的pattern
+        mapping (Dict[str, Target]): 关键字和target的对应关系
+
+    Returns:
+        List[Target]: 生成结果
+    """
+    result = []
+    toparse = ""
+    while pattern:
+        found = False
+        for keyword, target in mapping.items():
+            if pattern.startswith(keyword):
+                result.append((LITERAL, toparse))
+                result.append(target)
+                toparse = ""
+                pattern = pattern.removeprefix(keyword)
+                found = True
+                break
+        if not found:
+            toparse += pattern[0]
+            pattern = pattern[1:]
+    if toparse:
+        result.append((LITERAL, toparse))
+    return result
+
+
 def str_escape(value: str, quote="'"):
     """
     转义字符串中的引号和反斜杠，但不会在两旁加上引号。
@@ -2061,40 +2096,34 @@ def gen_string_percent_lower_c_concat(context):
 @expression_gen
 def gen_string_percent_lower_c_dictjoin(context):
     # "(dict([('%',x),('c',x)])|join)"
-    target_list = [
-        (LITERAL, "dict([("),
-        (STRING_PERCENT,),
-        (LITERAL, ",x),("),
-        (STRING_LOWERC,),
-        (LITERAL, ",x)])|join"),
-    ]
-    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3, )]
+    pattern = "dict([(PERCENT,x),(LOWERC,x)])|join"
+    targets = targets_from_pattern(pattern, {
+        "PERCENT": (STRING_PERCENT, ),
+        "LOWERC": (STRING_LOWERC, )
+    })
+    return [(EXPRESSION, precedence["filter"], targets), (REQUIRE_PYTHON3, )]
 
 
 @expression_gen
 def gen_string_percent_lower_c_listjoin(context):
     # "(['%','c']|join)"
-    target_list = [
-        (LITERAL, "["),
-        (STRING_PERCENT,),
-        (LITERAL, ","),
-        (STRING_LOWERC,),
-        (LITERAL, "]|join"),
-    ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    pattern = "[PERCENT,LOWERC]|join"
+    targets = targets_from_pattern(pattern, {
+        "PERCENT": (STRING_PERCENT, ),
+        "LOWERC": (STRING_LOWERC, )
+    })
+    return [(EXPRESSION, precedence["filter"], targets)]
 
 
 @expression_gen
 def gen_string_percent_lower_c_tuplejoin(context):
     # "(('%','c')|join)"
-    target_list = [
-        (LITERAL, "("),
-        (STRING_PERCENT,),
-        (LITERAL, ","),
-        (STRING_LOWERC,),
-        (LITERAL, ")|join"),
-    ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    pattern = "(PERCENT,LOWERC)|join"
+    targets = targets_from_pattern(pattern, {
+        "PERCENT": (STRING_PERCENT, ),
+        "LOWERC": (STRING_LOWERC, )
+    })
+    return [(EXPRESSION, precedence["filter"], targets)]
 
 
 @expression_gen
