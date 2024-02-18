@@ -31,4 +31,9 @@ setuptools.setup(
     package_data={
         "fenjing": ["templates/*", "static/*"],
     },
+    entry_points={
+        'console_scripts': [
+            'fenjing=fenjing.__main__:main',
+        ]
+    }
 )
