@@ -29,7 +29,7 @@ setuptools.setup(
     ],
     install_requires=requirements,
     package_data={
-        "fenjing": ["templates/*", "static/*"],
+        "fenjing": ["templates/*", "char_pattern.json"],
     },
     entry_points={
         'console_scripts': [

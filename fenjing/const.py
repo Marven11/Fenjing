@@ -1,8 +1,12 @@
 """所有常用常数
 """
 
-from typing import Callable
+from typing import Callable, Dict
 from enum import Enum
+from pathlib import Path
+import json
+
+CURRENT_FOLDER = Path(__file__).parent
 
 DEFAULT_USER_AGENT = "Fenjing/0.1"
 
@@ -245,3 +249,6 @@ UNICODE_INT_CHARCODES = [
     [44016, 44017, 44018, 44019, 44020, 44021, 44022, 44023, 44024, 44025],
     [65296, 65297, 65298, 65299, 65300, 65301, 65302, 65303, 65304, 65305],
 ]
+
+with open(CURRENT_FOLDER / "char_pattern.json") as f:
+    CHAR_PATTERNS: Dict[str, Dict[str, str]] = json.load(f)
