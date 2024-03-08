@@ -2129,27 +2129,24 @@ def gen_string_percent_lower_c_tuplejoin(context):
 @expression_gen
 def gen_string_percent_lower_c_replaceconcat(context):
     # ('c'|replace(x|trim,'%',1))
-    target_list = [
-        (STRING_LOWERC,),
-        (LITERAL, "|replace(x|trim,"),
-        (STRING_PERCENT,),
-        (LITERAL, ","),
-        (INTEGER, 1),
-        (LITERAL, ")"),
-    ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    pattern = "LOWERC|replace(x|trim,PERCENT,ONE)"
+    targets = targets_from_pattern(pattern, {
+        "LOWERC": (STRING_LOWERC, ),
+        "PERCENT": (STRING_PERCENT, ),
+        "ONE": (INTEGER, 1)
+    })
+    return [(EXPRESSION, precedence["filter"], targets)]
 
 
 @expression_gen
 def gen_string_percent_lower_c_cycler(context):
-    target_list = [
-        (LITERAL, "cycler|pprint|list|pprint|urlencode|batch("),
-        (INTEGER, 10),
-        (LITERAL, ")|first|join|batch("),
-        (INTEGER, 8),
-        (LITERAL, ")|list|last|reverse|join|lower"),
-    ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    pattern = ("cycler|pprint|list|pprint|urlencode|batch(TEN)"
+               +"|first|join|batch(EIGHT)|list|last|reverse|join|lower")
+    targets = targets_from_pattern(pattern, {
+        "TEN": (INTEGER, 10),
+        "EIGHT": (INTEGER, 8)
+    })
+    return [(EXPRESSION, precedence["filter"], targets)]
 
 
 # ---
