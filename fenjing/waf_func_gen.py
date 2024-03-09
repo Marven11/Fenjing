@@ -384,6 +384,9 @@ class WafFuncGen:
                 # 遇到500时，判断是否是Jinja渲染错误，是则返回True
                 if result.status_code == 500:
                     return any(w in result.text for w in render_error_keywords)
+                if re.match(r"^[a-zA-Z0-9-_'\"!%=\+\-\*\/\[\], .()]+$", payload) and payload not in result.text:
+                    logger.warning("payload足够简单但却没有完全回显: %s", colored("blue", payload))
+                    return False
                 # 产生回显
                 if extra_content in result.text:
                     logger.debug("payload产生回显")

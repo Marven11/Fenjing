@@ -185,7 +185,7 @@ DANGEROUS_KEYWORDS = [
     "include",
     "index",
     "init",
-    "item",
+    # "item",
     "length",
     "lipsum",
     "mro",
