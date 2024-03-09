@@ -52,7 +52,7 @@ def grouped_payloads(size=3, sep="") -> List[str]:
     ]
 
 
-def removeprefix_compat(text: str, prefix: str) -> str:
+def removeprefix_string(text: str, prefix: str) -> str:
     """兼容python 3.9及以下的removeprefix函数
 
     Args:
@@ -162,8 +162,8 @@ def find_pieces(resp_text, payload):
     payload_unmatched_before = payload_unmatched[
         : max_answer_pos_unmatched - max_answer_unmatched + 1
     ]
-    resp_text_next = removeprefix_compat(resp_text_unmatched, payload_unmatched_before)
-    payload_next = removeprefix_compat(payload_unmatched, payload_unmatched_before)
+    resp_text_next = removeprefix_string(resp_text_unmatched, payload_unmatched_before)
+    payload_next = removeprefix_string(payload_unmatched, payload_unmatched_before)
 
     assert len(resp_text_next) < len(resp_text) and len(payload_next) < len(payload)
     return [

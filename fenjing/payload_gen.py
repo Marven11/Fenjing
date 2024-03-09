@@ -295,7 +295,7 @@ def targets_from_pattern(pattern: str, mapping: Dict[str, Target]) -> List[Targe
                 result.append((LITERAL, toparse))
                 result.append(target)
                 toparse = ""
-                pattern = pattern.removeprefix(keyword)
+                pattern = removeprefix_string(pattern, keyword)
                 found = True
                 break
         if not found:
@@ -325,6 +325,19 @@ def transform_int_chars_unicode(int_chars):
         for charcodes in UNICODE_INT_CHARCODES
     ]
 
+def removeprefix_string(text: str, prefix: str) -> str:
+    """兼容python 3.9及以下的removeprefix函数
+
+    Args:
+        text (str): text
+        prefix (str): 需要去除的prefix
+
+    Returns:
+        str: 处理结果
+    """
+    if text.startswith(prefix):
+        return text[len(prefix) :]
+    return text
 
 class CacheByRepr:
     """缓存传入的对象，其中键可以是任意对象
