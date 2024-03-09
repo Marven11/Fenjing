@@ -7,6 +7,7 @@ import random
 import string
 import traceback
 import time
+import re
 
 from copy import copy
 from collections import Counter, namedtuple
@@ -274,13 +275,13 @@ class WafFuncGen:
             else grouped_payloads(4, sep=extra)
         )
         keywords = []
-        for payload_raw in test_payloads:
+        for keyword in test_payloads:
             # 如果extra的开头或结尾和payload的相同，被替换后可能会因为错误拼合导致检测失效
-            while extra[0] == payload_raw[0] or extra[-1] == payload_raw[-1]:
+            while extra[0] == keyword[0] or extra[-1] == keyword[-1]:
                 extra = "".join(random.choices(string.ascii_lowercase, k=4))
-            payload = extra + payload_raw + extra
+            payload = extra + keyword + extra
             logger.info(
-                "Testing dangerous keyword %s",
+                "Testing keyword replacing %s",
                 colored("yellow", repr(payload)),
             )
             result = self.subm.submit(payload)
@@ -311,6 +312,8 @@ class WafFuncGen:
                     )
                 else:
                     keywords += payload_replaced_keyword
+            if keyword not in text and extra in text:
+                keywords.append(keyword)
         keywords = list(set(keywords))
         if keywords:
             logger.info(
