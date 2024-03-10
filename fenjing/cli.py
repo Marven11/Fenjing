@@ -5,7 +5,8 @@
 import logging
 import time
 from urllib.parse import urlparse
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple, Union, Any
+from enum import Enum
 from functools import partial
 from pathlib import Path
 import click
@@ -67,6 +68,28 @@ TITLE = colored(
 LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT)
 logger = logging.getLogger("cli")
+
+
+class EnumOption(click.Option):
+    """Make click prints more readable prompt for Enum.
+    Provide better hint when user input is wrong"""
+
+    def type_cast_value(self, ctx: click.Context, value: Any):
+        # Enum class is a callable, so click converts it to FuncParamType
+        if not isinstance(self.type, click.types.FuncParamType):
+            raise RuntimeError("This should be used on Enum!")
+        clazz: type = self.type.func  # type: ignore
+        if not issubclass(clazz, Enum):
+            raise RuntimeError("This should be used on Enum!")
+        try:
+            _ = self.type(value)
+        except Exception as exc:
+            raise click.exceptions.BadParameter(
+                f"{repr(value)} must be one of {[x.value for x in clazz]}",
+                ctx=ctx,
+                param=self,
+            ) from exc
+        return super().type_cast_value(ctx, value)
 
 
 class RunFailed(Exception):
@@ -337,7 +360,7 @@ def do_crack_request_pre(
 
     # Returns:
     #     Union[FullPayloadGen, None]: 攻击结果
-    # 
+    #
     options = Options(
         detect_mode=detect_mode,
         replaced_keyword_strategy=replaced_keyword_strategy,
@@ -417,6 +440,7 @@ def main():
 @click.option(
     "--detect-mode",
     type=DetectMode,
+    cls=EnumOption,
     default=DetectMode.ACCURATE,
     help="分析模式，可为accurate或fast",
 )
@@ -424,19 +448,21 @@ def main():
     "--replaced-keyword-strategy",
     default=ReplacedKeywordStrategy.AVOID,
     type=ReplacedKeywordStrategy,
+    cls=EnumOption,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
     default=TemplateEnvironment.JINJA2,
     type=TemplateEnvironment,
+    cls=EnumOption,
     help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
 )
 @click.option(
     "--eval-args-payload",
     default=False,
     is_flag=True,
-    help="[试验性]是否在GET参数中传递Eval payload",
+    help="是否开启在GET参数中传递Eval payload的功能",
 )
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
 @click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
@@ -530,6 +556,7 @@ def crack(
 @click.option(
     "--detect-mode",
     type=DetectMode,
+    cls=EnumOption,
     default=DetectMode.ACCURATE,
     help="分析模式，可为accurate或fast",
 )
@@ -537,12 +564,14 @@ def crack(
     "--replaced-keyword-strategy",
     default=ReplacedKeywordStrategy.AVOID,
     type=ReplacedKeywordStrategy,
+    cls=EnumOption,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
     default=TemplateEnvironment.JINJA2,
     type=TemplateEnvironment,
+    cls=EnumOption,
     help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
 )
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
@@ -608,6 +637,7 @@ def crack_path(
 @click.option(
     "--detect-mode",
     type=DetectMode,
+    cls=EnumOption,
     default=DetectMode.ACCURATE,
     help="检测模式，可为accurate或fast",
 )
@@ -615,12 +645,14 @@ def crack_path(
     "--replaced-keyword-strategy",
     default=ReplacedKeywordStrategy.AVOID,
     type=ReplacedKeywordStrategy,
+    cls=EnumOption,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
     default=TemplateEnvironment.JINJA2,
     type=TemplateEnvironment,
+    cls=EnumOption,
     help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
 )
 @click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
@@ -710,6 +742,7 @@ def scan(
 @click.option(
     "--detect-mode",
     type=DetectMode,
+    cls=EnumOption,
     default=DetectMode.ACCURATE,
     help="检测模式，可为accurate或fast",
 )
@@ -717,12 +750,14 @@ def scan(
     "--replaced-keyword-strategy",
     default=ReplacedKeywordStrategy.AVOID,
     type=ReplacedKeywordStrategy,
+    cls=EnumOption,
     help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
 )
 @click.option(
     "--environment",
     default=TemplateEnvironment.JINJA2,
     type=TemplateEnvironment,
+    cls=EnumOption,
     help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
 )
 @click.option("--retry-times", default=5, help="重试次数")
