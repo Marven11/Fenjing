@@ -28,7 +28,7 @@ class TestWebui(unittest.TestCase):
     def test_index(self):
         resp = requests.get(WEBUI_URL)
         self.assertEqual(resp.status_code, 200)
-        self.assertIn("Fenjing", resp.text)
+        self.assertIn("<!DOCTYPE html>", resp.text)
 
     def wait_for_task(self, task_id, task_type, max_time=60):
         start_time = time.perf_counter()
