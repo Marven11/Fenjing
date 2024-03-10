@@ -380,21 +380,27 @@ class WafFuncGen:
                 if result is None:
                     return False
                 # status_code, text = result
-
                 # 遇到500时，判断是否是Jinja渲染错误，是则返回True
                 if result.status_code == 500:
                     return any(w in result.text for w in render_error_keywords)
-                if re.match(r"^[a-zA-Z0-9-_'\"!%=\+\-\*\/\[\], .()]+$", payload) and payload not in result.text:
-                    logger.warning("payload足够简单但却没有完全回显: %s", colored("blue", payload))
+                # 被ban
+                hash_text = hash(result.text)
+                if hash_text in long_param_hashes or hash_text in waf_hashes:
+                    logger.debug("payload被waf")
+                    return False
+                # 无完全回显
+                if (
+                    re.match(r"^[a-zA-Z0-9-_'\"!%=\+\-\*\/\[\], .()]+$", payload)
+                    and payload not in result.text
+                ):
+                    logger.warning(
+                        "payload足够简单但却没有完全回显: %s", colored("blue", payload)
+                    )
                     return False
                 # 产生回显
                 if extra_content in result.text:
                     logger.debug("payload产生回显")
                     return True
-                # 被ban
-                if hash(result.text) in long_param_hashes:
-                    logger.warning("payload被waf")
-                    return False
                 # 产生关键词替换
                 replaced_list = find_pieces(result.text, payload)
                 if replaced_list:
