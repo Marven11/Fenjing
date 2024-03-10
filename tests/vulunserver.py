@@ -286,6 +286,16 @@ def replace_waf():
     template = "Hello, {}".format(name)
     return render_template_string(template)
 
+@app.route("/replace_waf2", methods=["GET", "POST"])
+def replace_waf2():
+    name = request.args.get("name", "world")
+    words = waf_words(name)
+    for word in words:
+        if len(word) >= 3:
+            name = name.replace(word, "nope")
+    template = "Hello, {}".format(name)
+    return render_template_string(template)
+
 @app.route("/jinja_env_waf", methods=["GET", "POST"])
 def jinja_env_waf():
     name = request.args.get("name", "world")

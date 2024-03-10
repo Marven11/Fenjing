@@ -673,6 +673,12 @@ class TestReplacedWAFAvoid(TestBase):
         self.setup_remote_waf("/replace_waf")
         self.cracker_other_opts = {"options": Options(replaced_keyword_strategy=ReplacedKeywordStrategy.AVOID)}
 
+class TestReplacedWAFAvoid2(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.setup_remote_waf("/replace_waf2")
+        self.cracker_other_opts = {"options": Options(replaced_keyword_strategy=ReplacedKeywordStrategy.AVOID)}
+
 
 class TestReplacedWAFDoubleTapping(TestBase):
     def setUp(self):
