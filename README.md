@@ -72,8 +72,6 @@ docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
 
 ![webui-example](assets/webui-example.png)
 
-这里攻击的是一个GET参数：name
-
 在左边填入并点击开始分析，然后在右边输入命令就行了
 
 ### scan
