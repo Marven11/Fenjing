@@ -77,7 +77,11 @@ class CallBackLogger:
 
     def callback_submit(self, data):
         """收集表单的提交结果"""
-        if data.get("type", "form"):
+        if not data['response']:
+            self.flash_messages.append(
+                f"提交表单失败！输入为{data['inputs']}，表单为{data['form']}"
+            )
+        elif data.get("type", "form"):
             self.flash_messages.append(
                 f"提交表单完成，返回值为{data['response'].status_code}，输入为{data['inputs']}，表单为{data['form']}"
             )
