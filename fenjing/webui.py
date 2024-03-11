@@ -229,7 +229,7 @@ def create_interactive_id(cmd, last_task):
 @app.route("/")
 def index():
     """渲染主页"""
-    return render_template("index.html")
+    return render_template("index.jinja2")
 
 
 @app.route(
