@@ -1,0 +1,245 @@
+:root {
+  --orange: #fa824c;
+  --background1: #353030;
+  --background2: #292525;
+  --background3: #252121;
+  --grey: #a8b0b6;
+  font-family: "Courier New", Courier, monospace;
+}
+
+body,
+html {
+  background-color: var(--background1);
+  margin: 0;
+}
+
+input[type="submit"] {
+  transition: background 0.3s ease;
+}
+
+input[type="submit"]:hover {
+  background-color: #ffffff15;
+}
+
+.root {
+  display: flex;
+  flex-direction: column;
+  min-width: 1000px;
+  min-height: 100vh;
+  margin-left: 3%;
+  margin-right: 3%;
+}
+
+header {
+  height: 15vh;
+  background-color: var(--orange);
+  display: flex;
+  border-radius: 20px;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--font-color-black);
+
+  margin-top: 30px;
+}
+
+.header-left {
+  width: 35%;
+}
+
+.header-right {
+  width: 35%;
+  display: flex;
+  justify-content: right;
+}
+
+.header-right .icon-button {
+  margin-right: 80px;
+}
+
+nav {
+  flex-grow: 1;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.header-product-name {
+  margin-left: 60px;
+  font-size: 40px;
+}
+
+.icon-button {
+  width: 55px;
+  height: 55px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 20px;
+  transition: background 0.3s ease;
+}
+
+.icon-button svg {
+  width: 45px;
+  height: 45px;
+}
+
+.icon-button:hover {
+  background-color: #00000015;
+}
+
+.hint-question-mark {
+  width: 30px;
+  height: 30px;
+}
+
+.grow-empty {
+  flex-grow: 1;
+}
+
+main {
+  margin-top: 50px;
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.main-left,
+.main-right {
+  color: var(--grey);
+  border-radius: 20px;
+  height: 70vh;
+  display: flex;
+  justify-content: center;
+}
+
+.main-left {
+  flex-grow: 1;
+  width: 35%;
+  background-color: var(--background2);
+  margin-right: 25px;
+  overflow: scroll;
+}
+
+.main-right {
+  flex-grow: 100;
+  width: 40%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-left form {
+  display: flex;
+  flex-direction: column;
+  width: 90%;
+  margin-top: 30px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 50px;
+  margin-bottom: 30px;
+}
+
+.form-row .hint-question-mark {
+  stroke: var(--grey);
+  opacity: 50%;
+}
+
+.form-row label {
+  font-size: 26px;
+  min-width: 110px;
+}
+
+.form-row input[type="text"] {
+  margin-left: 20px;
+}
+
+.form-row input,
+.form-row select {
+  color: var(--grey);
+  height: 50px;
+  min-width: 50%;
+  flex-grow: 1;
+  font-size: 20px;
+  background-color: var(--background3);
+  border-radius: 10px;
+  padding-left: 10px;
+  outline: none;
+  border: none;
+}
+
+.form-row select {
+  margin-left: 20px;
+}
+
+.right-panel {
+  background-color: var(--background2);
+  min-height: 5vh;
+  margin-top: 15px;
+  display: flex;
+  border-radius: 20px;
+}
+
+.right-panel form {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+}
+
+.right-panel textarea,
+.right-panel input {
+  margin: 10px 20px;
+  background-color: #00000000;
+  color: var(--grey);
+  outline: none;
+  border: none;
+  width: auto;
+  height: auto;
+  font-size: 24px;
+  flex-grow: 1;
+  resize: none;
+}
+
+.right-panel input {
+  width: 50%;
+  flex-grow: 1;
+  border-radius: 10px;
+  background-color: var(--background3);
+}
+
+.right-panel input[type="submit"] {
+  flex-grow: 0;
+  width: 10%;
+  max-width: 10%;
+  font-size: 24px;
+}
+
+.right-panel input[type="hidden"] {
+  width: 0%;
+}
+
+.panel-message {
+  margin-top: 0px;
+  flex-grow: 1;
+}
+
+.panel-message textarea {
+  margin: 30px 20px;
+  overflow: scroll;
+}
+
+.cmd-input input[type="text"] {
+  margin-left: 10px;
+  margin-right: 10px;
+  text-indent: 10px;
+}
+.cmd-input input[type="submit"] {
+  margin-left: 0px;
+}
