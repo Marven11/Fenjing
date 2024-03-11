@@ -426,10 +426,10 @@ def main():
 
 
 @main.command()
-@click.option("--url", "-u", help="form所在的URL")
+@click.option("--url", "-u", required=True, help="form所在的URL")
 @click.option("--action", "-a", default=None, help="form的action，默认为当前路径")
 @click.option("--method", "-m", default="POST", help="form的提交方式，默认为POST")
-@click.option("--inputs", "-i", help="form的参数，以逗号分隔")
+@click.option("--inputs", "-i", required=True, help="form的参数，以逗号分隔")
 @click.option(
     "--exec-cmd",
     "-e",
@@ -545,7 +545,7 @@ def crack(
 
 
 @main.command()
-@click.option("--url", "-u", help="需要攻击的URL")
+@click.option("--url", "-u", required=True, help="需要攻击的URL")
 @click.option(
     "--exec-cmd",
     "-e",
@@ -629,7 +629,7 @@ def crack_path(
 
 
 @main.command()
-@click.option("--url", "-u", help="需要扫描的URL")
+@click.option("--url", "-u", required=True, help="需要扫描的URL")
 @click.option(
     "--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则进入交互模式"
 )
@@ -725,10 +725,10 @@ def scan(
 
 
 @main.command()
-@click.option("--host", "-h", help="目标的host，可为IP或域名")
-@click.option("--port", "-p", type=int, help="目标的端口")
+@click.option("--host", "-h", required=True, help="目标的host，可为IP或域名")
+@click.option("--port", "-p", required=True, type=int, help="目标的端口")
 @click.option(
-    "--request-file", "-f", help="保存在文本文件中的请求，其中payload处为PAYLOAD"
+    "--request-file", "-f", required=True, help="保存在文本文件中的请求，其中payload处为PAYLOAD"
 )
 @click.option(
     "--toreplace", default=b"PAYLOAD", type=bytes, help="请求文件中payload的占位符"
