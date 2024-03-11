@@ -1,0 +1,16 @@
+  <div class="main-right">
+    <div class="right-panel panel-message">
+      <textarea name="task-message" id="task-message" spellcheck="false" readonly></textarea>
+    </div>
+    <div class="right-panel">
+      <textarea name="task-flash-message" id="task-flash-message" spellcheck="false" readonly></textarea>
+    </div>
+    <div class="right-panel cmd-input">
+      <form action="" onsubmit="onSubmitInteractiveTask(event)">
+        <input type="text" id="form-cmd" name="cmd" placeholder="cat /flag" />
+        <input type="submit" value="执行" />
+        <input type="hidden" name="type" value="interactive" />
+        <input type="hidden" name="last_task_id" value="" />
+      </form>
+    </div>
+  </div>

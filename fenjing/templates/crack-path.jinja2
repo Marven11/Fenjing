@@ -3,7 +3,7 @@
 
 <main>
   <div class="main-left">
-    <form action="" onsubmit="onSubmitCrackTask(event)">
+    <form action="" onsubmit="onSubmitCrackPathTask(event)">
       <div class="form-row">
         <label for="url">目标链接</label>
         <div class="hint-question-mark" title="存在可攻击参数的URL">
@@ -77,76 +77,27 @@
       </div>
     </form>
   </div>
-  <div class="main-right">
-    <div class="right-panel panel-message">
-      <textarea name="task-message" id="task-message" spellcheck="false" readonly></textarea>
-    </div>
-    <div class="right-panel">
-      <textarea name="task-flash-message" id="task-flash-message" spellcheck="false" readonly></textarea>
-    </div>
-    <div class="right-panel cmd-input">
-      <form action="" onsubmit="onSubmitInteractiveTask(event)">
-        <input type="text" id="form-cmd" name="cmd" placeholder="cat /flag" />
-        <input type="submit" value="执行" />
-        <input type="hidden" name="type" value="interactive" />
-        <input type="hidden" name="last_task_id" value="" />
-      </form>
-    </div>
-  </div>
-
+  {%include 'interactive-panel.jinja2'%}
 </main>
 {%endblock%}
 
 {%block script%}
 <script>
-  const taskFlashMessage = document.getElementById("task-flash-message");
-  const taskMessage = document.getElementById("task-message");
-
-  let taskRunning = false;
-  let lastSuccessfulCrackTaskId = undefined;
-  function alertWrongCrackInput(formData) {
-    if(!formData.get("url")) {
-        alert(`你的${key}没有填写！`);
-        return false;
+  function alertWrongCrackPathInput(formData) {
+    if (!formData.get("url")) {
+      alert(`你的${key}没有填写！`);
+      return false;
     }
     return true;
   }
-  function watchTask(taskId, callback) {
-    let handleDataFn = (data) => {
-      taskFlashMessage.value =
-        data["flash_messages"][data["flash_messages"].length - 1];
-      taskMessage.value = data["messages"].join("\n");
-      taskMessage.scrollTop = taskMessage.scrollHeight - taskMessage.clientHeight;
-      if (data.done) {
-        console.log(`Done! clear id: ${timerId}`);
-        clearInterval(timerId);
-        taskRunning = false;
-        if (callback) {
-          callback(data);
-        }
-      }
-    };
-    let intervalFn = () => {
-      fetch("/watchTask", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({ taskid: taskId }).toString(),
-      })
-        .then((response) => response.json())
-        .then(handleDataFn);
-    };
-    let timerId = setInterval(intervalFn, 100);
-  }
-  function onSubmitCrackTask(event) {
+  function onSubmitCrackPathTask(event) {
     event.preventDefault();
     if (taskRunning) {
       alert("已经有正在运行的任务了！");
       return;
     }
     let formData = new FormData(event.target);
-    if (!alertWrongCrackInput(formData)) {
+    if (!alertWrongCrackPathInput(formData)) {
       return;
     }
     fetch("/createTask", {
@@ -168,39 +119,6 @@
           lastSuccessfulCrackTaskId = data.taskid;
         };
         watchTask(data.taskid, onTaskSuccess);
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  }
-  function onSubmitInteractiveTask(event) {
-    event.preventDefault();
-    if (taskRunning) {
-      alert("已经有正在运行的任务了！");
-      return;
-    }
-    let formData = new FormData(event.target);
-    if (!lastSuccessfulCrackTaskId) {
-      alert("还没有进行分析，请先使用左侧的表单开始分析");
-      return;
-    }
-    formData.set("last_task_id", lastSuccessfulCrackTaskId);
-    fetch("/createTask", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams(formData).toString(),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        taskRunning = true;
-        if (!data.taskid) {
-          console.log("未知错误：没有ID");
-          console.log(data);
-          return;
-        }
-        watchTask(data.taskid);
       })
       .catch((error) => {
         console.error(error);
