@@ -20,11 +20,11 @@
         margin: 0;
       }
 
-      input[type=submit] {
+      input[type="submit"] {
         transition: background 0.3s ease;
       }
 
-      input[type=submit]:hover {
+      input[type="submit"]:hover {
         background-color: #ffffff15;
       }
 
@@ -211,6 +211,7 @@
         height: auto;
         font-size: 24px;
         flex-grow: 1;
+        resize: none;
       }
 
       .right-panel input {
@@ -239,6 +240,15 @@
       .panel-message textarea {
         margin: 30px 20px;
         overflow: scroll;
+      }
+
+      .cmd-input input[type="text"] {
+        margin-left: 10px;
+        margin-right: 10px;
+        text-indent: 10px;
+      }
+      .cmd-input input[type="submit"] {
+        margin-left: 0px;
       }
     </style>
   </head>
@@ -533,10 +543,15 @@
               readonly
             ></textarea>
           </div>
-          <div class="right-panel">
+          <div class="right-panel cmd-input">
             <form action="" onsubmit="onSubmitInteractiveTask(event)">
-              <input type="text" id="form-cmd" name="cmd" placeholder="cat /flag" />
-              <input type="submit" value="提交" />
+              <input
+                type="text"
+                id="form-cmd"
+                name="cmd"
+                placeholder="cat /flag"
+              />
+              <input type="submit" value="执行" />
               <input type="hidden" name="type" value="interactive" />
               <input type="hidden" name="last_task_id" value="" />
             </form>
