@@ -127,6 +127,7 @@ class TCPSubmitter(BaseSubmitter):
         pattern: bytes,
         toreplace=b"PAYLOAD",
         urlencode_payload=True,
+        tamperers: Union[List[Tamperer], None] = None,
     ):
 
         super().__init__()
@@ -134,6 +135,9 @@ class TCPSubmitter(BaseSubmitter):
         self.toreplace = toreplace
         self.urlencode_payload = urlencode_payload
         self.req = requester
+        if tamperers:
+            for tamperer in tamperers:
+                self.add_tamperer(tamperer)
 
     def submit_raw(self, raw_payload):
         if self.urlencode_payload:
@@ -157,6 +161,7 @@ class RequestSubmitter(BaseSubmitter):
         params: Union[Dict[str, str], None],
         data: Union[Dict[str, str], None],
         requester: HTTPRequester,
+        tamperers: Union[List[Tamperer], None] = None,
     ):
         """传入目标的URL, method和提交的项
 
@@ -174,6 +179,9 @@ class RequestSubmitter(BaseSubmitter):
         self.params = params if params else {}
         self.data = data if data else {}
         self.req = requester
+        if tamperers:
+            for tamperer in tamperers:
+                self.add_tamperer(tamperer)
 
     def submit_raw(self, raw_payload):
         params, data = self.params.copy(), self.data.copy()
@@ -202,6 +210,7 @@ class FormSubmitter(BaseSubmitter):
         target_field: str,
         requester: HTTPRequester,
         callback: Union[Callable[[str, Dict], None], None] = None,
+        tamperers: Union[List[Tamperer], None] = None,
     ):
         """传入目标表格的url，form实例与目标表单项，以及用于提交HTTP请求的requester
 
@@ -216,6 +225,9 @@ class FormSubmitter(BaseSubmitter):
         self.form = form
         self.req = requester
         self.target_field = target_field
+        if tamperers:
+            for tamperer in tamperers:
+                self.add_tamperer(tamperer)
 
     def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
         inputs = {self.target_field: raw_payload}
@@ -242,6 +254,7 @@ class PathSubmitter(BaseSubmitter):
         url: str,
         requester: HTTPRequester,
         callback: Union[Callable[[str, Dict], None], None] = None,
+        tamperers: Union[List[Tamperer], None] = None,
     ):
         """传入目标URL和发送请求的Requester
 
@@ -257,6 +270,9 @@ class PathSubmitter(BaseSubmitter):
             url += "/"
         self.url = url
         self.req = requester
+        if tamperers:
+            for tamperer in tamperers:
+                self.add_tamperer(tamperer)
 
     def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
         if any(w in raw_payload for w in ["/", ".."]):

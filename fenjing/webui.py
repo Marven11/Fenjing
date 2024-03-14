@@ -77,7 +77,7 @@ class CallBackLogger:
 
     def callback_submit(self, data):
         """收集表单的提交结果"""
-        if not data['response']:
+        if not data["response"]:
             if data.get("type", None) == "form":
                 self.flash_messages.append(
                     f"提交表单失败！输入为{data['inputs']}，表单为{data['form']}"
@@ -87,9 +87,7 @@ class CallBackLogger:
                     f"提交payload失败！链接为{data['url']}，payload为{data['payload']}"
                 )
             else:
-                self.flash_messages.append(
-                    f"提交payload失败！"
-                )
+                self.flash_messages.append(f"提交payload失败！")
         elif data.get("type", None) == "form":
             self.flash_messages.append(
                 f"提交表单完成，返回值为{data['response'].status_code}，输入为{data['inputs']}，表单为{data['form']}"
@@ -125,10 +123,9 @@ class CallBackLogger:
 class CrackTaskThread(threading.Thread):
     """crack任务的线程，由webui调用并实际承载攻击任务"""
 
-    def __init__(self, taskid, url, form: Form, interval: float, options: Options):
+    def __init__(self, url, form: Form, interval: float, options: Options):
         super().__init__()
         self.success = False
-        self.taskid = taskid
         self.form = form
         self.url = url
         self.options = options
@@ -162,17 +159,16 @@ class CrackTaskThread(threading.Thread):
                 self.messages.append("WAF已绕过，现在可以执行Shell指令了")
                 self.success = True
                 break
-            continue
         if not self.success:
             self.messages.append("WAF绕过失败")
+
 
 class CrackPathTaskThread(threading.Thread):
     """crack-path任务的线程，由webui调用并实际承载攻击任务"""
 
-    def __init__(self, taskid, url, interval: float, options: Options):
+    def __init__(self, url, interval: float, options: Options):
         super().__init__()
         self.success = False
-        self.taskid = taskid
         self.url = url
         self.options = options
         self.flash_messages = []
@@ -184,16 +180,8 @@ class CrackPathTaskThread(threading.Thread):
         self.requester = HTTPRequester(interval=interval, user_agent=DEFAULT_USER_AGENT)
 
     def run(self):
-        self.submitter = PathSubmitter(
-            self.url,
-            self.requester,
-            self.callback
-        )
-        self.cracker = Cracker(
-            self.submitter,
-            self.callback,
-            options=self.options
-        )
+        self.submitter = PathSubmitter(self.url, self.requester, self.callback)
+        self.cracker = Cracker(self.submitter, self.callback, options=self.options)
         if not self.cracker.has_respond():
             self.messages.append("WAF绕过失败")
             return
@@ -208,13 +196,11 @@ class InteractiveTaskThread(threading.Thread):
 
     def __init__(
         self,
-        taskid: str,
         submitter: Submitter,
         full_payload_gen: FullPayloadGen,
         cmd: str,
     ):
         super().__init__()
-        self.taskid = taskid
         self.submitter = submitter
         self.full_payload_gen = full_payload_gen
         self.cmd = cmd
@@ -240,45 +226,35 @@ class InteractiveTaskThread(threading.Thread):
         self.messages.append(resp.text)
 
 
-def create_crack_task(url, method, inputs, action, interval, options):
-    """创建对应的攻击任务（一个线程）"""
-    assert url != "" and inputs != "", "wrong param"
-    form = get_form(
-        action=action or urlparse(url).path,
-        method=method,
-        inputs=inputs.split(","),
-    )
+def manage_task_thread(task: threading.Thread):
+    """启动task(一个线程)，并为其分配一个id"""
     taskid = uuid.uuid4().hex
-    task = CrackTaskThread(taskid, url, form, interval=float(interval), options=options)
     task.daemon = True
     task.start()
     tasks[taskid] = task
     return taskid
 
+def parse_options(request_form) -> Options:
+    """从给定的字典中解析出options
 
-def create_crack_path_task(url, interval, options):
-    """创建对应的攻击任务（一个线程）"""
-    assert url != "", "wrong param"
-    taskid = uuid.uuid4().hex
-    task = CrackPathTaskThread(taskid, url, interval=float(interval), options=options)
-    task.daemon = True
-    task.start()
-    tasks[taskid] = task
-    return taskid
+    Args:
+        request_form (dict): 给定的字典
 
-def create_interactive_id(cmd, last_task):
-    """根据给定的指令生成一个任务进行攻击"""
-    assert cmd != "", "wrong param"
-    submitter, full_payload_gen = (
-        last_task.submitter,
-        last_task.full_payload_gen,
-    )
-    taskid = uuid.uuid4().hex
-    task = InteractiveTaskThread(taskid, submitter, full_payload_gen, cmd)
-    task.daemon = True
-    task.start()
-    tasks[taskid] = task
-    return taskid
+    Returns:
+        Options: 对应的option
+    """
+    options = Options()
+    if request_form.get("detect_mode", None):
+        options.detect_mode = DetectMode(request_form.get("detect_mode", None))
+    if request_form.get("environment", None):
+        options.environment = TemplateEnvironment(
+            request_form.get("environment", None)
+        )
+    if request_form.get("replaced_keyword_strategy", None):
+        options.replaced_keyword_strategy = ReplacedKeywordStrategy(
+            request_form.get("replaced_keyword_strategy", None)
+        )
+    return options
 
 
 @app.route("/")
@@ -292,6 +268,7 @@ def crack_path():
     """渲染攻击路径的页面"""
     return render_template("crack-path.jinja2")
 
+
 @app.route(
     "/createTask",
     methods=["POST"],
@@ -299,67 +276,42 @@ def crack_path():
 def create_task():
     """创建攻击任务"""
     task_type = request.form.get("type", None)
-    # TODO: rewrite
     if task_type == "crack":
-        # response variable is used here because pylint don't like too many returns,
-        # and i think code logic here is clear enough.
         if request.form["url"] == "" or request.form["inputs"] == "":
-            response = jsonify(
+            return jsonify(
                 {
                     "code": APICODE_WRONG_INPUT,
                     "message": "URL and inputs should not be empty, but you provide "
                     + f"url={request.form['url']} and inputs={request.form['inputs']}",
                 }
             )
-        else:
-            options = Options()
-            if request.form.get("detect_mode", None):
-                options.detect_mode = DetectMode(request.form.get("detect_mode", None))
-            if request.form.get("environment", None):
-                options.environment = TemplateEnvironment(
-                    request.form.get("environment", None)
-                )
-            if request.form.get("replaced_keyword_strategy", None):
-                options.replaced_keyword_strategy = ReplacedKeywordStrategy(
-                    request.form.get("replaced_keyword_strategy", None)
-                )
-            taskid = create_crack_task(
-                request.form["url"],
-                request.form["method"],
-                request.form["inputs"],
-                request.form["action"],
-                interval=request.form["interval"],
-                options=options,
+        taskid = manage_task_thread(
+            CrackTaskThread(
+                url=request.form["url"],
+                form=get_form(
+                    action=request.form["action"]
+                    or urlparse(request.form["url"]).path,
+                    method=request.form["method"],
+                    inputs=request.form["inputs"].split(","),
+                ),
+                interval=float(request.form["interval"]),
+                options=parse_options(request.form),
             )
-            response = jsonify({"code": APICODE_OK, "taskid": taskid})
-        return response
+        )
+        return jsonify({"code": APICODE_OK, "taskid": taskid})
     if task_type == "crack-path":
         if request.form["url"] == "":
-            response = jsonify(
-                {
-                    "code": APICODE_WRONG_INPUT,
-                    "message": "URL should not be empty."
-                }
+            return jsonify(
+                {"code": APICODE_WRONG_INPUT, "message": "URL should not be empty."}
             )
-        else:
-            options = Options()
-            if request.form.get("detect_mode", None):
-                options.detect_mode = DetectMode(request.form.get("detect_mode", None))
-            if request.form.get("environment", None):
-                options.environment = TemplateEnvironment(
-                    request.form.get("environment", None)
-                )
-            if request.form.get("replaced_keyword_strategy", None):
-                options.replaced_keyword_strategy = ReplacedKeywordStrategy(
-                    request.form.get("replaced_keyword_strategy", None)
-                )
-            taskid = create_crack_path_task(
-                request.form["url"],
-                interval=request.form["interval"],
-                options=options,
+        taskid = manage_task_thread(
+            CrackPathTaskThread(
+                url=request.form["url"],
+                interval=float(request.form["interval"]),
+                options=parse_options(request.form),
             )
-            response = jsonify({"code": APICODE_OK, "taskid": taskid})
-        return response
+        )
+        return jsonify({"code": APICODE_OK, "taskid": taskid})
     if task_type == "interactive":
         cmd, last_task_id = (
             request.form["cmd"],
@@ -367,30 +319,36 @@ def create_task():
         )
         last_task = tasks.get(last_task_id, None)
         if cmd == "":
-            response = jsonify(
+            return jsonify(
                 {
                     "code": APICODE_WRONG_INPUT,
                     "message": "cmd should not be empty",
                 }
             )
         elif not isinstance(last_task, (CrackTaskThread, CrackPathTaskThread)):
-            response = jsonify(
+            return jsonify(
                 {
                     "code": APICODE_WRONG_INPUT,
                     "message": f"last_task_id not found: {last_task_id}",
                 }
             )
         elif not last_task.success:
-            response = jsonify(
+            return jsonify(
                 {
                     "code": APICODE_WRONG_INPUT,
                     "message": f"specified task failed: {last_task_id}",
                 }
             )
-        else:
-            taskid = create_interactive_id(cmd, last_task)
-            response = jsonify({"code": APICODE_OK, "taskid": taskid})
-        return response
+        assert (
+            last_task.submitter is not None
+            and last_task.full_payload_gen is not None
+        )
+        taskid = manage_task_thread(
+            InteractiveTaskThread(
+                last_task.submitter, last_task.full_payload_gen, cmd
+            )
+        )
+        return jsonify({"code": APICODE_OK, "taskid": taskid})
     return jsonify(
         {
             "code": APICODE_WRONG_INPUT,
@@ -416,12 +374,15 @@ def watch_task():
                 "message": f"task not found: {request.form['taskid']}",
             }
         )
-    task: Union[CrackTaskThread, CrackPathTaskThread, InteractiveTaskThread] = tasks[request.form["taskid"]]
+    taskid = request.form["taskid"]
+    task: Union[CrackTaskThread, CrackPathTaskThread, InteractiveTaskThread] = tasks[
+        taskid
+    ]
     if isinstance(task, (CrackTaskThread, CrackPathTaskThread)):
         return jsonify(
             {
                 "code": APICODE_OK,
-                "taskid": task.taskid,
+                "taskid": taskid,
                 "done": not task.is_alive(),
                 "messages": task.messages,
                 "flash_messages": task.flash_messages,
@@ -432,7 +393,7 @@ def watch_task():
         return jsonify(
             {
                 "code": APICODE_OK,
-                "taskid": task.taskid,
+                "taskid": taskid,
                 "done": not task.is_alive(),
                 "messages": task.messages,
                 "flash_messages": task.flash_messages,
