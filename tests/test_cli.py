@@ -14,7 +14,7 @@ from fenjing import cli, waf_func_gen, options
 import tempfile
 
 SLEEP_INTERVAL = float(os.environ.get("SLEEP_INTERVAL", 0.01))
-VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
+VULUNSERVER_ADDR = os.environ.get("VULUNSERVER_ADDR", "http://127.0.0.1:5000")
 waf_func_gen.logger.setLevel(logging.ERROR)
 
 TEST_REQUEST = """\

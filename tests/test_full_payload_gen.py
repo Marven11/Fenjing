@@ -20,7 +20,7 @@ import jinja2
 fenjing.full_payload_gen.logger.setLevel(logging.ERROR)
 fenjing.payload_gen.logger.setLevel(logging.ERROR)
 
-VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
+VULUNSERVER_ADDR = os.environ.get("VULUNSERVER_ADDR", "http://127.0.0.1:5000")
 
 
 def get_full_payload_gen(

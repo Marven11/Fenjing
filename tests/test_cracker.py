@@ -17,7 +17,7 @@ from fenjing import const, waf_func_gen
 import logging
 import os
 
-VULUNSERVER_ADDR = os.environ["VULUNSERVER_ADDR"]
+VULUNSERVER_ADDR = os.environ.get("VULUNSERVER_ADDR", "http://127.0.0.1:5000")
 SLEEP_INTERVAL = float(os.environ.get("SLEEP_INTERVAL", 0.01))
 
 class WrappedSubmitter(Submitter):
