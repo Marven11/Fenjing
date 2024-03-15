@@ -83,7 +83,7 @@
 
 {%block script%}
 <script>
-  function alertWrongCrackPathInput(formData) {
+  function alertWrongInput(formData) {
     if (!formData.get("url")) {
       alert(`你的${key}没有填写！`);
       return false;
@@ -91,7 +91,7 @@
     return true;
   }
   function onSubmitCrackPathTask(event) {
-    return onSubmitGeneralCrackPathTask(event, alertWrongCrackPathInput)
+    return onSubmitGeneralCrackPathTask(event, alertWrongInput)
   }
 
 </script>

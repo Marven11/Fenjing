@@ -104,7 +104,7 @@
 
 {%block script%}
 <script>
-  function alertWrongCrackInput(formData) {
+  function alertWrongInput(formData) {
     for (let key of ["url", "method", "inputs"]) {
       if (!formData.get(key)) {
         alert(`你的${key}没有填写！`);
@@ -114,7 +114,7 @@
     return true;
   }
   function onSubmitCrackTask(event) {
-    return onSubmitGeneralCrackPathTask(event, alertWrongCrackInput)
+    return onSubmitGeneralCrackPathTask(event, alertWrongInput)
   }
 </script>
 {%endblock%}
