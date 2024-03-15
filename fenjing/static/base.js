@@ -56,6 +56,10 @@ function onClickNavbarButton(event) {
   if(!button) {
     throw Error("Button not found")
   }
+  if(!button.dataset.location) {
+    alert("还没有做（")
+    return
+  }
   window.location = button.dataset.location
 }
 
