@@ -2,11 +2,10 @@
 """一个可以被SSTI的服务器
 """
 import random
+import gc
 
 from flask import Flask, request, render_template_string
 from jinja2 import Template
-import gc
-import random
 
 app = Flask(__name__)
 blacklist = [
@@ -116,11 +115,14 @@ def lengthlimit2_waf_pass(inp):
     if len(inp) > 70:
         return False
 
+
 @app.after_request
 def garbasecollect(resp):
-    if random.randint(1, 10) == 1:
-        gc.collect()
+    if random.randint(1, 5) == 1:
+        gc.collect(0) # clean objects that just created
     return resp
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     name = request.args.get("name", "world")
@@ -129,7 +131,9 @@ def index():
     <form action="/" method="GET">
     <input type="text" name="name" id="">
     <input type="submit" value="">
-    </form>""".format(name)
+    </form>""".format(
+        name
+    )
 
     return render_template_string(template)
 
@@ -173,6 +177,7 @@ def scan_burstkeywords():
         return "Nope"
     template = "Hello, {}".format(name)
     return render_template_string(template)
+
 
 @app.route("/static_waf", methods=["GET", "POST"])
 def static_waf():
@@ -249,13 +254,16 @@ def reversed_waf():
     name = request.args.get("name", "world")[::-1]
     if not waf_pass(name):
         return "Nope"
-    template = "Hello, {}".format(name) + """
+    template = (
+        "Hello, {}".format(name)
+        + """
 
 <form action="/reversed_waf" method="GET">
 <input type="text" name="name" id="">
 <input type="submit" value="">
 </form>
 """
+    )
     return render_template_string(template)
 
 
@@ -276,6 +284,7 @@ def lengthlimit2_waf():
     template = "Hello, {}".format(name)
     return render_template_string(template)
 
+
 @app.route("/replace_waf", methods=["GET", "POST"])
 def replace_waf():
     name = request.args.get("name", "world")
@@ -285,6 +294,7 @@ def replace_waf():
             name = name.replace(word, "")
     template = "Hello, {}".format(name)
     return render_template_string(template)
+
 
 @app.route("/replace_waf2", methods=["GET", "POST"])
 def replace_waf2():
@@ -296,6 +306,7 @@ def replace_waf2():
     template = "Hello, {}".format(name)
     return render_template_string(template)
 
+
 @app.route("/jinja_env_waf", methods=["GET", "POST"])
 def jinja_env_waf():
     name = request.args.get("name", "world")
@@ -305,12 +316,14 @@ def jinja_env_waf():
     # return render_template_string(template)
     return template.render()
 
+
 @app.route("/crackpath-extra/<name>")
 def crackpath_extra(name):
     isdebug = request.args.get("debug") is not None
     if isdebug:
         return render_template_string("Hello, {}!".format(name))
     return "Error: Not debug"
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
