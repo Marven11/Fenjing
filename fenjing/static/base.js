@@ -67,3 +67,38 @@ function onSubmitInteractiveTask(event) {
     });
 }
 
+function onSubmitGeneralCrackPathTask(event, formChecker) {
+  event.preventDefault();
+  if (taskRunning) {
+    alert("已经有正在运行的任务了！");
+    return;
+  }
+  let formData = new FormData(event.target);
+  if (!formChecker(formData)) {
+    return;
+  }
+  fetch("/createTask", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams(formData).toString(),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      taskRunning = true;
+      if (!data.taskid) {
+        console.log("未知错误：没有ID");
+        console.log(data);
+        return;
+      }
+      let onTaskSuccess = (data) => {
+        lastSuccessfulCrackTaskId = data.taskid;
+      };
+      watchTask(data.taskid, onTaskSuccess);
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+}
+
