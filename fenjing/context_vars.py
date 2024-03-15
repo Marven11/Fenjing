@@ -9,6 +9,7 @@ import string
 import re
 from .const import WafFunc, PythonEnvironment, SET_STMT_PATTERNS
 from .options import Options
+
 logger = logging.getLogger("context_vars")
 
 # 所有的上下文payload, 存储格式为: {payload: {变量名：变量值}}
@@ -44,7 +45,6 @@ context_payloads_stmts: ContextPayloads = {
         "ssbb": 556,
         "zzeb": 223,
     },
-
 }
 
 context_payloads_stmts_py3 = {
@@ -61,17 +61,14 @@ context_payloads_stmts_py3 = {
 context_payloads_exprs = {
     "lipsum()|urlencode|first": "%",
     "lipsum|escape|batch(22)|first|last": "_",
-
     "dict(x=x)|length": 1,
     "dict(x=x)|count": 1,
     "dict(a=x,b=x,c=x)|length": 3,
     "dict(a=x,b=x,c=x)|count": 3,
     "dict(aaaaa=x)|first|length": 5,
     "dict(aaaaa=x)|first|count": 5,
-
     "lipsum.__doc__|length": 43,
     "namespace.__doc__|length": 126,
-
     "joiner|urlencode|wordcount": 7,
     "namespace|escape|count": 46,
     "cycler|escape|urlencode|count": 65,
@@ -117,7 +114,16 @@ digit_looks_similiar = {
     "9": "q",
 }
 
-def digit_to_similiar_alpha(s: str):
+
+def digit_to_similiar_alpha(s: str) -> str:
+    """将字符串中的数字转换为形状类似的字母
+
+    Args:
+        s (str): 需要转换的字符串
+
+    Returns:
+        str: 转化结果
+    """
     for d, c in digit_looks_similiar.items():
         s = s.replace(d, c)
     return s
@@ -252,7 +258,6 @@ class ContextVariableManager:
         if check_waf and not self.waf(payload):
             return False
         if any(self.is_variable_exists(v) for v in variables):
-            # raise RuntimeError(f"Variables {[self.is_variable_exists(v) for v in variables]} exists!")
             return False
         if depends_on is not None:
             if not all(self.is_variable_exists(v) for v in depends_on):
@@ -265,7 +270,18 @@ class ContextVariableManager:
         self.context_payloads[payload] = variables
         return True
 
-    def get_payload(self, used_context: Context):
+    def get_payload(self, used_context: Context) -> str:
+        """根据使用了的变量生成对应的payload
+
+        Args:
+            used_context (Context): 使用了的变量
+
+        Raises:
+            RuntimeError: 输入变量依赖了不存在的变量
+
+        Returns:
+            str: 包含对应变量的payload
+        """
         if not self.prepared:
             self.do_prepare()
         answer = ""
@@ -296,6 +312,11 @@ class ContextVariableManager:
         return answer
 
     def get_context(self) -> Context:
+        """输出当前包含的变量
+
+        Returns:
+            Context: 所有包含的payload
+        """
         return {
             var_name: var_value
             for _, d in self.context_payloads.items()
@@ -304,6 +325,15 @@ class ContextVariableManager:
 
 
 def get_context_vars_manager(waf: WafFunc, options: Options) -> ContextVariableManager:
+    """根据waf函数和对应选项生成ContextVariableManager
+
+    Args:
+        waf (WafFunc): 对应的waf函数
+        options (Options): 对应的选项
+
+    Returns:
+        ContextVariableManager: 生成的实例
+    """
     context_payloads = context_payloads_stmts.copy()
     if options.python_version == PythonEnvironment.PYTHON3:
         context_payloads.update(context_payloads_stmts_py3)

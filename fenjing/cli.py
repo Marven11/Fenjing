@@ -102,7 +102,7 @@ def do_submit_cmdexec(
     full_payload_gen_like: Union[FullPayloadGen, EvalArgsModePayloadGen],
 ) -> str:
     """使用FullPayloadGen生成shell命令payload, 然后使用submitter发送至对应服务器, 返回回显
-    如果cmd以%>开头，则将其作为fenjing内部命令解析
+    如果cmd以@开头，则将其作为fenjing内部命令解析
 
     内部命令如下：
     - get-config: 获得当前的config
@@ -111,7 +111,8 @@ def do_submit_cmdexec(
     Args:
         cmd (str): payload对应的命令
         submitter (Submitter): 实际发送请求的submitter
-        full_payload_gen_like (Union[FullPayloadGen, EvalArgsModePayloadGen]): 生成payload的FullPayloadGen
+        full_payload_gen_like (Union[FullPayloadGen, EvalArgsModePayloadGen]):
+            生成payload的FullPayloadGen
 
     Returns:
         str: 回显
@@ -471,6 +472,7 @@ common_options_http = [
 
 def add_options(options):
     """应用列表中的click option装饰器"""
+
     def decorator(f):
         for option in options:
             f = option(f)
@@ -487,7 +489,12 @@ def main():
 @main.command()
 @add_options(common_options_http)
 @add_options(common_options_cli)
-@click.option("--action", "-a", default=None, help="参数的提交路径，如果和URL中的路径不同则需要填入")
+@click.option(
+    "--action",
+    "-a",
+    default=None,
+    help="参数的提交路径，如果和URL中的路径不同则需要填入",
+)
 @click.option("--method", "-m", default="POST", help="参数的提交方式，默认为POST")
 @click.option("--inputs", "-i", required=True, help="所有参数，以逗号分隔")
 @click.option(

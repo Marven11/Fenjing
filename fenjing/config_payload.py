@@ -2,7 +2,7 @@
 
 """
 
-from typing import Callable, Dict, Union
+from typing import Dict, Union
 
 from .const import CONFIG, WafFunc
 from .full_payload_gen import FullPayloadGen

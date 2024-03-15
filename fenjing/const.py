@@ -253,5 +253,5 @@ UNICODE_INT_CHARCODES = [
     [65296, 65297, 65298, 65299, 65300, 65301, 65302, 65303, 65304, 65305],
 ]
 
-with open(CURRENT_FOLDER / "char_pattern.json") as f:
+with open(CURRENT_FOLDER / "char_pattern.json", encoding="utf-8") as f:
     CHAR_PATTERNS: Dict[str, Dict[str, str]] = json.load(f)
