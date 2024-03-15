@@ -2,10 +2,14 @@
 
 import logging
 import threading
+import time
+import webbrowser
 import uuid
 
 from urllib.parse import urlparse
 from typing import Union
+from os import environ
+from platform import system
 
 from flask import Flask, render_template, request, jsonify
 
@@ -87,7 +91,7 @@ class CallBackLogger:
                     f"提交payload失败！链接为{data['url']}，payload为{data['payload']}"
                 )
             else:
-                self.flash_messages.append(f"提交payload失败！")
+                self.flash_messages.append("提交payload失败！")
         elif data.get("type", None) == "form":
             self.flash_messages.append(
                 f"提交表单完成，返回值为{data['response'].status_code}，输入为{data['inputs']}，表单为{data['form']}"
@@ -234,6 +238,7 @@ def manage_task_thread(task: threading.Thread):
     tasks[taskid] = task
     return taskid
 
+
 def parse_options(request_form) -> Options:
     """从给定的字典中解析出options
 
@@ -247,9 +252,7 @@ def parse_options(request_form) -> Options:
     if request_form.get("detect_mode", None):
         options.detect_mode = DetectMode(request_form.get("detect_mode", None))
     if request_form.get("environment", None):
-        options.environment = TemplateEnvironment(
-            request_form.get("environment", None)
-        )
+        options.environment = TemplateEnvironment(request_form.get("environment", None))
     if request_form.get("replaced_keyword_strategy", None):
         options.replaced_keyword_strategy = ReplacedKeywordStrategy(
             request_form.get("replaced_keyword_strategy", None)
@@ -289,8 +292,7 @@ def create_task():
             CrackTaskThread(
                 url=request.form["url"],
                 form=get_form(
-                    action=request.form["action"]
-                    or urlparse(request.form["url"]).path,
+                    action=request.form["action"] or urlparse(request.form["url"]).path,
                     method=request.form["method"],
                     inputs=request.form["inputs"].split(","),
                 ),
@@ -340,13 +342,10 @@ def create_task():
                 }
             )
         assert (
-            last_task.submitter is not None
-            and last_task.full_payload_gen is not None
+            last_task.submitter is not None and last_task.full_payload_gen is not None
         )
         taskid = manage_task_thread(
-            InteractiveTaskThread(
-                last_task.submitter, last_task.full_payload_gen, cmd
-            )
+            InteractiveTaskThread(last_task.submitter, last_task.full_payload_gen, cmd)
         )
         return jsonify({"code": APICODE_OK, "taskid": taskid})
     return jsonify(
@@ -402,8 +401,29 @@ def watch_task():
     assert False, "This line should not be run, check code."
 
 
-def main(host="127.0.0.1", port=11451):
+def should_open_browser() -> bool:
+    if system() == "Windows":
+        return True
+    return environ.get("DISPLAY") is not None
+
+
+def browser_open_url_delayed(url, delay):
+    def f():
+        time.sleep(delay)
+        try:
+            webbrowser.open(url)
+        except webbrowser.Error:
+            logger.warning("Open browser failed")
+
+    t = threading.Thread(target=f)
+    t.daemon = True
+    t.start()
+
+
+def main(host="127.0.0.1", port=11451, open_browser=True):
     """启动webui服务器"""
+    if open_browser and should_open_browser():
+        browser_open_url_delayed(f"http://{host}:{port}", 0.5)
     app.run(host=host, port=port)
 
 

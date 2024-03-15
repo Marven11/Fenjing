@@ -830,11 +830,14 @@ def crack_request(
     "--host", "-h", default="127.0.0.1", help="需要监听的host, 默认为127.0.0.1"
 )
 @click.option("--port", "-p", default=11451, help="需要监听的端口, 默认为11451")
-def webui(host, port):
+@click.option(
+    "--open-browser/--no-open-browser", default=True, help="是否自动打开浏览器"
+)
+def webui(host, port, open_browser):
     """
     启动webui
     """
-    webui_main(host, port)
+    webui_main(host, port, open_browser)
 
 
 if __name__ == "__main__":
