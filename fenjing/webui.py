@@ -32,6 +32,7 @@ from .options import Options
 from .form import get_form, Form
 from .full_payload_gen import FullPayloadGen
 from .requester import HTTPRequester
+from .scan_url import yield_form
 from .submitter import Submitter, FormSubmitter, PathSubmitter
 
 
@@ -123,22 +124,25 @@ class CallBackLogger:
             CALLBACK_TEST_FORM_INPUT: self.callback_test_form_input,
         }.get(callback_type, default_handler)(data)
 
+class BaseCrackTaskThread(threading.Thread):
+    def __init__(self):
+        super().__init__()
+        self.flash_messages = []
+        self.messages = []
+        self.callback = CallBackLogger(self.flash_messages, self.messages)
+        self.success = False
 
-class CrackTaskThread(threading.Thread):
+class CrackTaskThread(BaseCrackTaskThread):
     """crack任务的线程，由webui调用并实际承载攻击任务"""
 
     def __init__(self, url, form: Form, interval: float, options: Options):
         super().__init__()
-        self.success = False
         self.form = form
         self.url = url
         self.options = options
-        self.flash_messages = []
-        self.messages = []
-        self.callback = CallBackLogger(self.flash_messages, self.messages)
         self.submitter: Union[Submitter, None] = None
         self.full_payload_gen: Union[FullPayloadGen, None] = None
-        self.cracker: Union[Cracker, None]
+        self.cracker: Union[Cracker, None] = None
         self.requester = HTTPRequester(interval=interval, user_agent=DEFAULT_USER_AGENT)
 
     def run(self):
@@ -167,17 +171,13 @@ class CrackTaskThread(threading.Thread):
             self.messages.append("WAF绕过失败")
 
 
-class CrackPathTaskThread(threading.Thread):
+class CrackPathTaskThread(BaseCrackTaskThread):
     """crack-path任务的线程，由webui调用并实际承载攻击任务"""
 
     def __init__(self, url, interval: float, options: Options):
         super().__init__()
-        self.success = False
         self.url = url
         self.options = options
-        self.flash_messages = []
-        self.messages = []
-        self.callback = CallBackLogger(self.flash_messages, self.messages)
         self.submitter: Union[Submitter, None] = None
         self.full_payload_gen: Union[FullPayloadGen, None] = None
         self.cracker: Union[Cracker, None]
@@ -193,6 +193,50 @@ class CrackPathTaskThread(threading.Thread):
         if self.full_payload_gen:
             self.messages.append("WAF已绕过，现在可以执行Shell指令了")
             self.success = True
+
+class ScanTaskThread(BaseCrackTaskThread):
+    """scan任务的线程，由webui调用并实际承载攻击任务"""
+
+    def __init__(self, url, interval: float, options: Options):
+        super().__init__()
+        self.url = url
+        self.options = options
+        self.submitter: Union[Submitter, None] = None
+        self.full_payload_gen: Union[FullPayloadGen, None] = None
+        self.cracker: Union[Cracker, None]
+        self.requester = HTTPRequester(interval=interval, user_agent=DEFAULT_USER_AGENT)
+
+    def run(self):
+        url_forms = (
+            (page_url, form)
+            for (page_url, forms) in yield_form(self.requester, self.url)
+            for form in forms
+        )
+        for page_url, form in url_forms:
+            for input_field in form["inputs"]:
+                self.messages.append(f"开始分析表单项{input_field}")
+                self.submitter = FormSubmitter(
+                    page_url,
+                    form,
+                    input_field,
+                    self.requester,
+                    self.callback,
+                )
+                self.cracker = Cracker(
+                    self.submitter,
+                    self.callback,
+                    options=self.options,
+                )
+                if not self.cracker.has_respond():
+                    continue
+                self.full_payload_gen = self.cracker.crack()
+                if self.full_payload_gen:
+                    self.messages.append("WAF已绕过，现在可以执行Shell指令了")
+                    self.success = True
+                    return
+        if not self.success:
+            self.messages.append("WAF绕过失败")
+
 
 
 class InteractiveTaskThread(threading.Thread):
@@ -271,6 +315,11 @@ def crack_path():
     """渲染攻击路径的页面"""
     return render_template("crack-path.jinja2")
 
+@app.route("/scan")
+def scan():
+    """渲染攻击路径的页面"""
+    return render_template("scan.jinja2")
+
 
 @app.route(
     "/createTask",
@@ -314,6 +363,19 @@ def create_task():
             )
         )
         return jsonify({"code": APICODE_OK, "taskid": taskid})
+    if task_type == "scan":
+        if request.form["url"] == "":
+            return jsonify(
+                {"code": APICODE_WRONG_INPUT, "message": "URL should not be empty."}
+            )
+        taskid = manage_task_thread(
+            ScanTaskThread(
+                url=request.form["url"],
+                interval=float(request.form["interval"]),
+                options=parse_options(request.form),
+            )
+        )
+        return jsonify({"code": APICODE_OK, "taskid": taskid})
     if task_type == "interactive":
         cmd, last_task_id = (
             request.form["cmd"],
@@ -327,7 +389,7 @@ def create_task():
                     "message": "cmd should not be empty",
                 }
             )
-        elif not isinstance(last_task, (CrackTaskThread, CrackPathTaskThread)):
+        elif not isinstance(last_task, BaseCrackTaskThread):
             return jsonify(
                 {
                     "code": APICODE_WRONG_INPUT,
@@ -377,7 +439,7 @@ def watch_task():
     task: Union[CrackTaskThread, CrackPathTaskThread, InteractiveTaskThread] = tasks[
         taskid
     ]
-    if isinstance(task, (CrackTaskThread, CrackPathTaskThread)):
+    if isinstance(task, BaseCrackTaskThread):
         return jsonify(
             {
                 "code": APICODE_OK,
