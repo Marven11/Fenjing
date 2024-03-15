@@ -420,60 +420,81 @@ def do_crack_eval_args(
         interact(cmd_exec_func)
 
 
+common_options_cli = [
+    click.option(
+        "--exec-cmd",
+        "-e",
+        default="",
+        help="成功后执行的shell指令，不填则成功后进入交互模式",
+    ),
+    click.option(
+        "--detect-mode",
+        type=DetectMode,
+        cls=EnumOption,
+        default=DetectMode.ACCURATE,
+        help="分析模式，可为accurate或fast",
+    ),
+    click.option(
+        "--replaced-keyword-strategy",
+        default=ReplacedKeywordStrategy.AVOID,
+        type=ReplacedKeywordStrategy,
+        cls=EnumOption,
+        help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
+    ),
+    click.option(
+        "--environment",
+        default=TemplateEnvironment.JINJA2,
+        type=TemplateEnvironment,
+        cls=EnumOption,
+        help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
+    ),
+    click.option(
+        "--tamper-cmd",
+        default="",
+        help="在发送payload之前进行编码的命令，默认不进行额外操作",
+    ),
+    click.option("--interval", default=0.0, help="每次请求的间隔"),
+]
+
+common_options_http = [
+    click.option("--url", "-u", required=True, help="需要攻击的URL"),
+    click.option(
+        "--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent"
+    ),
+    click.option("--header", default=[], multiple=True, help="请求时使用的Headers"),
+    click.option("--cookies", default="", help="请求时使用的Cookie"),
+    click.option("--extra-params", default=None, help="请求时的额外GET参数，如a=1&b=2"),
+    click.option("--extra-data", default=None, help="请求时的额外POST参数，如a=1&b=2"),
+    click.option("--proxy", default="", help="请求时使用的代理"),
+]
+
+
+def add_options(options):
+    """应用列表中的click option装饰器"""
+    def decorator(f):
+        for option in options:
+            f = option(f)
+        return f
+
+    return decorator
+
+
 @click.group()
 def main():
     """click的命令组"""
 
 
 @main.command()
-@click.option("--url", "-u", required=True, help="form所在的URL")
-@click.option("--action", "-a", default=None, help="form的action，默认为当前路径")
-@click.option("--method", "-m", default="POST", help="form的提交方式，默认为POST")
-@click.option("--inputs", "-i", required=True, help="form的参数，以逗号分隔")
-@click.option(
-    "--exec-cmd",
-    "-e",
-    default="",
-    help="成功后执行的shell指令，不填则成功后进入交互模式",
-)
-@click.option("--interval", default=0.0, help="每次请求的间隔")
-@click.option(
-    "--detect-mode",
-    type=DetectMode,
-    cls=EnumOption,
-    default=DetectMode.ACCURATE,
-    help="分析模式，可为accurate或fast",
-)
-@click.option(
-    "--replaced-keyword-strategy",
-    default=ReplacedKeywordStrategy.AVOID,
-    type=ReplacedKeywordStrategy,
-    cls=EnumOption,
-    help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
-)
-@click.option(
-    "--environment",
-    default=TemplateEnvironment.JINJA2,
-    type=TemplateEnvironment,
-    cls=EnumOption,
-    help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
-)
+@add_options(common_options_http)
+@add_options(common_options_cli)
+@click.option("--action", "-a", default=None, help="参数的提交路径，如果和URL中的路径不同则需要填入")
+@click.option("--method", "-m", default="POST", help="参数的提交方式，默认为POST")
+@click.option("--inputs", "-i", required=True, help="所有参数，以逗号分隔")
 @click.option(
     "--eval-args-payload",
     default=False,
     is_flag=True,
     help="是否开启在GET参数中传递Eval payload的功能",
-)
-@click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
-@click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
-@click.option("--cookies", default="", help="请求时使用的Cookie")
-@click.option("--extra-params", default=None, help="请求时的额外GET参数，如a=1&b=2")
-@click.option("--extra-data", default=None, help="请求时的额外POST参数，如a=1&b=2")
-@click.option("--proxy", default="", help="请求时使用的代理")
-@click.option(
-    "--tamper-cmd",
-    default="",
-    help="在发送payload之前进行编码的命令，默认不进行额外操作",
 )
 def crack(
     url: str,
@@ -545,46 +566,8 @@ def crack(
 
 
 @main.command()
-@click.option("--url", "-u", required=True, help="需要攻击的URL")
-@click.option(
-    "--exec-cmd",
-    "-e",
-    default="",
-    help="成功后执行的shell指令，不填则成功后进入交互模式",
-)
-@click.option("--interval", default=0.0, help="每次请求的间隔")
-@click.option(
-    "--detect-mode",
-    type=DetectMode,
-    cls=EnumOption,
-    default=DetectMode.ACCURATE,
-    help="分析模式，可为accurate或fast",
-)
-@click.option(
-    "--replaced-keyword-strategy",
-    default=ReplacedKeywordStrategy.AVOID,
-    type=ReplacedKeywordStrategy,
-    cls=EnumOption,
-    help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
-)
-@click.option(
-    "--environment",
-    default=TemplateEnvironment.JINJA2,
-    type=TemplateEnvironment,
-    cls=EnumOption,
-    help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
-)
-@click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
-@click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
-@click.option("--cookies", default="", help="请求时使用的Cookie")
-@click.option("--extra-params", default=None, help="请求时的额外GET参数，如a=1&b=2")
-@click.option("--extra-data", default=None, help="请求时的额外POST参数，如a=1&b=2")
-@click.option("--proxy", default="", help="请求时使用的代理")
-@click.option(
-    "--tamper-cmd",
-    default="",
-    help="在发送payload之前进行编码的命令，默认不进行额外操作",
-)
+@add_options(common_options_http)
+@add_options(common_options_cli)
 def crack_path(
     url: str,
     exec_cmd: str,
@@ -629,43 +612,8 @@ def crack_path(
 
 
 @main.command()
-@click.option("--url", "-u", required=True, help="需要扫描的URL")
-@click.option(
-    "--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则进入交互模式"
-)
-@click.option("--interval", default=0.0, help="每次请求的间隔")
-@click.option(
-    "--detect-mode",
-    type=DetectMode,
-    cls=EnumOption,
-    default=DetectMode.ACCURATE,
-    help="检测模式，可为accurate或fast",
-)
-@click.option(
-    "--replaced-keyword-strategy",
-    default=ReplacedKeywordStrategy.AVOID,
-    type=ReplacedKeywordStrategy,
-    cls=EnumOption,
-    help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
-)
-@click.option(
-    "--environment",
-    default=TemplateEnvironment.JINJA2,
-    type=TemplateEnvironment,
-    cls=EnumOption,
-    help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
-)
-@click.option("--user-agent", default=DEFAULT_USER_AGENT, help="请求时使用的User Agent")
-@click.option("--header", default=[], multiple=True, help="请求时使用的Headers")
-@click.option("--cookies", default="", help="请求时使用的Cookie")
-@click.option("--extra-params", default=None, help="请求时的额外GET参数，如a=1&b=2")
-@click.option("--extra-data", default=None, help="请求时的额外POST参数，如a=1&b=2")
-@click.option("--proxy", default="", help="请求时使用的代理")
-@click.option(
-    "--tamper-cmd",
-    default="",
-    help="在发送payload之前进行编码的命令，默认不进行额外操作",
-)
+@add_options(common_options_http)
+@add_options(common_options_cli)
 def scan(
     url,
     exec_cmd,
@@ -725,48 +673,22 @@ def scan(
 
 
 @main.command()
+@add_options(common_options_cli)
 @click.option("--host", "-h", required=True, help="目标的host，可为IP或域名")
 @click.option("--port", "-p", required=True, type=int, help="目标的端口")
 @click.option(
-    "--request-file", "-f", required=True, help="保存在文本文件中的请求，其中payload处为PAYLOAD"
+    "--request-file",
+    "-f",
+    required=True,
+    help="保存在文本文件中的请求，其中payload处为PAYLOAD",
 )
 @click.option(
     "--toreplace", default=b"PAYLOAD", type=bytes, help="请求文件中payload的占位符"
 )
 @click.option("--ssl/--no-ssl", default=False, help="是否使用SSL")
-@click.option(
-    "--exec-cmd", "-e", default="", help="成功后执行的shell指令，不填则进入交互模式"
-)
 @click.option("--urlencode-payload", default=True, help="是否对payload进行urlencode")
 @click.option("--raw", is_flag=True, default=False, help="不检查请求的换行符等")
-@click.option(
-    "--detect-mode",
-    type=DetectMode,
-    cls=EnumOption,
-    default=DetectMode.ACCURATE,
-    help="检测模式，可为accurate或fast",
-)
-@click.option(
-    "--replaced-keyword-strategy",
-    default=ReplacedKeywordStrategy.AVOID,
-    type=ReplacedKeywordStrategy,
-    cls=EnumOption,
-    help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
-)
-@click.option(
-    "--environment",
-    default=TemplateEnvironment.JINJA2,
-    type=TemplateEnvironment,
-    cls=EnumOption,
-    help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
-)
 @click.option("--retry-times", default=5, help="重试次数")
-@click.option("--interval", default=0.05, help="请求间隔")
-@click.option(
-    "--tamper-cmd",
-    default="",
-    help="在发送payload之前进行编码的命令，默认不进行额外操作",
-)
 def crack_request(
     host: str,
     port: int,
