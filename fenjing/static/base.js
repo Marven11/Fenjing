@@ -33,6 +33,32 @@ function watchTask(taskId, callback) {
   let timerId = setInterval(intervalFn, 100);
 }
 
+function findParents(element) {
+  let elements = []
+  let e = element
+  while(e) {
+    elements.push(e)
+    e = e.parentElement
+  }
+  return elements
+}
+
+function highlightCurrentPageButton() {
+  for(let button of document.querySelectorAll(".icon-button").values()) {
+    if(button.dataset.location == window.location.pathname) {
+      button.classList.add("navbar-button-current")
+    }
+  }
+}
+
+function onClickNavbarButton(event) {
+  let button = findParents(event.target).filter(e => e.classList.contains("icon-button"))[0]
+  if(!button) {
+    throw Error("Button not found")
+  }
+  window.location = button.dataset.location
+}
+
 function onSubmitInteractiveTask(event) {
   event.preventDefault();
   if (taskRunning) {
@@ -102,3 +128,4 @@ function onSubmitGeneralCrackPathTask(event, formChecker) {
     });
 }
 
+highlightCurrentPageButton()

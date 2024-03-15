@@ -84,6 +84,10 @@ nav {
 }
 
 .icon-button:hover {
+  background-color: #00000030;
+}
+
+.navbar-button-current {
   background-color: #00000015;
 }
 
