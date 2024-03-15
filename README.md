@@ -227,20 +227,21 @@ Usage: python -m fenjing scan [OPTIONS]
   扫描指定的网站
 
 Options:
-  -u, --url TEXT                  需要扫描的URL
-  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则进入交互模式
-  --interval FLOAT                每次请求的间隔
-  --detect-mode TEXT              检测模式，可为accurate或fast
-  --replaced-keyword-strategy TEXT
-                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
-  --environment TEXT              模板的执行环境，默认为flask的render_template_string函数
-  --user-agent TEXT               请求时使用的User Agent
-  --header TEXT                   请求时使用的Headers
-  --cookies TEXT                  请求时使用的Cookie
-  --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
-  --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
   --proxy TEXT                    请求时使用的代理
+  --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
+  --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
+  --cookies TEXT                  请求时使用的Cookie
+  --header TEXT                   请求时使用的Headers
+  --user-agent TEXT               请求时使用的User Agent
+  -u, --url TEXT                  需要攻击的URL  [required]
+  --interval FLOAT                每次请求的间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --environment TEMPLATEENVIRONMENT
+                                  模板的执行环境，默认为不带flask全局变量的普通jinja2
+  --replaced-keyword-strategy REPLACEDKEYWORDSTRATEGY
+                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
+  --detect-mode DETECTMODE        分析模式，可为accurate或fast
+  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则成功后进入交互模式
   --help                          Show this message and exit.
 
 Usage: python -m fenjing crack [OPTIONS]
@@ -248,24 +249,25 @@ Usage: python -m fenjing crack [OPTIONS]
   攻击指定的表单
 
 Options:
-  -u, --url TEXT                  form所在的URL
-  -a, --action TEXT               form的action，默认为当前路径
-  -m, --method TEXT               form的提交方式，默认为POST
-  -i, --inputs TEXT               form的参数，以逗号分隔
-  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则成功后进入交互模式
-  --interval FLOAT                每次请求的间隔
-  --detect-mode TEXT              分析模式，可为accurate或fast
-  --replaced-keyword-strategy TEXT
-                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
-  --environment TEXT              模板的执行环境，默认为flask的render_template_string函数
-  --eval-args-payload             [试验性]是否在GET参数中传递Eval payload
-  --user-agent TEXT               请求时使用的User Agent
-  --header TEXT                   请求时使用的Headers
-  --cookies TEXT                  请求时使用的Cookie
-  --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
-  --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
   --proxy TEXT                    请求时使用的代理
+  --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
+  --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
+  --cookies TEXT                  请求时使用的Cookie
+  --header TEXT                   请求时使用的Headers
+  --user-agent TEXT               请求时使用的User Agent
+  -u, --url TEXT                  需要攻击的URL  [required]
+  --interval FLOAT                每次请求的间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --environment TEMPLATEENVIRONMENT
+                                  模板的执行环境，默认为不带flask全局变量的普通jinja2
+  --replaced-keyword-strategy REPLACEDKEYWORDSTRATEGY
+                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
+  --detect-mode DETECTMODE        分析模式，可为accurate或fast
+  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则成功后进入交互模式
+  -a, --action TEXT               参数的提交路径，如果和URL中的路径不同则需要填入
+  -m, --method TEXT               参数的提交方式，默认为POST
+  -i, --inputs TEXT               所有参数，以逗号分隔  [required]
+  --eval-args-payload             是否开启在GET参数中传递Eval payload的功能
   --help                          Show this message and exit.
 
 Usage: python -m fenjing crack-request [OPTIONS]
@@ -273,21 +275,22 @@ Usage: python -m fenjing crack-request [OPTIONS]
   从文本文件中读取请求并攻击目标，文本文件中用`PAYLOAD`标记payload插入位置
 
 Options:
-  -h, --host TEXT                 目标的host，可为IP或域名
-  -p, --port INTEGER              目标的端口
-  -f, --request-file TEXT         保存在文本文件中的请求，其中payload处为PAYLOAD
+  --interval FLOAT                每次请求的间隔
+  --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --environment TEMPLATEENVIRONMENT
+                                  模板的执行环境，默认为不带flask全局变量的普通jinja2
+  --replaced-keyword-strategy REPLACEDKEYWORDSTRATEGY
+                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
+  --detect-mode DETECTMODE        分析模式，可为accurate或fast
+  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则成功后进入交互模式
+  -h, --host TEXT                 目标的host，可为IP或域名  [required]
+  -p, --port INTEGER              目标的端口  [required]
+  -f, --request-file TEXT         保存在文本文件中的请求，其中payload处为PAYLOAD  [required]
   --toreplace BYTES               请求文件中payload的占位符
   --ssl / --no-ssl                是否使用SSL
-  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则进入交互模式
   --urlencode-payload BOOLEAN     是否对payload进行urlencode
   --raw                           不检查请求的换行符等
-  --detect-mode TEXT              检测模式，可为accurate或fast
-  --replaced-keyword-strategy TEXT
-                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
-  --environment TEXT              模板的执行环境，默认为flask的render_template_string函数
   --retry-times INTEGER           重试次数
-  --interval FLOAT                请求间隔
-  --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
   --help                          Show this message and exit.
 
 Usage: python -m fenjing crack-path [OPTIONS]
@@ -295,20 +298,21 @@ Usage: python -m fenjing crack-path [OPTIONS]
   攻击指定的路径
 
 Options:
-  -u, --url TEXT                  需要攻击的URL
-  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则成功后进入交互模式
-  --interval FLOAT                每次请求的间隔
-  --detect-mode TEXT              分析模式，可为accurate或fast
-  --replaced-keyword-strategy TEXT
-                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
-  --environment TEXT              模板的执行环境，默认为flask的render_template_string函数
-  --user-agent TEXT               请求时使用的User Agent
-  --header TEXT                   请求时使用的Headers
-  --cookies TEXT                  请求时使用的Cookie
-  --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
-  --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
   --proxy TEXT                    请求时使用的代理
+  --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
+  --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
+  --cookies TEXT                  请求时使用的Cookie
+  --header TEXT                   请求时使用的Headers
+  --user-agent TEXT               请求时使用的User Agent
+  -u, --url TEXT                  需要攻击的URL  [required]
+  --interval FLOAT                每次请求的间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --environment TEMPLATEENVIRONMENT
+                                  模板的执行环境，默认为不带flask全局变量的普通jinja2
+  --replaced-keyword-strategy REPLACEDKEYWORDSTRATEGY
+                                  WAF替换关键字时的策略，可为avoid/ignore/doubletapping
+  --detect-mode DETECTMODE        分析模式，可为accurate或fast
+  -e, --exec-cmd TEXT             成功后执行的shell指令，不填则成功后进入交互模式
   --help                          Show this message and exit.
 
 Usage: python -m fenjing webui [OPTIONS]
@@ -316,9 +320,11 @@ Usage: python -m fenjing webui [OPTIONS]
   启动webui
 
 Options:
-  -h, --host TEXT     需要监听的host, 默认为127.0.0.1
-  -p, --port INTEGER  需要监听的端口, 默认为11451
-  --help              Show this message and exit.
+  -h, --host TEXT                 需要监听的host, 默认为127.0.0.1
+  -p, --port INTEGER              需要监听的端口, 默认为11451
+  --open-browser / --no-open-browser
+                                  是否自动打开浏览器
+  --help                          Show this message and exit.
 ```
 
 ### 作为python库使用
