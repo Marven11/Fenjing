@@ -15,7 +15,7 @@ from fenjing import webui, const
 WEBUI_URL = "http://127.0.0.1:11451"
 VULUNSERVER_URL = os.environ.get("VULUNSERVER_ADDR", "http://127.0.0.1:5000")
 
-t = threading.Thread(target=webui.main)
+t = threading.Thread(target=webui.main, kwargs={"open_browser": False})
 t.daemon = True
 t.start()
 time.sleep(0.5)
