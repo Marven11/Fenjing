@@ -375,25 +375,28 @@ class WafFuncGen:
                     == ReplacedKeywordStrategy.AVOID
                     and any(w in payload for w in replaced_keyword)
                 ):
+                    logger.debug("payload含有被替换的keyword")
                     return False
                 result = self.subm.submit(payload)
                 if result is None:
+                    logger.debug("发送请求失败")
                     return False
                 # status_code, text = result
                 # 遇到500时，判断是否是Jinja渲染错误，是则返回True
                 if result.status_code == 500:
+                    logger.debug("目标渲染payload失败")
                     return any(w in result.text for w in render_error_keywords)
-                # 被ban
+                # payload过长
                 hash_text = hash(result.text)
-                if hash_text in long_param_hashes or hash_text in waf_hashes:
-                    logger.debug("payload被waf")
+                if hash_text in long_param_hashes:
+                    logger.debug("payload过长")
                     return False
                 # 无完全回显
                 if (
                     re.match(r"^[a-zA-Z0-9-_'\"!%=\+\-\*\/\[\], .()]+$", payload)
                     and payload not in result.text
                 ):
-                    logger.warning(
+                    logger.debug(
                         "payload足够简单但却没有完全回显: %s", colored("blue", payload)
                     )
                     return False
@@ -404,7 +407,7 @@ class WafFuncGen:
                 # 产生关键词替换
                 replaced_list = find_pieces(result.text, payload)
                 if replaced_list:
-                    logger.info(
+                    logger.debug(
                         "发现了新的关键词替换：%s",
                         colored("yellow", repr(replaced_list)),
                     )
@@ -422,7 +425,7 @@ class WafFuncGen:
                 #     logger.debug("页面的hash和waf页面的hash不相同")
                 #     return True
                 # 页面的hash和waf的相同，但是用户要求检测模式为快速
-                # 因此我们选择直接返回False
+                # 因此我们不检测是不是extra导致的waf，直接返回False
                 if self.options.detect_mode == DetectMode.FAST:
                     logger.debug("快速模式直接返回False")
                     return False
@@ -433,13 +436,14 @@ class WafFuncGen:
                 # 检测是否是extra_content导致的WAF
                 # 如果是的话更换extra_content并重新检测
                 extra_content_result = self.subm.submit(extra_content)
+                if extra_content_result is None:
+                    continue
                 if (
-                    extra_content_result is not None
-                    and extra_content_result.status_code != 500
+                    extra_content_result.status_code != 500
                     and hash(extra_content_result.text) in waf_hashes
                 ):
                     logger.debug("extra_content存在问题，重新检查")
-                    extra_content = "".join(random.choices(string.ascii_lowercase, k=6))
+                    extra_content = "".join(random.choices(string.ascii_lowercase, k=4))
                     continue
                 extra_passed = True
                 logger.debug("回显失败，返回False")
