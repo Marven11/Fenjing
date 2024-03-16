@@ -20,10 +20,10 @@ t.daemon = True
 t.start()
 time.sleep(0.5)
 
+
 class TestWebui(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
 
     def test_index(self):
         resp = requests.get(WEBUI_URL)
@@ -48,18 +48,8 @@ class TestWebui(unittest.TestCase):
                 break
             self.assertLessEqual(time.perf_counter() - start_time, max_time)
 
-    def test_webui(self):
-        resp = requests.post(
-            WEBUI_URL + "/createTask",
-            data={
-                "type": "crack",
-                "url": VULUNSERVER_URL,
-                "inputs": "name",
-                "method": "GET",
-                "action": "/",
-                "interval": "0.02",
-            }
-        )
+    def general_task_test(self, request_data):
+        resp = requests.post(WEBUI_URL + "/createTask", data=request_data)
         resp_data = resp.json()
         self.assertEqual(resp_data["code"], const.APICODE_OK)
         task_id = resp_data["taskid"]
@@ -90,3 +80,33 @@ class TestWebui(unittest.TestCase):
 
         is_cmd_executed = any("test webui" in msg for msg in messages)
         self.assertTrue(is_cmd_executed)
+
+    def test_crack(self):
+        self.general_task_test(
+            {
+                "type": "crack",
+                "url": VULUNSERVER_URL,
+                "inputs": "name",
+                "method": "GET",
+                "action": "/",
+                "interval": "0.02",
+            }
+        )
+
+    def test_scan(self):
+        self.general_task_test(
+            {
+                "type": "scan",
+                "url": VULUNSERVER_URL,
+                "interval": "0.02",
+            }
+        )
+
+    def test_crack_path(self):
+        self.general_task_test(
+            {
+                "type": "crack-path",
+                "url": VULUNSERVER_URL + "/crackpath/",
+                "interval": "0.02",
+            }
+        )
