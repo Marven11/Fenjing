@@ -31,7 +31,7 @@ jobs:
         VULUNSERVER_ADDR: "http://127.0.0.1:5000"
       run: | 
         cd tests
-        export SLEEP_INTERVAL=0.01
+        export SLEEP_INTERVAL=0.02
         python vulunserver.py 2>/dev/null &
         pip install coverage
         coverage run --source ../fenjing -m unittest test_* &&
