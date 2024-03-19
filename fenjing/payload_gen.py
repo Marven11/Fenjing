@@ -37,6 +37,7 @@ from pprint import pformat
 from .colorize import colored
 from .const import *
 from .options import Options
+from .wordlist import CHAR_PATTERNS
 
 ContextVariable = Dict[str, Any]
 
