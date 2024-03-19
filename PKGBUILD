@@ -27,7 +27,7 @@ depends=(
   'python-pysocks'
 )
 makedepends=('python-build')
-provides=()
+provides=('fenjing')
 conflicts=()
 replaces=()
 backup=()
