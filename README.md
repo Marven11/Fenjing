@@ -10,7 +10,7 @@
 [![Downloads](https://github.com/Marven11/Fenjing/raw/images/assets/downloads-monthly.svg)](https://pepy.tech/project/fenjing)
 ![Static Badge](https://github.com/Marven11/Fenjing/raw/images/assets/license.svg)
 
-焚靖是一个针对CTF比赛中Jinja SSTI绕过WAF的全自动脚本，可以自动攻击给定的网站或接口。
+焚靖是一个针对CTF比赛中Jinja SSTI绕过WAF的全自动脚本，可以自动攻击给定的网站或接口，省去手动测试接口，fuzz题目WAF的时间。
 
 ## 演示
 
@@ -19,26 +19,34 @@
 ## 主要特性
 
 - 集成了大部分CTF中的SSTI WAF绕过技巧
-- 全自动扫描HTML页面中的form元素并进行攻击
-- 使用页面中的词语自动扫描出提交参数并攻击
+- 全自动爆破API参数并攻击
 - 全自动分析网站的WAF并生成相应的payload
-- 使用精确模式全面分析网站或使用快速模式减少不必要的网络请求
 - 支持攻击对应的HTML表单或HTTP路径
-- 使用Shell指令对要发送的payload进行编码
 - 支持将payload放进GET参数中提交，有效降低payload长度
 - 自动检测双写并绕过
-- 方便的网页界面/命令行界面
+- ......
 
-## 快速上手
+## 安装
 
 在以下方法中选择一种
+
+### 使用pipx安装运行（推荐）
+
+```shell
+# 首先使用apt/dnf/pip/...安装pipx
+#pip install pipx
+# 然后用pipx自动创建独立的虚拟环境并进行安装
+pipx install fenjing
+fenjing webui
+# fenjing scan --url 'http://xxxx:xxx'
+```
 
 ### 使用pip安装运行
 
 ```shell
 pip install fenjing
-python -m fenjing webui
-# python -m fenjing scan --url 'http://xxxx:xxx'
+fenjing webui
+# fenjing scan --url 'http://xxxx:xxx'
 ```
 
 ### 下载并运行docker镜像
@@ -48,31 +56,15 @@ docker pull marven11/fenjing
 docker run -p 11451:11451 -it marven11/fenjing webui -h 0.0.0.0
 ```
 
-### 手动安装
-
-```shell
-git clone https://github.com/Marven11/Fenjing
-cd Fenjing
-python -m pip install -r requirements.txt
-python -m fenjing webui
-```
-
-### 手动构建Docker镜像
-
-```shell
-docker build -t fenjing .
-docker run -it -p 11451:11451 --net host fenjing webui -h 0.0.0.0
-```
-
-然后开始使用：
+## 使用
 
 ### webui
 
-你可以直接在webui里指定参数并自动攻击
+可以直接在webui里指定参数并自动攻击
 
 ![webui-example](assets/webui-example.png)
 
-在左边填入并点击开始分析，然后在右边输入命令就行了
+在左边填入并点击开始分析，然后在右边输入命令即可
 
 ### scan
 
@@ -105,7 +97,50 @@ Connection: close
 
 `python -m fenjing crack-request -f req.txt --host '127.0.0.1' --port 5000`
 
-## 支持的绕过规则
+### Tab补全
+
+参考[这里](https://click.palletsprojects.com/en/8.1.x/shell-completion/)配置shell启用tab补全
+
+示例如下：
+
+bash
+
+```bash
+cat >> ~/.bashrc << EOF
+eval "$(_FENJING_COMPLETE=bash_source fenjing)"
+EOF
+```
+
+zsh
+
+```shell
+cat >> ~/.zshrc << EOF
+eval "$(_FENJING_COMPLETE=zsh_source fenjing)"
+EOF
+```
+
+fish
+
+```shell
+echo '_FENJING_COMPLETE=fish_source fenjing | source' > ~/.config/fish/completions/fenjing.fish
+```
+
+注意只有输入`fenjing ...`的形式可以进行补全，`python -m fenjing`等形式无法进行tab补全
+
+## 详细使用
+
+见[examples.md](examples.md)以及`--help`选项
+
+## 技术细节
+
+项目结构如下：
+
+[![](https://mermaid.ink/img/pako:eNptU8tuwyAQ_BWE1JziH8ihh6rXntpT68ja4CVGxYvLo0ka5d-L7SQGxxwQDLuzj1nOXJga-YZLbQ6iAevZx0tJLC4XdnsLXcOCV9qxEeyXMNpY9YcTYvEnoPNoJ0ga26Yu5Px0HU9I9TySQ1soikQSBKYhtfqS4DYSivjYKgLdY9vJ4oC70NvsehupLEpzHMFtRsOK4nnE70mwWRbCgvhG6xK_EUmigaxkIFHtkSY0MrTKZ21wAqgKVj9wDXksOKTPy1FSdIllaGtJs6I6OGkDdVLU0xOrY5-EV4buol_F8nj01S-kPXANal1daTJjqfaPuAyTdZ7_IpjTsFUebihzzjiA6X21kPl9xm7SZ1LewFylcR9mZMEl0eexxpL4mrdxQkHV8VOde5-S-wZbLPkmHgmDt6BLXtIlmkLw5v1Egm-8DbjmoavB46uCKFrL4yhrF9EO6NOY6Y618sa-jR93-L-Xf1aoMIE?type=png)](https://mermaid.live/edit#pako:eNptU8tuwyAQ_BWE1JziH8ihh6rXntpT68ja4CVGxYvLo0ka5d-L7SQGxxwQDLuzj1nOXJga-YZLbQ6iAevZx0tJLC4XdnsLXcOCV9qxEeyXMNpY9YcTYvEnoPNoJ0ga26Yu5Px0HU9I9TySQ1soikQSBKYhtfqS4DYSivjYKgLdY9vJ4oC70NvsehupLEpzHMFtRsOK4nnE70mwWRbCgvhG6xK_EUmigaxkIFHtkSY0MrTKZ21wAqgKVj9wDXksOKTPy1FSdIllaGtJs6I6OGkDdVLU0xOrY5-EV4buol_F8nj01S-kPXANal1daTJjqfaPuAyTdZ7_IpjTsFUebihzzjiA6X21kPl9xm7SZ1LewFylcR9mZMEl0eexxpL4mrdxQkHV8VOde5-S-wZbLPkmHgmDt6BLXtIlmkLw5v1Egm-8DbjmoavB46uCKFrL4yhrF9EO6NOY6Y618sa-jR93-L-Xf1aoMIE)
+
+payload生成原理见[howitworks.md](./howitworks.md)
+
+
+支持的绕过规则如下
 
 ### 关键字符绕过：
 
