@@ -4,6 +4,7 @@
 import logging
 import subprocess
 import html
+import re
 
 from typing import List, Callable, Union, NamedTuple, Dict
 from urllib.parse import quote
@@ -56,6 +57,26 @@ def shell_tamperer(shell_cmd: str) -> Tamperer:
 
     return tamperer
 
+def update_content_length(request: bytes) -> bytes:
+    """更新请求体长度
+
+    Args:
+        request (bytes): 请求
+
+    Returns:
+        bytes: 更新结果
+    """
+    if request.startswith(b"GET") or request.startswith(b"HEAD"):
+        return request
+    header, _, body = request.rpartition(b"\r\n\r\n")
+    if len(header) == 0:
+        return request
+    content_length = len(body)
+    content_length_header = f"Content-Length: {content_length}".encode()
+    result, replace_count = re.subn(b"Content-Length:.*", content_length_header, header, 0, re.IGNORECASE)
+    if replace_count == 0:
+        result += b"\r\n" + content_length_header
+    return result + b"\r\n\r\n" + body
 
 class HTTPResponse(NamedTuple):
     """解析后的HTTP响应
@@ -129,6 +150,7 @@ class TCPSubmitter(BaseSubmitter):
         toreplace=b"PAYLOAD",
         urlencode_payload=True,
         tamperers: Union[List[Tamperer], None] = None,
+        enable_update_content_length=True,
     ):
 
         super().__init__()
@@ -136,6 +158,7 @@ class TCPSubmitter(BaseSubmitter):
         self.toreplace = toreplace
         self.urlencode_payload = urlencode_payload
         self.req = requester
+        self.enable_update_content_length = enable_update_content_length
         if tamperers:
             for tamperer in tamperers:
                 self.add_tamperer(tamperer)
@@ -144,6 +167,8 @@ class TCPSubmitter(BaseSubmitter):
         if self.urlencode_payload:
             raw_payload = quote(raw_payload)
         request = self.pattern.replace(self.toreplace, raw_payload.encode())
+        if self.enable_update_content_length:
+            request = update_content_length(request)
         result = self.req.request(request)
         if result is None:
             return None
