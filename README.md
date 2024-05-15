@@ -291,6 +291,8 @@ Options:
   --urlencode-payload BOOLEAN     是否对payload进行urlencode
   --raw                           不检查请求的换行符等
   --retry-times INTEGER           重试次数
+  --update-content-length BOOLEAN
+                                  自动更新Content-Length
   --help                          Show this message and exit.
 
 Usage: python -m fenjing crack-path [OPTIONS]
