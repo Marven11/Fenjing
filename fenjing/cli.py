@@ -696,6 +696,7 @@ def scan(
 @click.option("--urlencode-payload", default=True, help="是否对payload进行urlencode")
 @click.option("--raw", is_flag=True, default=False, help="不检查请求的换行符等")
 @click.option("--retry-times", default=5, help="重试次数")
+@click.option("--update-content-length", default=True, help="自动更新Content-Length")
 def crack_request(
     host: str,
     port: int,
@@ -711,6 +712,7 @@ def crack_request(
     retry_times: int,
     interval: float,
     tamper_cmd: str,
+    update_content_length: bool
 ):
     """
     从文本文件中读取请求并攻击目标，文本文件中用`PAYLOAD`标记payload插入位置
@@ -738,6 +740,7 @@ def crack_request(
         pattern=request_pattern,
         toreplace=toreplace,
         urlencode_payload=urlencode_payload,
+        enable_update_content_length=update_content_length
     )
     if tamper_cmd:
         tamperer = shell_tamperer(tamper_cmd)
