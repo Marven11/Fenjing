@@ -1,0 +1,12 @@
+requests
+beautifulsoup4
+click
+flask
+jinja2
+prompt_toolkit
+pygments
+pysocks
+notebook
+ipython
+build
+black
