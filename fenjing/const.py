@@ -21,8 +21,10 @@ EXPRESSION = "expression"
 ONEOF = "oneof"
 # 当优先级小于n时对生成结果加上括号
 ENCLOSE_UNDER = "enclose_under"
-# 强制加上括号
+# 强制加上括号（包裹）
 ENCLOSE = "enclose"
+# 单纯地加上括号，用于函数调用等
+WRAP = "wrap"
 # 标记使用了某个上下文中的变量
 WITH_CONTEXT_VAR = "with_context_var"
 # jinja上下文内置的变量
@@ -41,6 +43,7 @@ STRING_CONCAT = "string_concat"
 STRING_CONCATMANY = "string_concatmany"
 
 VARIABLE_OF = "variable_of"
+WHITESPACE = "whitespace"
 ZERO = "zero"
 POSITIVE_INTEGER = "positive_integer"
 INTEGER = "integer"
