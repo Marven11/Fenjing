@@ -104,6 +104,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venv*
 env/
 venv/
 ENV/
@@ -130,3 +131,6 @@ dmypy.json
 
 # vscode config
 .vscode/
+
+# notebooks are used for devs
+*.ipynb
