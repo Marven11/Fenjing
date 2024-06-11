@@ -21,7 +21,7 @@
     in {
       devShells.default = pkgs.mkShell {
         name = "python-venv";
-        venvDir = "./.venv";
+        venvDir = "./.venv-nixos";
         buildInputs = [
           pythonPackages.python
           pythonPackages.venvShellHook
