@@ -46,7 +46,7 @@ fenjing webui
 ```shell
 pip install fenjing
 fenjing webui
-# fenjing scan --url 'http://xxxx:xxx'
+# python -m fenjing scan --url 'http://xxxx:xxx'
 ```
 
 ### 下载并运行docker镜像
