@@ -147,7 +147,7 @@ gen_weight_default = {
     "gen_item_dunderfunc": 1,
 }
 
-precedence = [
+precedence_lst = [
     ["enclose", "literal", "flask_context_var", "jinja_context_var"],
     [
         "item",
@@ -193,7 +193,7 @@ precedence = [
     ],
 ][::-1]
 
-precedence = {name: i for i, lst in enumerate(precedence) for name in lst}
+precedence = {name: i for i, lst in enumerate(precedence_lst) for name in lst}
 
 
 def expression_gen(f: ExpressionGenerator):
@@ -241,6 +241,8 @@ def find_bad_exprs(tree, is_expr_bad_func):
 
 
 def join_target(sep, targets):
+    if len(targets) == 0:
+        return []
     assert len(targets) >= 1
     ret = [
         targets[0],
@@ -3534,6 +3536,18 @@ def gen_attribute_attrfilter2(context, obj_req, attr_name):
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
+@expression_gen
+def gen_attribute_map(context, obj_req, attr_name):
+    target_list = targets_from_pattern("( OBJ , ) | map( ATTR , NAME ) | first", {
+        "OBJ": obj_req,
+        " ": (WHITESPACE, ),
+        "ATTR": (STRING, "attr"),
+        "NAME": (STRING, attr_name)
+    })
+
+    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
+
+
 # ---
 
 
@@ -3562,18 +3576,7 @@ def gen_item_normal2(context, obj_req, item_name):
 
 @expression_gen
 def gen_item_dunderfunc(context, obj_req, item_name):
-    target_head = [
-        (
-            ENCLOSE_UNDER,
-            precedence["filter_with_function_call"],
-            (ATTRIBUTE, obj_req, "__getitem__"),
-        ),
-        (LITERAL, "("),
-        (WHITESPACE, ),
-        (STRING, item_name),
-        (WHITESPACE, ),
-    ]
-    target = (ONEOF, target_head + [(LITERAL, ")")], target_head + [(LITERAL, ",)")])
+    target = (FUNCTION_CALL, (ATTRIBUTE, obj_req, "__getitem__"), [(STRING, item_name)])
     return [(EXPRESSION, precedence["filter_with_function_call"], [target])]
 
 
@@ -3943,11 +3946,8 @@ def gen_os_popen_obj_eval(context, cmd):
 
 @expression_gen
 def gen_os_popen_read_normal(context, cmd):
-    target_list = [
-        (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"),
-        (ONEOF, [(LITERAL, "()")], [(LITERAL, "( )")]),
-    ]
-    return [(EXPRESSION, precedence["function_call"], target_list)]
+    return [(FUNCTION_CALL, (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"), [])]
+
 
 
 @expression_gen
