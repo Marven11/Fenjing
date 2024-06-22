@@ -45,15 +45,14 @@ fenjing webui
 
 ```shell
 pip install fenjing
-fenjing webui
+python -m fenjing webui
 # python -m fenjing scan --url 'http://xxxx:xxx'
 ```
 
 ### 下载并运行docker镜像
 
 ```shell
-docker pull marven11/fenjing
-docker run -p 11451:11451 -it marven11/fenjing webui -h 0.0.0.0
+docker run --net host -it marven11/fenjing webui
 ```
 
 ## 使用
@@ -403,4 +402,4 @@ payload生成原理见[howitworks.md](./howitworks.md)
 
 ## Stars
 
-[![Stargazers over time](https://github.com/Marven11/Fenjing/raw/images/assets/stars.svg))](https://starchart.cc/Marven11/Fenjing)
+[![Stargazers over time](https://github.com/Marven11/Fenjing/raw/images/assets/stars.svg)](https://starchart.cc/Marven11/Fenjing)
