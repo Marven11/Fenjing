@@ -13,6 +13,16 @@ html {
   margin: 0;
 }
 
+.scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+
+.scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  transition: all 1s ease;
+  background-color: var(--grey);
+}
+
 input[type="submit"] {
   transition: background 0.3s ease;
 }
@@ -244,6 +254,7 @@ main {
   margin-right: 10px;
   text-indent: 10px;
 }
+
 .cmd-input input[type="submit"] {
   margin-left: 0px;
 }
