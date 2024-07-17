@@ -1,4 +1,4 @@
-![焚靖](assets/fenjing.webp)
+![Fenjing](assets/fenjing.webp)
 
 > Bypass the WAF without knowing WAF
 
@@ -10,40 +10,33 @@
 [![Downloads](https://github.com/Marven11/Fenjing/raw/images/assets/downloads-monthly.svg)](https://pepy.tech/project/fenjing)
 ![Static Badge](https://github.com/Marven11/Fenjing/raw/images/assets/license.svg)
 
-[English](README_en.md)
+Fenjing is a script for bypassing Jinja SSTI WAF in CTF competitions. It supports automatically attacking given website or API.
 
-焚靖是一个针对CTF比赛中Jinja SSTI绕过WAF的全自动脚本，可以自动攻击给定的网站或接口，省去手动测试接口，fuzz题目WAF的时间。
-
-## 演示
+## Demo
 
 [![asciicast](assets/demo.svg)](https://asciinema.org/a/rewsTVvAPqH59GWNtn7QmZ6RU)
 
-## 主要特性
+## Features
 
-- 集成了大部分CTF中的SSTI WAF绕过技巧
-- 全自动爆破API参数并攻击
-- 全自动分析网站的WAF并生成相应的payload
-- 支持攻击对应的HTML表单或HTTP路径
-- 支持将payload放进GET参数中提交，有效降低payload长度
-- 自动检测关键字替换并绕过
+- Intergrade most of the CTF SSTI WAF bypass tricks.
+- Automatic parameter discovery.
+- Automatically generate payload by analyzing WAF. 
+- Crack by HTTP parameters or URI path
+- Automatically detect and bypass keyword replacement.
 - ......
 
-## 安装
+## Installation
 
-在以下方法中选择一种
-
-### 使用pipx安装运行（推荐）
+### With pipx (recommened)
 
 ```shell
-# 首先使用apt/dnf/pip/...安装pipx
 #pip install pipx
-# 然后用pipx自动创建独立的虚拟环境并进行安装
 pipx install fenjing
 fenjing webui
 # fenjing scan --url 'http://xxxx:xxx'
 ```
 
-### 使用pip安装运行
+### WIth pip
 
 ```shell
 pip install fenjing
@@ -51,41 +44,43 @@ fenjing webui
 # fenjing scan --url 'http://xxxx:xxx'
 ```
 
-### 下载并运行docker镜像
+### With docker images
 
 ```shell
 docker run --net host -it marven11/fenjing webui
 ```
 
-## 使用
+## Usage
 
-### webui
+### Webui
 
-可以直接输入`python -m fenjing webui`启动webui，指定参数并自动攻击
+Run `python -m fenjing webui` to launch webui, specify parameter and crack.
+
+Currently webui only supports Chinese, i18n is on its way.
 
 ![webui-example](assets/webui-example.png)
 
-在左边填入参数并点击开始分析，然后在右边输入命令即可
+Fill in your target and click `Analyze`, and type your command one the right.
 
 ### scan
 
-在终端可以用scan功能，猜测某个页面的参数并自动攻击：
+`scan` function is for guessing and cracking parameters of a URL. It supports detecting API parameters from HTML form and from parameter discovery.
 
 `python -m fenjing scan --url 'http://xxxx:xxx/yyy'`
 
 ### crack
 
-也可以用crack功能，手动指定参数进行攻击：
+You can also use `crack` to specify parameters and crack:
 
 `python -m fenjing crack --url 'http://xxxx:xxx/yyy' --detect-mode fast --inputs aaa,bbb --method GET`
 
-这里提供了aaa和bbb两个参数进行攻击，并使用`--detect-mode fast`加速攻击速度
+Here we provide 2 parameters, `aaa` and `bbb`, to crack. And use `--detect-mode fast` to accelerate cracking.
 
 ### crack-request
 
-还可以将HTTP请求写进一个文本文件里（比如说`req.txt`）然后进行攻击
+You can also write the HTTP request into a text file (`req.txt` for example), and tell fenjing to crack with it.
 
-文本文件内容如下：
+For example, `req.txt` is shown below:
 
 ```http
 GET /?name=PAYLOAD HTTP/1.1
@@ -94,15 +89,15 @@ Connection: close
 
 ```
 
-命令如下：
+And launch fenjing with:
 
 `python -m fenjing crack-request -f req.txt --host '127.0.0.1' --port 5000`
 
-### Tab补全
+### Tab completion
 
-参考[这里](https://click.palletsprojects.com/en/8.1.x/shell-completion/)配置shell启用tab补全
+[Reference](https://click.palletsprojects.com/en/8.1.x/shell-completion/) to configure your shell.
 
-示例如下：
+Examples:
 
 bash
 
@@ -126,29 +121,26 @@ fish
 echo '_FENJING_COMPLETE=fish_source fenjing | source' > ~/.config/fish/completions/fenjing.fish
 ```
 
-注意只有输入`fenjing ...`的形式可以进行补全，`python -m fenjing`等形式无法进行tab补全
+Tab completion only supports `fenjing ...`, not `python -m fenjing`
 
-## 详细使用
+## Project details 
 
-见[examples.md](examples.md)以及`--help`选项
+program structure:
 
-## 技术细节
-
-项目结构如下：
 
 [![](https://mermaid.ink/img/pako:eNptU8tuwyAQ_BWE1JziH8ihh6rXntpT68ja4CVGxYvLo0ka5d-L7SQGxxwQDLuzj1nOXJga-YZLbQ6iAevZx0tJLC4XdnsLXcOCV9qxEeyXMNpY9YcTYvEnoPNoJ0ga26Yu5Px0HU9I9TySQ1soikQSBKYhtfqS4DYSivjYKgLdY9vJ4oC70NvsehupLEpzHMFtRsOK4nnE70mwWRbCgvhG6xK_EUmigaxkIFHtkSY0MrTKZ21wAqgKVj9wDXksOKTPy1FSdIllaGtJs6I6OGkDdVLU0xOrY5-EV4buol_F8nj01S-kPXANal1daTJjqfaPuAyTdZ7_IpjTsFUebihzzjiA6X21kPl9xm7SZ1LewFylcR9mZMEl0eexxpL4mrdxQkHV8VOde5-S-wZbLPkmHgmDt6BLXtIlmkLw5v1Egm-8DbjmoavB46uCKFrL4yhrF9EO6NOY6Y618sa-jR93-L-Xf1aoMIE?type=png)](https://mermaid.live/edit#pako:eNptU8tuwyAQ_BWE1JziH8ihh6rXntpT68ja4CVGxYvLo0ka5d-L7SQGxxwQDLuzj1nOXJga-YZLbQ6iAevZx0tJLC4XdnsLXcOCV9qxEeyXMNpY9YcTYvEnoPNoJ0ga26Yu5Px0HU9I9TySQ1soikQSBKYhtfqS4DYSivjYKgLdY9vJ4oC70NvsehupLEpzHMFtRsOK4nnE70mwWRbCgvhG6xK_EUmigaxkIFHtkSY0MrTKZ21wAqgKVj9wDXksOKTPy1FSdIllaGtJs6I6OGkDdVLU0xOrY5-EV4buol_F8nj01S-kPXANal1daTJjqfaPuAyTdZ7_IpjTsFUebihzzjiA6X21kPl9xm7SZ1LewFylcR9mZMEl0eexxpL4mrdxQkHV8VOde5-S-wZbLPkmHgmDt6BLXtIlmkLw5v1Egm-8DbjmoavB46uCKFrL4yhrF9EO6NOY6Y618sa-jR93-L-Xf1aoMIE)
 
-payload生成原理见[howitworks.md](./howitworks.md)
+[howitworks.md](./howitworks.md)
 
-支持的绕过规则如下
+Supported Bypass Rules
 
-### 关键字符绕过：
+### Character Bypass
 
-- `'`和`"`
+- `'` and `"`
 - `_`
 - `[`
-- 绝大多数敏感关键字
-- 任意阿拉伯数字
+- Most sensitive keywords
+- Any Arabic numerals
 - `+`
 - `-`
 - `*`
@@ -157,96 +149,99 @@ payload生成原理见[howitworks.md](./howitworks.md)
 - `%`
 - ...
 
-### 自然数绕过：
+### Numeric Bypass
 
-支持绕过0-9的同时绕过加减乘除，支持的方法如下：
-- 十六进制
-- a*b+c
+Supports bypassing 0-9 and arithmetic operations simultaneously, using methods such as:
+
+- Hexadecimal
+- a\*b+c
 - `(39,39,20)|sum`
 - `(x,x,x)|length`
-- unicode中的全角字符等
+- Unicode characters
 
-### `'%c'`绕过:
+The above rules support nesting.
 
-支持绕过引号，`g`，`lipsum`和`urlencode`等
+### `'%c'` Bypass
 
-### 下划线绕过：
+Supports bypassing quotes, `g`, `lipsum`, and `urlencode`, etc.
 
-支持`(lipsum|escape|batch(22)|list|first|last)`等
-- 其中的数字22支持上面的数字绕过
+### Underscore Bypass
 
-### 任意字符串：
+Supports `(lipsum|escape|batch(22)|list|first|last)`, etc.
+- The number 22 in the above rule supports the numeric bypass mentioned earlier.
 
-支持绕过引号，任意字符串拼接符号，下划线和任意关键词
+### Arbitrary String
 
-支持以下形式
+Supports bypassing quotes, arbitrary string concatenation symbols, underscores, and arbitrary keywords.
+
+Supports the following forms:
 
 - `'str'`
 - `"str"`
 - `"\x61\x61\x61"`
 - `dict(__class__=x)|join`
-    - 其中的下划线支持绕过
+    - The underscore in the above rule supports bypassing.
 - `'%c'*3%(97,97, 97)`
-    - 其中的`'%c'`也支持上面的`'%c'`绕过
-    - 其中的所有数字都支持上面的数字绕过
-- 将字符串切分成小段分别生成
+    - The `'%c'` in the above rule also supports the `'%c'` bypass mentioned earlier.
+    - All numbers in the above rule support the numeric bypass mentioned earlier.
+- Splitting the string into small segments and generating them separately
 - ...
 
-### 属性：
+### **Attribute**
 
 - `['aaa']`
 - `.aaa`
 - `|attr('aaa')`
 
-### Item
+### **Item**
 
 - `['aaa']`
 - `.aaa`
 - `.__getitem__('aaa')`
 
-## 其他技术细节
+Other Technical Details
 
-- 脚本会提前生成一些字符串并使用`{%set %}`设置在前方
-- 脚本会在payload的前方设置一些变量提供给payload后部分的表达式。
-- 脚本会在全自动的前提下生成较短的表达式。
-- 脚本会仔细地检查各个表达式的优先级，尽量避免生成多余的括号。
+- The script pre-generates some strings and sets them using {%set %} at the beginning.
+- The script sets some variables at the beginning of the payload to provide for the expressions in the latter part.
+- The script generates shorter expressions automatically.
+- The script carefully checks the priority of each expression, trying to avoid generating unnecessary parentheses.
 
-## 详细使用
+## Detailed Usage
 
-### 作为命令行脚本使用
+### Using as a Command-Line Script
 
-各个功能的介绍：
+Introduction to each function:
 
-- webui: 网页UI
-  - 顾名思义，网页UI
-  - 默认端口11451
-- scan: 扫描整个网站
-  - 从网站中根据form元素提取出所有的表单并攻击
-  - 根据给定URL爆破参数，以及提取其他URL进行扫描
-  - 扫描成功后会提供一个模拟终端或执行给定的命令
-  - 示例：`python -m fenjing scan --url 'http://xxx/'`
-- crack: 对某个特定的表单进行攻击
-  - 需要指定表单的url, action(GET或POST)以及所有字段(比如'name')
-  - 攻击成功后也会提供一个模拟终端或执行给定的命令
-  - 示例：`python -m fenjing crack --url 'http://xxx/' --method GET --inputs name`
-- crack-path: 对某个特定的路径进行攻击
-  - 攻击某个路径（如`http://xxx.xxx/hello/<payload>`）存在的漏洞
-  - 参数大致上和crack相同，但是只需要提供对应的路径
-  - 示例：`python -m fenjing crack-path --url 'http://xxx/hello/'`
-- crack-request: 读取某个请求文件进行攻击
-  - 读取文件里的请求，将其中的`PAYLOAD`替换成实际的payload然后提交
-  - 根据HTTP格式会默认对请求进行urlencode, 可以使用`--urlencode-payload 0`关闭
+- webui: Web UI
+  - As the name suggests, a web-based UI
+  - Default port is 11451
+- scan: Scan the entire website
+  - Extract all forms from the website based on form elements and attack them
+  - Discover parameter by URL and extract other URLs in the HTML.
+  - After a successful scan, provide a simulated terminal or execute a given command
+  - Example: `python -m fenjing scan --url 'http://xxx/'`
+- crack: Attack a specific form
+  - Requires specifying the form's URL, action (GET or POST), and all fields (e.g., 'name')
+  - After a successful attack, provide a simulated terminal or execute a given command
+  - Example: `python -m fenjing crack --url 'http://xxx/' --method GET --inputs name`
+- crack-path: Attack a specific path
+  - Attack vulnerabilities existing in a specific path (e.g., `http://xxx.xxx/hello/<payload>`)
+  - Parameters are similar to those of crack, but only require providing the corresponding path
+  - Example: `python -m fenjing crack-path --url 'http://xxx/hello/'`
+- crack-request: Read a request file and attack
+  - Read the requests in the file, replace `PAYLOAD` with the actual payload, and submit
+  - By default, urlencode the request according to HTTP format, can be turned off with `--urlencode-payload 0`
 
-一些特殊的选项：
-- `--eval-args-payload`：将payload放在GET参数x中提交
-- `--detect-mode`：检测模式，可为accurate或fast
-- `--environment`：指定模板的渲染环境，默认认为模板在flask中的`render_template_string`中渲染
-- `--tamper-cmd`：在payload发出前编码
-  - 例如：
-    - `--tamper-cmd 'rev'`：将payload反转后再发出
-    - `--tamper-cmd 'base64'`：将payload进行base64编码后发出
-    - `--tamper-cmd 'base64 | rev'`：将payload进行base64编码并反转后再发出
-- 详细解释见[examples.md](examples.md)
+Some special options:
+- `--eval-args-payload`: Place the payload in the GET parameter x and submit
+- `--detect-mode`: Detection mode, can be accurate or fast
+- `--environment`: Specify the rendering environment for the template, default is assumed to be in Flask's `render_template_string`
+- `--tamper-cmd`: Encode the payload before sending
+  - Examples:
+    - `--tamper-cmd 'rev'`: Reverse the payload before sending
+    - `--tamper-cmd 'base64'`: Encode the payload with base64 before sending
+    - `--tamper-cmd 'base64 | rev'`: Encode the payload with base64 and reverse it before sending
+- For detailed explanations, see [examples.md](examples.md)
 
 
 ```
@@ -357,9 +352,9 @@ Options:
   --help                          Show this message and exit.
 ```
 
-### 作为python库使用
+### Use as a python library
 
-参考[example.py](example.py)
+[example.py](example.py)
 
 ```python
 from fenjing import exec_cmd_payload, config_payload
@@ -384,7 +379,7 @@ if __name__ == "__main__":
 
 ```
 
-其他使用例可以看[这里](examples.md)
+Other examples (Chinese): [examples.md](examples.md)
 
 ## Stars
 
