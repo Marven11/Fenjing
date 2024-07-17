@@ -7,6 +7,15 @@
   font-family: "Courier New", Courier, monospace;
 }
 
+@font-face {
+  font-family: "FiraCode";
+  src: url("./FiraCodeNerdFontMono-Regular.ttf");
+}
+
+* {
+  font-family: 'FiraCode', 'Courier New', Courier, monospace;
+}
+
 body,
 html {
   background-color: var(--background1);
