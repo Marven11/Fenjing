@@ -363,6 +363,8 @@ class WafFuncGen:
             "".join(random.choices(string.ascii_lowercase, k=4)),
             False,
         )
+        while any(w in extra_content for w in replaced_keyword):
+            extra_content = "".join(random.choices(string.ascii_lowercase, k=4))
 
         # WAF函数，只有在payload一定可以通过WAF时才返回True
         @lru_cache(10000)
