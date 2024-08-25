@@ -4,13 +4,31 @@
   --background2: #292525;
   --background3: #252121;
   --grey: #a8b0b6;
-  font-family: "Courier New", Courier, monospace;
+}
+
+@font-face {
+  font-family: "FiraCode";
+  src: url("./FiraCodeNerdFontMono-Regular.ttf");
+}
+
+* {
+  font-family: 'FiraCode', 'Courier New', Courier, "Microsoft Yahei", "Hiragino Sans GB", "Heiti SC", "WenQuanYi Micro Hei", monospace, sans-serif;
 }
 
 body,
 html {
   background-color: var(--background1);
   margin: 0;
+}
+
+.scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+
+.scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  transition: all 1s ease;
+  background-color: var(--grey);
 }
 
 input[type="submit"] {
@@ -31,7 +49,7 @@ input[type="submit"]:hover {
 }
 
 header {
-  height: 15vh;
+  height: 120px;
   background-color: var(--orange);
   display: flex;
   border-radius: 20px;
@@ -113,7 +131,8 @@ main {
 .main-right {
   color: var(--grey);
   border-radius: 20px;
-  height: 70vh;
+  min-height: 60vh;
+  margin-bottom: 5vh;
   display: flex;
   justify-content: center;
 }
@@ -244,6 +263,7 @@ main {
   margin-right: 10px;
   text-indent: 10px;
 }
+
 .cmd-input input[type="submit"] {
   margin-left: 0px;
 }

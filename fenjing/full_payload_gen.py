@@ -280,6 +280,7 @@ class FullPayloadGen:
             "concat",
             "big",
             "doc",
+            "attr",
             "__class__",
             "__globals__",
             "__init__",
