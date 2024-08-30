@@ -203,27 +203,48 @@ class WafFuncGen:
         Returns:
             List[int]: payload被waf后页面对应的hash
         """
-        test_keywords = (
-            grouped_payloads(2) + dangerous_keywords
-            if self.options.detect_mode == DetectMode.ACCURATE
-            else grouped_payloads(4)
-        )
+        test_keywords = None
+        if self.options.detect_mode == DetectMode.ACCURATE:
+            test_keywords = (
+                wrapper.replace("PAYLOAD", word)
+                for word in grouped_payloads(2) + dangerous_keywords
+                for wrapper in [
+                    "PAYLOAD",
+                    "PAYLOADPAYLOAD",
+                    "{{PAYLOAD}}PAYLOAD",
+                    "{%print PAYLOAD%}PAYLOAD",
+                    "{%print(PAYLOAD)%}PAYLOAD",
+                ]
+            )
+        else:
+            test_keywords = (
+                wrapper.replace("PAYLOAD", word)
+                for word in grouped_payloads(4)
+                for wrapper in [
+                    "PAYLOADPAYLOAD",
+                    "{{PAYLOAD}}PAYLOAD",
+                ]
+            )
         hashes: List[int] = []
         for keyword in test_keywords:
-            logger.info(
-                "Testing dangerous keyword %s",
-                colored("yellow", repr(keyword * 2)),
-            )
-            result = self.subm.submit(keyword * 2)
+            result = self.subm.submit(keyword)
             if result is None:
                 logger.info(
                     "Submit %s for %s",
                     colored("yellow", "failed"),
-                    colored("yellow", repr(keyword * 2)),
+                    colored("yellow", repr(keyword)),
                 )
                 continue
             status_code, text = result
-            if status_code == 500:
+            logger.info(
+                "Testing dangerous keyword %s with response %s",
+                colored("yellow", repr(keyword)),
+                colored(
+                    "blue",
+                    repr(text) if len(text) < 100 else repr(text[:100]) + "......",
+                ),
+            )
+            if status_code == 500 and "Internal Server Error" in text:
                 continue
             hashes.append(hash(text))
 
@@ -262,6 +283,63 @@ class WafFuncGen:
             time.sleep(2)
         return [k for k, v in Counter(hashes).items() if v >= 2]
 
+    def waf_keywords(self, waf_hashes: List[int]) -> List[str]:
+        result: List[str] = []
+        wrappers = [
+            "PAYLOAD",
+            "PAYLOADPAYLOAD",
+        ]
+
+        def keyword_passed(w):
+
+            for wrapper in wrappers:
+                payload = wrapper.replace("PAYLOAD", w)
+                logger.info(
+                    "Checking dangerous payload %s",
+                    colored("yellow", repr(payload)),
+                )
+                result = self.subm.submit(payload)
+                if not result:
+                    return False
+                status, text = result
+                if status == 500:
+                    continue
+                if hash(text) in waf_hashes:
+                    return False
+            return True
+
+        if keyword_passed("{{}}"):
+            wrappers.append("{{PAYLOAD}}")
+        for ws in (
+            [" ", "\t", "\n"]
+            if self.options.detect_mode == DetectMode.ACCURATE
+            else [" "]
+        ):
+            if keyword_passed(" {{ }} ".replace(" ", ws)):
+                wrappers.append(" {{ PAYLOAD }} ".replace(" ", ws))
+            if keyword_passed("{%print %}".replace(" ", ws)):
+                wrappers.append("{%print PAYLOAD%}".replace(" ", ws))
+            if keyword_passed(" {%print %} ".replace(" ", ws)):
+                wrappers.append(" {%print PAYLOAD %} ".replace(" ", ws))
+
+        # we decide to test every keywrod by batches
+        size = int(len(dangerous_keywords) ** 0.3) + 1
+        for i in range(0, len(dangerous_keywords), size):
+            l = dangerous_keywords[i : i + size]
+            random.shuffle(l)
+            if keyword_passed("".join(l)):
+                continue
+            for word in l:
+                if not keyword_passed(word):
+                    result.append(word)
+        if result:
+            logger.info(
+                "These keywords might get %s: %s",
+                colored("yellow", "banned", bold=True),
+                colored("yellow", repr(result)),
+            )
+        return result
+
     def replaced_keyword(self) -> List[str]:
         """检测出所有可能被替换的keyword
 
@@ -281,7 +359,7 @@ class WafFuncGen:
                 extra = "".join(random.choices(string.ascii_lowercase, k=4))
             payload = extra + keyword + extra
             logger.info(
-                "Testing keyword replacing %s",
+                "Testing keyword replacement: %s",
                 colored("yellow", repr(payload)),
             )
             result = self.subm.submit(payload)
@@ -347,8 +425,9 @@ class WafFuncGen:
         Returns:
             WafFunc: WAF函数
         """
-        replaced_keyword = self.replaced_keyword()
         waf_hashes = self.waf_page_hash()
+        waf_keywords = self.waf_keywords(waf_hashes)
+        replaced_keyword = self.replaced_keyword()
         long_param_hashes = self.long_param_hash()
         long_param_hashes = [h for h in long_param_hashes if h not in waf_hashes]
         if (
@@ -400,6 +479,12 @@ class WafFuncGen:
                 ):
                     logger.debug(
                         "payload足够简单但却没有完全回显: %s", colored("blue", payload)
+                    )
+                    return False
+                if any(w in result.text for w in waf_keywords):
+                    logger.warning(
+                        "payload含有被waf的keyword %s",
+                        repr([w for w in waf_keywords if w in result.text]),
                     )
                     return False
                 # 产生回显
