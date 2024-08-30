@@ -124,10 +124,11 @@ class TCPRequester:
         self.use_ssl = use_ssl
         self.interval = interval
         self.retry_times = retry_times
-        self.last_request_time = None
+        self.last_request_time: Union[float, None] = None
 
     def _get_socket(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(10)
         if self.use_ssl:
             ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
             sock = ssl_context.wrap_socket(sock)
@@ -173,7 +174,9 @@ class TCPRequester:
             return None
         response = response.decode()
         status_code_result = re.search(r"\d{3}", response.partition("\n")[0])
-        assert status_code_result is not None, "Failed to find status code: " + response
+        if status_code_result is None:
+            logging.warning("Failed to find status code: %s", response)
+            return None
 
         try:
             sock.close()
