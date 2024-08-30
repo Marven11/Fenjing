@@ -1371,9 +1371,7 @@ def gen_positive_integer_recurmulitiply(context: dict, value: int):
             *[
                 [
                     (WRAP, [
-                        (POSITIVE_INTEGER, value // x),
-                        (LITERAL, "*"),
-                        (POSITIVE_INTEGER, x),
+                        (MULTIPLY, (POSITIVE_INTEGER, value // x), (POSITIVE_INTEGER, x))
                     ])
                 ]
                 for x in xs
@@ -1393,9 +1391,9 @@ def gen_positive_integer_recurmultiply2(context: dict, value: int):
         alternative = (
             [
                 (LITERAL, "("),
-                (POSITIVE_INTEGER, value // i),
+                (ENCLOSE_UNDER, precedence["multiply"], (POSITIVE_INTEGER, value // i)),
                 (LITERAL, "*"),
-                (POSITIVE_INTEGER, i),
+                (ENCLOSE_UNDER, precedence["multiply"], (POSITIVE_INTEGER, i)),
             ]
             + lst
             + [
