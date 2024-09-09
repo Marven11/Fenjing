@@ -46,21 +46,30 @@ def get_outer_pattern(
             生成失败则返回None
     """
     outer_payloads = [
-        ("{{}}", "{{PAYLOAD}}", True),
-        (" {{}} ", " {{ PAYLOAD }} ", True),
-        ("{%print %}", "{%print PAYLOAD%}", True),
-        (" {%print %} ", " {%print PAYLOAD%} ", True),
-        ("{%print()%}", "{%print(PAYLOAD)%}", True),
-        (" {%print( )%} ", " {%print( PAYLOAD )%} ", True),
-        (" {% print( ) %} ", " {% print( PAYLOAD ) %} ", True),
-        ("{%set x=%}", "{%set x=PAYLOAD%}", False),
-        (" {%set x = %} ", " {%set x = PAYLOAD %} ", False),
-        (" {% if() %} {% endif %}", " {% if(PAYLOAD) %} {% endif %}", False),
         (
-            "{%for x in ((),)%}x{%endfor%}",
-            "{%for x in ((PAYLOAD),)%}x{%endfor%}",
-            False,
-        ),
+            outer_pattern.replace("${WS}", whitespace).replace("PAYLOAD", payload),
+            outer_pattern.replace("${WS}", whitespace),
+            will_print,
+        )
+        for outer_pattern, will_print in [
+            ("${WS}{{${WS}PAYLOAD${WS}}}${WS}", True),
+            ("${WS}{%${WS}print PAYLOAD${WS}%}${WS}", True),
+            ("${WS}{%${WS}print(${WS}PAYLOAD${WS})${WS}%}${WS}", True),
+            ("${WS}{%${WS}set x=${WS}PAYLOAD${WS}%}${WS}", False),
+            (" {% if(PAYLOAD) %} {% endif %}", False),
+            (
+                "{%for x in ((PAYLOAD),)%}x{%endfor%}",
+                False,
+            ),
+        ]
+        for whitespace in ["", " ", "\t", "\n"]
+        for payload in [
+            "",
+            # trying to trigger render error
+            "[][",
+            "()(",
+            "***",
+        ]
     ]
     for test_payload, outer_pattern, will_print in outer_payloads:
         if waf_func(test_payload):
@@ -186,7 +195,9 @@ class FullPayloadGen:
         )
         return True
 
-    def try_add_context_var(self, value: str, clean_cache=True) -> Literal["success", "failed", "skip"]:
+    def try_add_context_var(
+        self, value: str, clean_cache=True
+    ) -> Literal["success", "failed", "skip"]:
         """尝试添加{%set xxx=yyy%}形式的payload，为最终的payload添加变量
 
         Args:

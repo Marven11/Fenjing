@@ -197,7 +197,7 @@ class WafFuncGen:
         )
         self.options = options if options else Options()
 
-    def waf_page_hash(self):
+    def waf_page_hash(self) -> List[int]:
         """使用危险的payload测试对应的input，得到一系列响应后，求出响应中最常见的几个hash
 
         Returns:
@@ -284,10 +284,17 @@ class WafFuncGen:
         return [k for k, v in Counter(hashes).items() if v >= 2]
 
     def waf_keywords(self, waf_hashes: List[int]) -> List[str]:
+        """根据Waf的hashes求出会被waf的keyword
+
+        Args:
+            waf_hashes (List[int]): waf页面的hash
+
+        Returns:
+            List[str]: 找到的被waf的keyword
+        """
         result: List[str] = []
         wrappers = [
-            "PAYLOAD",
-            "PAYLOADPAYLOAD",
+            "PAYLOADPAYLOADPAYLOAD",
         ]
 
         def keyword_passed(w):
@@ -310,19 +317,25 @@ class WafFuncGen:
 
         if keyword_passed("{{}}"):
             wrappers.append("{{PAYLOAD}}")
-        for ws in (
+        for whiltespace in (
             [" ", "\t", "\n"]
             if self.options.detect_mode == DetectMode.ACCURATE
             else [" "]
         ):
-            if keyword_passed(" {{ }} ".replace(" ", ws)):
-                wrappers.append(" {{ PAYLOAD }} ".replace(" ", ws))
-            if keyword_passed("{%print %}".replace(" ", ws)):
-                wrappers.append("{%print PAYLOAD%}".replace(" ", ws))
-            if keyword_passed(" {%print %} ".replace(" ", ws)):
-                wrappers.append(" {%print PAYLOAD %} ".replace(" ", ws))
+            if keyword_passed(" {{ }} ".replace(" ", whiltespace)):
+                wrappers.append(" {{ PAYLOAD }} ".replace(" ", whiltespace))
+            if keyword_passed("{%print %}".replace(" ", whiltespace)):
+                wrappers.append("{%print PAYLOAD%}".replace(" ", whiltespace))
+            if keyword_passed(" {%print %} ".replace(" ", whiltespace)):
+                wrappers.append(" {%print PAYLOAD %} ".replace(" ", whiltespace))
 
-        # we decide to test every keywrod by batches
+        for _ in range(10):
+            kw = "".join(random.choices(string.ascii_lowercase, k=4))
+            if keyword_passed(kw):
+                wrappers.append(kw + "PAYLOAD")
+                break
+
+        # we decide to test every keyword by batches
         size = int(len(dangerous_keywords) ** 0.3) + 1
         for i in range(0, len(dangerous_keywords), size):
             l = dangerous_keywords[i : i + size]
@@ -481,10 +494,14 @@ class WafFuncGen:
                         "payload足够简单但却没有完全回显: %s", colored("blue", payload)
                     )
                     return False
-                if any(w in result.text for w in waf_keywords):
-                    logger.warning(
-                        "payload含有被waf的keyword %s",
-                        repr([w for w in waf_keywords if w in result.text]),
+                # 含有被waf的keyword
+                # 如果这个payload触发了500错误则说明payload被正常渲染了，先前找到的keyword有误，
+                # 此时应该返回true
+                if any(w in payload for w in waf_keywords):
+                    logger.debug(
+                        "payload %s 含有被waf的keyword %s",
+                        colored("blue", payload),
+                        repr([w for w in waf_keywords if w in payload]),
                     )
                     return False
                 # 产生回显
