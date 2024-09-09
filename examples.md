@@ -72,6 +72,44 @@ print(s[::-1], end = "") # 将payload反转
 
 然后指定`--tamper-cmd 'python encoder.py'`就可以了
 
+### crack-request的使用
+
+crack-request可以实现从文本文件中读取请求并攻击
+
+例如：使用burp suite拦截了这么一个请求
+
+```http
+POST /flag HTTP/1.1
+Host: xxx.com:45108
+User-Agent: Mozilla/5.0 (Windows NT 10.0; rv:126.0) Gecko/20100101 Firefox/126.0
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 10
+Connection: close
+
+flag=11111
+```
+
+payload通过POST参数`flag`提交，我们需要在payload的前面加上一些字符（比如说`aaa`），从而满足题目要求，通过WAF.
+
+这里可以打开记事本将请求复制粘贴到`req.txt`中，然后将`flag=11111`改成`flag=aaaPAYLOAD`，这样，fenjing就会在提交请求的时候将`PAYLOAD`换成实际的payload并提交。
+
+改好之后`req.txt`长这样
+
+```http
+POST /flag HTTP/1.1
+Host: xxx.com:45108
+User-Agent: Mozilla/5.0 (Windows NT 10.0; rv:126.0) Gecko/20100101 Firefox/126.0
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 10
+Connection: close
+
+flag=aaaPAYLOAD
+
+```
+
+
+写好`req.txt`之后运行`python -m fenjing crack-request --host xxx.com --port 45108 --request-file ./req.txt`就可以根据`req.txt`攻击`xxx.com:45108`了
+
 
 ## 作为库使用
 
