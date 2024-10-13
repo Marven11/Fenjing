@@ -467,6 +467,7 @@ common_options_http = [
     click.option("--extra-params", default=None, help="请求时的额外GET参数，如a=1&b=2"),
     click.option("--extra-data", default=None, help="请求时的额外POST参数，如a=1&b=2"),
     click.option("--proxy", default="", help="请求时使用的代理"),
+    click.option("--no-verify-ssl", default=False, is_flag=True, help="不验证SSL证书"),
 ]
 
 
@@ -520,6 +521,7 @@ def crack(
     extra_params: str,
     extra_data: str,
     proxy: str,
+    no_verify_ssl: bool,
     tamper_cmd: str,
 ):
     """
@@ -539,6 +541,7 @@ def crack(
         extra_params_querystr=extra_params,
         extra_data_querystr=extra_data,
         proxy=proxy,
+        no_verify_ssl=no_verify_ssl,
     )
     if not eval_args_payload:
         result = do_crack_form_pre(
@@ -588,6 +591,7 @@ def crack_path(
     extra_params: str,
     extra_data: str,
     proxy: str,
+    no_verify_ssl: bool,
     tamper_cmd: str,
 ):
     """
@@ -602,6 +606,7 @@ def crack_path(
         extra_params_querystr=extra_params,
         extra_data_querystr=extra_data,
         proxy=proxy,
+        no_verify_ssl=no_verify_ssl,
     )
     result = do_crack_path_pre(
         url,
@@ -634,6 +639,7 @@ def scan(
     extra_params,
     extra_data,
     proxy,
+    no_verify_ssl: bool,
     tamper_cmd: str,
 ):
     """
@@ -647,6 +653,7 @@ def scan(
         extra_params_querystr=extra_params,
         extra_data_querystr=extra_data,
         proxy=proxy,
+        no_verify_ssl=no_verify_ssl,
     )
     url_forms = (
         (page_url, form)
@@ -712,7 +719,7 @@ def crack_request(
     retry_times: int,
     interval: float,
     tamper_cmd: str,
-    update_content_length: bool
+    update_content_length: bool,
 ):
     """
     从文本文件中读取请求并攻击目标，文本文件中用`PAYLOAD`标记payload插入位置
@@ -740,7 +747,7 @@ def crack_request(
         pattern=request_pattern,
         toreplace=toreplace,
         urlencode_payload=urlencode_payload,
-        enable_update_content_length=update_content_length
+        enable_update_content_length=update_content_length,
     )
     if tamper_cmd:
         tamperer = shell_tamperer(tamper_cmd)
