@@ -216,14 +216,17 @@ class HTTPRequester:
         extra_params_querystr=None,
         extra_data_querystr=None,
         proxy=None,
+        no_verify_ssl = False,
     ):
         self.interval = interval
         self.timeout = timeout
         self.retry_times = retry_times
         self.retry_interval = retry_interval
         self.retry_status = retry_status
+        self.no_verify_ssl = no_verify_ssl
         self.session = requests.Session()
         self.session.headers.update({"User-Agent": user_agent})
+        self.session.verify = not no_verify_ssl
         self.last_request_time = 0
         self.extra_params = {}
         self.extra_data = {}
