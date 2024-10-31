@@ -17,6 +17,7 @@ from .const import (
     DetectMode,
     ReplacedKeywordStrategy,
     TemplateEnvironment,
+    DetectWafKeywords,
     CALLBACK_GENERATE_FULLPAYLOAD,
     CALLBACK_GENERATE_PAYLOAD,
     CALLBACK_PREPARE_FULLPAYLOADGEN,
@@ -300,6 +301,10 @@ def parse_options(request_form) -> Options:
     if request_form.get("replaced_keyword_strategy", None):
         options.replaced_keyword_strategy = ReplacedKeywordStrategy(
             request_form.get("replaced_keyword_strategy", None)
+        )
+    if request_form.get("detect_waf_keywords", None):
+        options.detect_waf_keywords = DetectWafKeywords(
+            request_form.get("detect_waf_keywords", None)
         )
     return options
 
