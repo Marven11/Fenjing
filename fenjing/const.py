@@ -121,6 +121,13 @@ class AutoFix500Code(Enum):
     DISABLED = "disabled"
 
 
+class DetectWafKeywords(Enum):
+    """是否检测被waf的关键字"""
+
+    FULL = "full"
+    FAST = "fast"
+    NONE = "none"
+
 WafFunc = Callable[[str], bool]
 
 SET_STMT_PATTERNS = [

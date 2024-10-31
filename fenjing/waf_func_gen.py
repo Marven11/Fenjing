@@ -17,6 +17,7 @@ from typing import Dict, Callable, Tuple, Union, List
 from .const import (
     DetectMode,
     ReplacedKeywordStrategy,
+    DetectWafKeywords,
     DANGEROUS_KEYWORDS,
     WafFunc,
 )
@@ -315,19 +316,20 @@ class WafFuncGen:
                     return False
             return True
 
-        if keyword_passed("{{}}"):
-            wrappers.append("{{PAYLOAD}}")
-        for whiltespace in (
-            [" ", "\t", "\n"]
-            if self.options.detect_mode == DetectMode.ACCURATE
-            else [" "]
-        ):
-            if keyword_passed(" {{ }} ".replace(" ", whiltespace)):
-                wrappers.append(" {{ PAYLOAD }} ".replace(" ", whiltespace))
-            if keyword_passed("{%print %}".replace(" ", whiltespace)):
-                wrappers.append("{%print PAYLOAD%}".replace(" ", whiltespace))
-            if keyword_passed(" {%print %} ".replace(" ", whiltespace)):
-                wrappers.append(" {%print PAYLOAD %} ".replace(" ", whiltespace))
+        if self.options.detect_waf_keywords == DetectWafKeywords.FULL:
+            if keyword_passed("{{}}"):
+                wrappers.append("{{PAYLOAD}}")
+            for whiltespace in (
+                [" ", "\t", "\n"]
+                if self.options.detect_mode == DetectMode.ACCURATE
+                else [" "]
+            ):
+                if keyword_passed(" {{ }} ".replace(" ", whiltespace)):
+                    wrappers.append(" {{ PAYLOAD }} ".replace(" ", whiltespace))
+                if keyword_passed("{%print %}".replace(" ", whiltespace)):
+                    wrappers.append("{%print PAYLOAD%}".replace(" ", whiltespace))
+                if keyword_passed(" {%print %} ".replace(" ", whiltespace)):
+                    wrappers.append(" {%print PAYLOAD %} ".replace(" ", whiltespace))
 
         for _ in range(10):
             kw = "".join(random.choices(string.ascii_lowercase, k=4))
@@ -439,7 +441,11 @@ class WafFuncGen:
             WafFunc: WAF函数
         """
         waf_hashes = self.waf_page_hash()
-        waf_keywords = self.waf_keywords(waf_hashes)
+        waf_keywords = (
+            []
+            if self.options.detect_waf_keywords == DetectWafKeywords.NONE
+            else self.waf_keywords(waf_hashes)
+        )
         replaced_keyword = self.replaced_keyword()
         long_param_hashes = self.long_param_hash()
         long_param_hashes = [h for h in long_param_hashes if h not in waf_hashes]

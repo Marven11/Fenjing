@@ -16,6 +16,7 @@ from .const import (
     TemplateEnvironment,
     PythonEnvironment,
     ReplacedKeywordStrategy,
+    DetectWafKeywords,
     OS_POPEN_READ,
     CONFIG,
     EVAL,
@@ -200,6 +201,7 @@ def do_crack_form_pre(
     detect_mode: DetectMode,
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
+    detect_waf_keywords: DetectWafKeywords,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[FullPayloadGen, Submitter], None]:
     """攻击一个表单并获得用于生成payload的参数
@@ -232,6 +234,7 @@ def do_crack_form_pre(
             replaced_keyword_strategy=replaced_keyword_strategy,
             environment=environment,
             python_version=python_version,
+            detect_waf_keywords=detect_waf_keywords,
         )
         cracker = Cracker(submitter=submitter, options=options)
         if not cracker.has_respond():
@@ -298,6 +301,7 @@ def do_crack_path_pre(
     detect_mode: DetectMode,
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
+    detect_waf_keywords: DetectWafKeywords,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[FullPayloadGen, Submitter], None]:
     """攻击一个路径并获得payload生成器
@@ -337,6 +341,7 @@ def do_crack_request_pre(
     submitter: TCPSubmitter,
     detect_mode: DetectMode,
     replaced_keyword_strategy: ReplacedKeywordStrategy,
+    detect_waf_keywords: DetectWafKeywords,
     environment: TemplateEnvironment,
 ) -> Union[FullPayloadGen, None]:
     """根据指定的请求文件进行攻击并获得结果
@@ -367,6 +372,7 @@ def do_crack_request_pre(
         replaced_keyword_strategy=replaced_keyword_strategy,
         environment=environment,
         python_version=PythonEnvironment.UNKNOWN,
+        detect_waf_keywords=detect_waf_keywords,
     )
     cracker = Cracker(submitter=submitter, options=options)
     if not cracker.has_respond():
@@ -450,6 +456,13 @@ common_options_cli = [
         help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
     ),
     click.option(
+        "--detect-waf-keywords",
+        type=DetectWafKeywords,
+        cls=EnumOption,
+        default=DetectWafKeywords.NONE,
+        help="是否枚举被waf的关键字，需要额外时间，默认为none, 可选full/fast",
+    ),
+    click.option(
         "--tamper-cmd",
         default="",
         help="在发送payload之前进行编码的命令，默认不进行额外操作",
@@ -514,6 +527,7 @@ def crack(
     detect_mode: DetectMode,
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
+    detect_waf_keywords: DetectWafKeywords,
     eval_args_payload: bool,
     user_agent: str,
     header: tuple,
@@ -551,6 +565,7 @@ def crack(
             detect_mode,
             replaced_keyword_strategy,
             environment,
+            detect_waf_keywords,
             tamper_cmd,
         )
         if not result:
@@ -585,6 +600,7 @@ def crack_path(
     detect_mode: DetectMode,
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
+    detect_waf_keywords: DetectWafKeywords,
     user_agent: str,
     header: tuple,
     cookies: str,
@@ -614,6 +630,7 @@ def crack_path(
         detect_mode,
         replaced_keyword_strategy,
         environment,
+        detect_waf_keywords,
         tamper_cmd,
     )
     if not result:
@@ -633,6 +650,7 @@ def scan(
     detect_mode,
     replaced_keyword_strategy,
     environment,
+    detect_waf_keywords,
     user_agent,
     header,
     cookies,
@@ -669,6 +687,7 @@ def scan(
             detect_mode,
             replaced_keyword_strategy,
             environment,
+            detect_waf_keywords,
             tamper_cmd,
         )
         if not result:
@@ -716,6 +735,7 @@ def crack_request(
     detect_mode: DetectMode,
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
+    detect_waf_keywords: DetectWafKeywords,
     retry_times: int,
     interval: float,
     tamper_cmd: str,
@@ -757,6 +777,7 @@ def crack_request(
         detect_mode=detect_mode,
         replaced_keyword_strategy=replaced_keyword_strategy,
         environment=environment,
+        detect_waf_keywords=detect_waf_keywords,
     )
     if not full_payload_gen:
         logger.warning("Crack request failed...")

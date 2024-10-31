@@ -5,6 +5,7 @@ from .const import (
     PythonEnvironment,
     ReplacedKeywordStrategy,
     AutoFix500Code,
+    DetectWafKeywords,
 )
 
 
@@ -17,3 +18,4 @@ class Options:
     replaced_keyword_strategy: ReplacedKeywordStrategy = ReplacedKeywordStrategy.AVOID
     python_version: PythonEnvironment = PythonEnvironment.UNKNOWN
     autofix_500: AutoFix500Code = AutoFix500Code.ENABLED
+    detect_waf_keywords: DetectWafKeywords = DetectWafKeywords.NONE
