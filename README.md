@@ -255,6 +255,7 @@ Usage: python -m fenjing scan [OPTIONS]
   扫描指定的网站
 
 Options:
+  --no-verify-ssl                 不验证SSL证书
   --proxy TEXT                    请求时使用的代理
   --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
   --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
@@ -264,6 +265,8 @@ Options:
   -u, --url TEXT                  需要攻击的URL  [required]
   --interval FLOAT                每次请求的间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --detect-waf-keywords DETECTWAFKEYWORDS
+                                  是否枚举被waf的关键字，需要额外时间，默认为none, 可选full/fast
   --environment TEMPLATEENVIRONMENT
                                   模板的执行环境，默认为不带flask全局变量的普通jinja2
   --replaced-keyword-strategy REPLACEDKEYWORDSTRATEGY
@@ -277,6 +280,7 @@ Usage: python -m fenjing crack [OPTIONS]
   攻击指定的表单
 
 Options:
+  --no-verify-ssl                 不验证SSL证书
   --proxy TEXT                    请求时使用的代理
   --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
   --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
@@ -286,6 +290,8 @@ Options:
   -u, --url TEXT                  需要攻击的URL  [required]
   --interval FLOAT                每次请求的间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --detect-waf-keywords DETECTWAFKEYWORDS
+                                  是否枚举被waf的关键字，需要额外时间，默认为none, 可选full/fast
   --environment TEMPLATEENVIRONMENT
                                   模板的执行环境，默认为不带flask全局变量的普通jinja2
   --replaced-keyword-strategy REPLACEDKEYWORDSTRATEGY
@@ -305,6 +311,8 @@ Usage: python -m fenjing crack-request [OPTIONS]
 Options:
   --interval FLOAT                每次请求的间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --detect-waf-keywords DETECTWAFKEYWORDS
+                                  是否枚举被waf的关键字，需要额外时间，默认为none, 可选full/fast
   --environment TEMPLATEENVIRONMENT
                                   模板的执行环境，默认为不带flask全局变量的普通jinja2
   --replaced-keyword-strategy REPLACEDKEYWORDSTRATEGY
@@ -328,6 +336,7 @@ Usage: python -m fenjing crack-path [OPTIONS]
   攻击指定的路径
 
 Options:
+  --no-verify-ssl                 不验证SSL证书
   --proxy TEXT                    请求时使用的代理
   --extra-data TEXT               请求时的额外POST参数，如a=1&b=2
   --extra-params TEXT             请求时的额外GET参数，如a=1&b=2
@@ -337,6 +346,8 @@ Options:
   -u, --url TEXT                  需要攻击的URL  [required]
   --interval FLOAT                每次请求的间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --detect-waf-keywords DETECTWAFKEYWORDS
+                                  是否枚举被waf的关键字，需要额外时间，默认为none, 可选full/fast
   --environment TEMPLATEENVIRONMENT
                                   模板的执行环境，默认为不带flask全局变量的普通jinja2
   --replaced-keyword-strategy REPLACEDKEYWORDSTRATEGY
