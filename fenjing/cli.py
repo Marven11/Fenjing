@@ -540,7 +540,7 @@ def crack(
                 replaced_keyword_strategy=replaced_keyword_strategy,
                 environment=environment,
                 detect_waf_keywords=detect_waf_keywords,
-                waf_keywords=waf_keywords,
+                waf_keywords=waf_keyword,
             ),
             tamper_cmd,
         )
@@ -561,7 +561,7 @@ def crack(
                 replaced_keyword_strategy=replaced_keyword_strategy,
                 environment=environment,
                 detect_waf_keywords=detect_waf_keywords,
-                waf_keywords=waf_keywords,
+                waf_keywords=waf_keyword,
             ),
             tamper_cmd,
         )
@@ -615,7 +615,7 @@ def crack_path(
             replaced_keyword_strategy=replaced_keyword_strategy,
             environment=environment,
             detect_waf_keywords=detect_waf_keywords,
-            waf_keywords=waf_keywords,
+            waf_keywords=waf_keyword,
         ),
         tamper_cmd,
     )
@@ -676,7 +676,7 @@ def scan(
                 replaced_keyword_strategy=replaced_keyword_strategy,
                 environment=environment,
                 detect_waf_keywords=detect_waf_keywords,
-                waf_keywords=waf_keywords,
+                waf_keywords=waf_keyword,
             ),
             tamper_cmd,
         )
@@ -770,7 +770,7 @@ def crack_request(
             replaced_keyword_strategy=replaced_keyword_strategy,
             environment=environment,
             detect_waf_keywords=detect_waf_keywords,
-            waf_keywords=waf_keywords,
+            waf_keywords=waf_keyword,
         ),
     )
     if not full_payload_gen:
