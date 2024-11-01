@@ -552,6 +552,7 @@ def crack(
                 detect_mode=detect_mode,
                 replaced_keyword_strategy=replaced_keyword_strategy,
                 environment=environment,
+                detect_waf_keywords=detect_waf_keywords,
             ),
             tamper_cmd,
         )
