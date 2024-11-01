@@ -4,6 +4,7 @@
 
 import logging
 import time
+import dataclasses
 from urllib.parse import urlparse
 from typing import List, Dict, Tuple, Union, Any
 from enum import Enum
@@ -198,10 +199,7 @@ def do_crack_form_pre(
     url: str,
     form: Form,
     requester: HTTPRequester,
-    detect_mode: DetectMode,
-    replaced_keyword_strategy: ReplacedKeywordStrategy,
-    environment: TemplateEnvironment,
-    detect_waf_keywords: DetectWafKeywords,
+    options: Options,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[FullPayloadGen, Submitter], None]:
     """攻击一个表单并获得用于生成payload的参数
@@ -210,15 +208,17 @@ def do_crack_form_pre(
         url (str): 目标URL
         form (Form): 目标表单
         requester (HTTPRequester): 用于发送请求的requester
-        detect_mode (DetectMode): 检测模式
-        replaced_keyword_strategy (ReplacedKeywordStrategy): 如何处理被替换的关键字
-        environment (TemplateEnvironment): 目标的模板渲染环境
+        options (Options): 有关攻击的各个选项
         tamper_cmd (Union[str, None]): 对payload进行修改的修改命令
 
     Returns:
         Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
     """
-    python_version = guess_python_version(url, requester)
+    python_version = (
+        guess_python_version(url, requester)
+        if options.python_version == PythonEnvironment.UNKNOWN
+        else options.python_version
+    )
     for input_field in form["inputs"]:
         submitter = FormSubmitter(
             url,
@@ -229,14 +229,11 @@ def do_crack_form_pre(
         if tamper_cmd:
             tamperer = shell_tamperer(tamper_cmd)
             submitter.add_tamperer(tamperer)
-        options = Options(
-            detect_mode=detect_mode,
-            replaced_keyword_strategy=replaced_keyword_strategy,
-            environment=environment,
-            python_version=python_version,
-            detect_waf_keywords=detect_waf_keywords,
+
+        cracker = Cracker(
+            submitter=submitter,
+            options=dataclasses.replace(options, python_version=python_version),
         )
-        cracker = Cracker(submitter=submitter, options=options)
         if not cracker.has_respond():
             return None
         full_payload_gen = cracker.crack()
@@ -249,9 +246,7 @@ def do_crack_form_eval_args_pre(
     url: str,
     form: Form,
     requester: HTTPRequester,
-    detect_mode: DetectMode,
-    replaced_keyword_strategy: ReplacedKeywordStrategy,
-    environment: TemplateEnvironment,
+    options: Options,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[Submitter, EvalArgsModePayloadGen], None]:
     """攻击一个表单并获得结果，但是将payload放在GET/POST参数中提交
@@ -260,15 +255,17 @@ def do_crack_form_eval_args_pre(
         url (str): 目标url
         form (Form): 目标表格
         requester (HTTPRequester): 提交请求的requester
-        detect_mode (DetectMode): 检测模式
-        replaced_keyword_strategy (ReplacedKeywordStrategy): 如何对待被替换的关键字
-        environment (TemplateEnvironment): 模板的渲染环境
+        options (Options): 攻击使用的选项
         tamper_cmd (Union[str, None]): tamper命令
 
     Returns:
         Union[Tuple[Submitter, EvalArgsModePayloadGen], None]: 攻击结果
     """
-    python_version = guess_python_version(url, requester)
+    python_version = (
+        guess_python_version(url, requester)
+        if options.python_version == PythonEnvironment.UNKNOWN
+        else options.python_version
+    )
     for input_field in form["inputs"]:
         submitter = FormSubmitter(
             url,
@@ -279,29 +276,23 @@ def do_crack_form_eval_args_pre(
         if tamper_cmd:
             tamperer = shell_tamperer(tamper_cmd)
             submitter.add_tamperer(tamperer)
-        options = Options(
-            detect_mode=detect_mode,
-            replaced_keyword_strategy=replaced_keyword_strategy,
-            environment=environment,
-            python_version=python_version,
+        cracker = Cracker(
+            submitter=submitter,
+            options=dataclasses.replace(options, python_version=python_version),
         )
-        cracker = Cracker(submitter=submitter, options=options)
         if not cracker.has_respond():
             return None
         result = cracker.crack_eval_args()
         if result:
-            submitter, evalargs_payload_gen = result
-            return submitter, evalargs_payload_gen
+            submitter2, evalargs_payload_gen = result
+            return submitter2, evalargs_payload_gen
     return None
 
 
 def do_crack_path_pre(
     url: str,
     requester: HTTPRequester,
-    detect_mode: DetectMode,
-    replaced_keyword_strategy: ReplacedKeywordStrategy,
-    environment: TemplateEnvironment,
-    detect_waf_keywords: DetectWafKeywords,
+    options: Options,
     tamper_cmd: Union[str, None],
 ) -> Union[Tuple[FullPayloadGen, Submitter], None]:
     """攻击一个路径并获得payload生成器
@@ -309,26 +300,25 @@ def do_crack_path_pre(
     Args:
         url (str): 目标url
         requester (HTTPRequester): 发送请求的类
-        detect_mode (DetectMode): 分析模式
-        replaced_keyword_strategy (ReplacedKeywordStrategy): 如何对待被替换的关键字
-        environment (TemplateEnvironment): 模板渲染环境
+        options (Options): 攻击使用的选项
         tamper_cmd (Union[str, None]): tamper命令
 
     Returns:
         Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
     """
-    python_version = guess_python_version(url, requester)
+    python_version = (
+        guess_python_version(url, requester)
+        if options.python_version == PythonEnvironment.UNKNOWN
+        else options.python_version
+    )
     submitter = PathSubmitter(url=url, requester=requester)
     if tamper_cmd:
         tamperer = shell_tamperer(tamper_cmd)
         submitter.add_tamperer(tamperer)
-    options = Options(
-        detect_mode=detect_mode,
-        replaced_keyword_strategy=replaced_keyword_strategy,
-        environment=environment,
-        python_version=python_version,
+    cracker = Cracker(
+        submitter=submitter,
+        options=dataclasses.replace(options, python_version=python_version),
     )
-    cracker = Cracker(submitter=submitter, options=options)
     if not cracker.has_respond():
         return None
     full_payload_gen = cracker.crack()
@@ -339,41 +329,17 @@ def do_crack_path_pre(
 
 def do_crack_request_pre(
     submitter: TCPSubmitter,
-    detect_mode: DetectMode,
-    replaced_keyword_strategy: ReplacedKeywordStrategy,
-    detect_waf_keywords: DetectWafKeywords,
-    environment: TemplateEnvironment,
+    options: Options,
 ) -> Union[FullPayloadGen, None]:
     """根据指定的请求文件进行攻击并获得结果
 
     Args:
         submitter (TCPSubmitter): 发送payload的类
-        detect_mode (DetectMode): 攻击模式
-        replaced_keyword_strategy (ReplacedKeywordStrategy): 如何对待被替换的关键字
-        environment (TemplateEnvironment): 模板执行环境
+        options (Options): 攻击使用的选项
 
     Returns:
         Union[FullPayloadGen, None]: 攻击结果
     """
-    # 根据指定的请求文件进行攻击并获得结果
-
-    # Args:
-    #     submitter (TCPSubmitter): 发送payload的类
-    #     detect_mode (str): 攻击模式
-    #     replaced_keyword_strategy (str): 被替换关键字的策略
-    #     environment (str): 模板执行环境
-    #     tamper_cmd (Union[str, None]): tamper命令
-
-    # Returns:
-    #     Union[FullPayloadGen, None]: 攻击结果
-    #
-    options = Options(
-        detect_mode=detect_mode,
-        replaced_keyword_strategy=replaced_keyword_strategy,
-        environment=environment,
-        python_version=PythonEnvironment.UNKNOWN,
-        detect_waf_keywords=detect_waf_keywords,
-    )
     cracker = Cracker(submitter=submitter, options=options)
     if not cracker.has_respond():
         return None
@@ -562,10 +528,12 @@ def crack(
             url,
             form,
             requester,
-            detect_mode,
-            replaced_keyword_strategy,
-            environment,
-            detect_waf_keywords,
+            Options(
+                detect_mode=detect_mode,
+                replaced_keyword_strategy=replaced_keyword_strategy,
+                environment=environment,
+                detect_waf_keywords=detect_waf_keywords,
+            ),
             tamper_cmd,
         )
         if not result:
@@ -574,19 +542,23 @@ def crack(
         full_payload_gen, submitter = result
         do_crack(full_payload_gen, submitter, exec_cmd)
     else:
-        result = do_crack_form_eval_args_pre(
+        # pylance is not happy about using same variable name
+        # that's why we use result'2' here.
+        result2 = do_crack_form_eval_args_pre(
             url,
             form,
             requester,
-            detect_mode,
-            replaced_keyword_strategy,
-            environment,
+            Options(
+                detect_mode=detect_mode,
+                replaced_keyword_strategy=replaced_keyword_strategy,
+                environment=environment,
+            ),
             tamper_cmd,
         )
-        if not result:
+        if not result2:
             logger.warning("Test form failed...")
             raise RunFailed()
-        submitter, evalargs_payload_gen = result
+        submitter, evalargs_payload_gen = result2
         do_crack_eval_args(submitter, evalargs_payload_gen, exec_cmd)
 
 
@@ -627,10 +599,12 @@ def crack_path(
     result = do_crack_path_pre(
         url,
         requester,
-        detect_mode,
-        replaced_keyword_strategy,
-        environment,
-        detect_waf_keywords,
+        Options(
+            detect_mode=detect_mode,
+            replaced_keyword_strategy=replaced_keyword_strategy,
+            environment=environment,
+            detect_waf_keywords=detect_waf_keywords,
+        ),
         tamper_cmd,
     )
     if not result:
@@ -684,10 +658,12 @@ def scan(
             page_url,
             form,
             requester,
-            detect_mode,
-            replaced_keyword_strategy,
-            environment,
-            detect_waf_keywords,
+            Options(
+                detect_mode=detect_mode,
+                replaced_keyword_strategy=replaced_keyword_strategy,
+                environment=environment,
+                detect_waf_keywords=detect_waf_keywords,
+            ),
             tamper_cmd,
         )
         if not result:
@@ -774,10 +750,12 @@ def crack_request(
         submitter.add_tamperer(tamperer)
     full_payload_gen = do_crack_request_pre(
         submitter=submitter,
-        detect_mode=detect_mode,
-        replaced_keyword_strategy=replaced_keyword_strategy,
-        environment=environment,
-        detect_waf_keywords=detect_waf_keywords,
+        options=Options(
+            detect_mode=detect_mode,
+            replaced_keyword_strategy=replaced_keyword_strategy,
+            environment=environment,
+            detect_waf_keywords=detect_waf_keywords,
+        ),
     )
     if not full_payload_gen:
         logger.warning("Crack request failed...")
