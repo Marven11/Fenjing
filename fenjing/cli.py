@@ -429,6 +429,12 @@ common_options_cli = [
         help="是否枚举被waf的关键字，需要额外时间，默认为none, 可选full/fast",
     ),
     click.option(
+        "--waf-keyword",
+        default=[],
+        multiple=True,
+        help="手动指定waf页面含有的关键字，此时不会自动检测waf页面的哈希等。可指定多个关键字",
+    ),
+    click.option(
         "--tamper-cmd",
         default="",
         help="在发送payload之前进行编码的命令，默认不进行额外操作",
@@ -494,6 +500,7 @@ def crack(
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
     detect_waf_keywords: DetectWafKeywords,
+    waf_keyword: List[str],
     eval_args_payload: bool,
     user_agent: str,
     header: tuple,
@@ -533,6 +540,7 @@ def crack(
                 replaced_keyword_strategy=replaced_keyword_strategy,
                 environment=environment,
                 detect_waf_keywords=detect_waf_keywords,
+                waf_keywords=waf_keywords,
             ),
             tamper_cmd,
         )
@@ -553,6 +561,7 @@ def crack(
                 replaced_keyword_strategy=replaced_keyword_strategy,
                 environment=environment,
                 detect_waf_keywords=detect_waf_keywords,
+                waf_keywords=waf_keywords,
             ),
             tamper_cmd,
         )
@@ -574,6 +583,7 @@ def crack_path(
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
     detect_waf_keywords: DetectWafKeywords,
+    waf_keyword: List[str],
     user_agent: str,
     header: tuple,
     cookies: str,
@@ -605,6 +615,7 @@ def crack_path(
             replaced_keyword_strategy=replaced_keyword_strategy,
             environment=environment,
             detect_waf_keywords=detect_waf_keywords,
+            waf_keywords=waf_keywords,
         ),
         tamper_cmd,
     )
@@ -619,19 +630,20 @@ def crack_path(
 @add_options(common_options_http)
 @add_options(common_options_cli)
 def scan(
-    url,
-    exec_cmd,
-    interval,
-    detect_mode,
-    replaced_keyword_strategy,
-    environment,
-    detect_waf_keywords,
-    user_agent,
-    header,
-    cookies,
-    extra_params,
-    extra_data,
-    proxy,
+    url: str,
+    exec_cmd: str,
+    interval: float,
+    detect_mode: DetectMode,
+    replaced_keyword_strategy: ReplacedKeywordStrategy,
+    environment: TemplateEnvironment,
+    detect_waf_keywords: DetectWafKeywords,
+    waf_keyword: List[str],
+    user_agent: str,
+    header: tuple,
+    cookies: str,
+    extra_params: str,
+    extra_data: str,
+    proxy: str,
     no_verify_ssl: bool,
     tamper_cmd: str,
 ):
@@ -664,6 +676,7 @@ def scan(
                 replaced_keyword_strategy=replaced_keyword_strategy,
                 environment=environment,
                 detect_waf_keywords=detect_waf_keywords,
+                waf_keywords=waf_keywords,
             ),
             tamper_cmd,
         )
@@ -713,6 +726,7 @@ def crack_request(
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
     detect_waf_keywords: DetectWafKeywords,
+    waf_keyword: List[str],
     retry_times: int,
     interval: float,
     tamper_cmd: str,
@@ -756,6 +770,7 @@ def crack_request(
             replaced_keyword_strategy=replaced_keyword_strategy,
             environment=environment,
             detect_waf_keywords=detect_waf_keywords,
+            waf_keywords=waf_keywords,
         ),
     )
     if not full_payload_gen:

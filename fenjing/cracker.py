@@ -29,7 +29,7 @@ from .const import (
     OS_POPEN_READ,
     FLASK_CONTEXT_VAR,
 )
-from .waf_func_gen import WafFuncGen
+from .waf_func_gen import WafFuncGen, KeywordWafFuncGen
 from .full_payload_gen import FullPayloadGen
 from .context_vars import ContextVariableManager
 from .options import Options
@@ -114,7 +114,13 @@ class Cracker:
         self._callback: Callable[[str, Dict], None] = (
             callback if callback else (lambda x, y: None)
         )
-        self.waf_func_gen = WafFuncGen(submitter, callback=callback, options=options)
+        self.waf_func_gen = (
+            KeywordWafFuncGen(
+                submitter, self.options.waf_keywords, callback=callback, options=options
+            )
+            if self.options.waf_keywords
+            else WafFuncGen(submitter, callback=callback, options=options)
+        )
 
     @property
     def callback(self):

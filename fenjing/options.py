@@ -1,3 +1,4 @@
+from typing import Sequence
 from dataclasses import dataclass
 from .const import (
     DetectMode,
@@ -19,3 +20,4 @@ class Options:
     python_version: PythonEnvironment = PythonEnvironment.UNKNOWN
     autofix_500: AutoFix500Code = AutoFix500Code.ENABLED
     detect_waf_keywords: DetectWafKeywords = DetectWafKeywords.NONE
+    waf_keywords: Sequence[str] = tuple()

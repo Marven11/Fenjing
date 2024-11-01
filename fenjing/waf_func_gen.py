@@ -12,7 +12,7 @@ import re
 from copy import copy
 from collections import Counter, namedtuple
 from functools import lru_cache
-from typing import Dict, Callable, Tuple, Union, List
+from typing import Dict, Callable, Tuple, Union, List, Sequence
 
 from .const import (
     DetectMode,
@@ -178,6 +178,36 @@ def combine_waf(waf_funcs):
         return all(waf(s) for waf in waf_funcs)
 
     return new_waf_func
+
+
+class KeywordWafFuncGen:
+    """
+    根据指定的关键字生成对应的WAF函数
+    直接检测对应的关键字是否在payload里
+    """
+
+    def __init__(
+        self,
+        submitter: Submitter,
+        keywords: Sequence[str],
+        callback: Union[Callable[[str, Dict], None], None] = None,
+        options: Union[Options, None] = None,
+    ):
+        self.submitter = submitter
+        self.keywords = keywords
+        self.callback: Callable[[str, Dict], None] = (
+            callback if callback else (lambda x, y: None)
+        )
+        self.options = options if options else Options()
+
+    def _waf(self, payload: str):
+        result = self.submitter.submit(payload)
+        return result is not None and all(
+            keyword not in result[1] for keyword in self.keywords
+        )
+
+    def generate(self) -> WafFunc:
+        return self._waf
 
 
 class WafFuncGen:

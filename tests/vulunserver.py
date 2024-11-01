@@ -119,7 +119,7 @@ def lengthlimit2_waf_pass(inp):
 @app.after_request
 def garbasecollect(resp):
     if random.randint(1, 5) == 1:
-        gc.collect(0) # clean objects that just created
+        gc.collect(0)  # clean objects that just created
     return resp
 
 
@@ -236,6 +236,15 @@ def dynamic_waf():
     name = request.args.get("name", "world")
     if not waf_pass(name):
         return waf_words(name)[0]
+    template = "Hello, {}".format(name)
+    return render_template_string(template)
+
+
+@app.route("/random_chars_waf", methods=["GET", "POST"])
+def random_chars_waf():
+    name = request.args.get("name", "world")
+    if not waf_pass(name):
+        return "Naidesu" + str(random.randint(1, 1000))
     template = "Hello, {}".format(name)
     return render_template_string(template)
 

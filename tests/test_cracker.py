@@ -20,6 +20,7 @@ import os
 VULUNSERVER_ADDR = os.environ.get("VULUNSERVER_ADDR", "http://127.0.0.1:5000")
 SLEEP_INTERVAL = float(os.environ.get("SLEEP_INTERVAL", 0.01))
 
+
 class WrappedSubmitter(Submitter):
     def __init__(self, subm, blacklist):
         super().__init__()
@@ -65,7 +66,8 @@ class TestBase(unittest.TestCase):
         assert full_payload_gen is not None, self.__class__.__name__
         payload, will_print = full_payload_gen.generate(
             const.OS_POPEN_READ,
-            "echo 'cracked! @m WR171NG[]{}|;&&&\" S()METHING RANDON' " + self.__class__.__name__,
+            "echo 'cracked! @m WR171NG[]{}|;&&&\" S()METHING RANDON' "
+            + self.__class__.__name__,
         )
         assert (
             payload is not None
@@ -76,7 +78,9 @@ class TestBase(unittest.TestCase):
                 self.assertNotIn(w, payload)
         resp = self.subm.submit(payload)
         assert resp is not None
-        self.assertIn('cracked! @m WR171NG[]{}|;&&&" S()METHING RANDON', resp.text, resp.text)
+        self.assertIn(
+            'cracked! @m WR171NG[]{}|;&&&" S()METHING RANDON', resp.text, resp.text
+        )
 
 
 class TestEasy(TestBase):
@@ -609,6 +613,16 @@ class TestDynamicWAF(TestBase):
         self.setup_remote_waf("/dynamic_waf")
 
 
+class TestRandomCharsWaf(TestBase):
+    def setUp(self):
+        super().setUp()
+        self.blacklist = None
+        self.cracker_other_opts["options"] = Options(
+            waf_keywords=["Naidesu"]
+        )
+        self.setup_remote_waf("/random_chars_waf")
+
+
 class TestWeirdWAF(TestBase):
     def setUp(self):
         super().setUp()
@@ -647,7 +661,8 @@ class TestLengthLimit1WAF(TestBase):
                 self.assertNotIn(w, payload)
         resp = self.subm.submit(payload)
         assert resp is not None
-        self.assertIn('cracked!!!', resp.text, resp.text)
+        self.assertIn("cracked!!!", resp.text, resp.text)
+
 
 class TestLengthLimit2WAF(TestBase):
     def setUp(self):
@@ -656,7 +671,9 @@ class TestLengthLimit2WAF(TestBase):
         self.setup_remote_waf("/lengthlimit2_waf")
 
     def test_waf(self):
-        cracker = Cracker(self.subm, options=Options(environment=TemplateEnvironment.FLASK))
+        cracker = Cracker(
+            self.subm, options=Options(environment=TemplateEnvironment.FLASK)
+        )
         result = cracker.crack_eval_args()
         assert result is not None
         subm, will_print = result
@@ -671,31 +688,44 @@ class TestReplacedWAFAvoid(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/replace_waf")
-        self.cracker_other_opts = {"options": Options(replaced_keyword_strategy=ReplacedKeywordStrategy.AVOID)}
+        self.cracker_other_opts = {
+            "options": Options(replaced_keyword_strategy=ReplacedKeywordStrategy.AVOID)
+        }
+
 
 class TestReplacedWAFAvoid2(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/replace_waf2")
-        self.cracker_other_opts = {"options": Options(replaced_keyword_strategy=ReplacedKeywordStrategy.AVOID)}
+        self.cracker_other_opts = {
+            "options": Options(replaced_keyword_strategy=ReplacedKeywordStrategy.AVOID)
+        }
 
 
 class TestReplacedWAFDoubleTapping(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/replace_waf")
-        self.cracker_other_opts = {"options": Options(replaced_keyword_strategy=ReplacedKeywordStrategy.DOUBLETAPPING)}
+        self.cracker_other_opts = {
+            "options": Options(
+                replaced_keyword_strategy=ReplacedKeywordStrategy.DOUBLETAPPING
+            )
+        }
 
 
 class TestJinjaEnv(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/jinja_env_waf")
-        self.cracker_other_opts = {"options": Options(environment=TemplateEnvironment.JINJA2)}
+        self.cracker_other_opts = {
+            "options": Options(environment=TemplateEnvironment.JINJA2)
+        }
 
 
 class TestFix500(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/jinja_env_waf")
-        self.cracker_other_opts = {"options": Options(environment=TemplateEnvironment.FLASK)}
+        self.cracker_other_opts = {
+            "options": Options(environment=TemplateEnvironment.FLASK)
+        }
