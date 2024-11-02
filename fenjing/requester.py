@@ -265,6 +265,9 @@ class HTTPRequester:
         resp = None
         try:
             resp = self.session.request(**kwargs)
+        except requests.exceptions.SSLError:
+            logger.warning("SSL Error. Maybe you want to ignore certificate with --no-verify-ssl")
+            return None
         except Exception as exception:  # pylint: disable=W0718
             logger.warning("Request failed with exception: %s", repr(exception))
             logger.debug(traceback.format_exc())
