@@ -50,6 +50,11 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
     - 使用`--environment`选项
     - `flask`: （默认）模板在`render_template_string`等flask提供的函数中渲染，此时会使用`g`, `config`等flask提供的变量生成payload
     - `jinja`: 模板使用jinja内置的`Template`编译并渲染，相关代码类似`Template(s).render()`，此时避免使用任何普通jinja环境之外提供的变量生成payload
+- 手动指定waf页面的关键字
+    - 如果waf页面有正常页面一定不会有的关键字，可以考虑手动填写这个关键字，让脚本轻松检测出waf页面
+    - 如payload被waf时页面一定会有`WAF`这三个字母，则可以输入`--waf-keyword WAF`手动指定
+- waf关键字检测功能
+    - 脚本支持fuzz一部分被waf的关键字，但默认关闭，可以通过`--detect-waf-keywords full`或者`--detect-waf-keywords fast`打开
 
 ### Tamper Cmd的使用
 

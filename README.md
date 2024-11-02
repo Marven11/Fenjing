@@ -128,6 +128,17 @@ echo '_FENJING_COMPLETE=fish_source fenjing | source' > ~/.config/fish/completio
 
 注意只有输入`fenjing ...`的形式可以进行补全，`python -m fenjing`等形式无法进行tab补全
 
+## 攻击失败怎么办？
+
+如果payload生成失败，可以尝试调整以下选项：
+
+- 使用`--detect-mode fast`减少请求次数，并优先使用更高级的绕过技巧
+- 使用`--environment`手动指定目标的模板执行环境为flask或者jinja
+- 使用`--waf-keyword`手动指定waf页面含有的关键字
+- 使用`--detect-waf-keywords full`打开waf关键字检测功能
+- 使用`--replaced-keyword-strategy`手动指定遇到字符替换型waf时的行为
+- 使用`--eval-args-payload`减少请求次数
+
 ## 详细使用
 
 见[examples.md](examples.md)以及`--help`选项
