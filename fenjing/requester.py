@@ -7,6 +7,8 @@ import time
 import socket
 import ssl
 import re
+import warnings
+import urllib3
 from urllib.parse import parse_qs
 from typing import Union, Tuple
 import requests
@@ -15,6 +17,7 @@ from fenjing.colorize import colored
 from .const import DEFAULT_USER_AGENT
 
 logger = logging.getLogger("requester")
+warnings.simplefilter("ignore", category=urllib3.exceptions.InsecureRequestWarning)
 
 # 处理bytes形式的HTTP请求的一系列函数
 Response = Tuple[int, str]
