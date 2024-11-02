@@ -268,7 +268,7 @@ class WafFuncGen:
                 continue
             status_code, text = result
             logger.info(
-                "Testing dangerous keyword %s with response %s",
+                "Fuzzing waf page hash %s with response %s",
                 colored("yellow", repr(keyword)),
                 colored(
                     "blue",
@@ -287,7 +287,7 @@ class WafFuncGen:
         Returns:
             List[int]: 过长payload页面的hash
         """
-        logger.info("Testing long payloads...")
+        logger.info("Fuzzing long payloads...")
         keywords = [
             "".join(random.choices(string.ascii_lowercase, k=5)) * 40 for _ in range(20)
         ]
@@ -333,7 +333,7 @@ class WafFuncGen:
             for wrapper in wrappers:
                 payload = wrapper.replace("PAYLOAD", w)
                 logger.info(
-                    "Checking dangerous payload %s",
+                    "Fuzzing waf keywords with payload %s",
                     colored("yellow", repr(payload)),
                 )
                 result = self.subm.submit(payload)
@@ -404,7 +404,7 @@ class WafFuncGen:
                 extra = "".join(random.choices(string.ascii_lowercase, k=4))
             payload = extra + keyword + extra
             logger.info(
-                "Testing keyword replacement: %s",
+                "Fuzzing keyword replacement: %s",
                 colored("yellow", repr(payload)),
             )
             result = self.subm.submit(payload)
