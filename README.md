@@ -265,6 +265,7 @@ Options:
   -u, --url TEXT                  需要攻击的URL  [required]
   --interval FLOAT                每次请求的间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --waf-keyword TEXT              手动指定waf页面含有的关键字，此时不会自动检测waf页面的哈希等。可指定多个关键字
   --detect-waf-keywords DETECTWAFKEYWORDS
                                   是否枚举被waf的关键字，需要额外时间，默认为none, 可选full/fast
   --environment TEMPLATEENVIRONMENT
@@ -290,6 +291,7 @@ Options:
   -u, --url TEXT                  需要攻击的URL  [required]
   --interval FLOAT                每次请求的间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --waf-keyword TEXT              手动指定waf页面含有的关键字，此时不会自动检测waf页面的哈希等。可指定多个关键字
   --detect-waf-keywords DETECTWAFKEYWORDS
                                   是否枚举被waf的关键字，需要额外时间，默认为none, 可选full/fast
   --environment TEMPLATEENVIRONMENT
@@ -311,6 +313,7 @@ Usage: python -m fenjing crack-request [OPTIONS]
 Options:
   --interval FLOAT                每次请求的间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --waf-keyword TEXT              手动指定waf页面含有的关键字，此时不会自动检测waf页面的哈希等。可指定多个关键字
   --detect-waf-keywords DETECTWAFKEYWORDS
                                   是否枚举被waf的关键字，需要额外时间，默认为none, 可选full/fast
   --environment TEMPLATEENVIRONMENT
@@ -346,6 +349,7 @@ Options:
   -u, --url TEXT                  需要攻击的URL  [required]
   --interval FLOAT                每次请求的间隔
   --tamper-cmd TEXT               在发送payload之前进行编码的命令，默认不进行额外操作
+  --waf-keyword TEXT              手动指定waf页面含有的关键字，此时不会自动检测waf页面的哈希等。可指定多个关键字
   --detect-waf-keywords DETECTWAFKEYWORDS
                                   是否枚举被waf的关键字，需要额外时间，默认为none, 可选full/fast
   --environment TEMPLATEENVIRONMENT
