@@ -271,7 +271,9 @@ class FullPayloadGen:
             "%",
             "c",
             "%c",
-            "__",
+            "_",
+            # "__", # payload_gen don't want to use it 
+                    # since it can just use '_'+'_'
             "class",
             "globals",
             "init",

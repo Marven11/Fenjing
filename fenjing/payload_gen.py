@@ -2352,11 +2352,12 @@ def gen_string_underline_literal2(context):
 
 @expression_gen
 def gen_string_underline_context(context: dict):
-    if "_" in context.values():
-        v = [k for k, v in context.items() if v == "_"][0]
-        target_list = [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
-        return [(EXPRESSION, precedence["literal"], target_list)]
-    return [(UNSATISFIED,)]
+    return [(EXPRESSION, precedence["literal"], [(VARIABLE_OF, "_")])]
+    # if "_" in context.values():
+    #     v = [k for k, v in context.items() if v == "_"][0]
+    #     target_list = [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
+    #     return [(EXPRESSION, precedence["literal"], target_list)]
+    # return [(UNSATISFIED,)]
 
 
 @expression_gen
@@ -2408,6 +2409,11 @@ def gen_string_underline_gget(context):
 
 
 # ---
+
+@expression_gen
+def gen_string_twounderline_variable(context):
+    return [(VARIABLE_OF, "__")]
+
 
 @expression_gen
 def gen_string_twounderline_concat(context):
@@ -2784,32 +2790,16 @@ def gen_string_dunder(context: dict, value: str):
 def gen_string_removedunder(context: dict, value: str):
     if not re.match("^__[A-Za-z0-9_]+__$", value):
         return [(UNSATISFIED,)]
-    twounderline = (MULTIPLY, (STRING_UNDERLINE,), (INTEGER, 2))
-    middle = (STRING, value[2:-2])
     return [
         (
             STRING_CONCATMANY,
             [
-                twounderline,
-                middle,
-                twounderline,
+                (STRING_TWOUNDERLINE, ),
+                (STRING, value[2:-2]),
+                (STRING_TWOUNDERLINE, ),
             ],
         )
     ]
-
-
-@expression_gen
-def gen_string_removedunder2(context: dict, value: str):
-    if not re.match("^__[A-Za-z][A-Za-z0-9]+__$", value):
-        return [(UNSATISFIED,)]
-    strings = [
-        (STRING_UNDERLINE,),
-        (STRING_UNDERLINE,),
-        (STRING, value[2:-2]),
-        (STRING_UNDERLINE,),
-        (STRING_UNDERLINE,),
-    ]
-    return [(STRING_CONCATMANY, strings)]
 
 @expression_gen
 def gen_string_removedunder3(context: dict, value: str):
@@ -2820,9 +2810,9 @@ def gen_string_removedunder3(context: dict, value: str):
     targets = [
         (ENCLOSE_UNDER, precedence["mod"], (STRING, tofmt)),
         (LITERAL, "%"),
-        (ENCLOSE_UNDER, precedence["mod"], (STRING, "__")),
+        (ENCLOSE_UNDER, precedence["mod"], (STRING_TWOUNDERLINE, )),
         (LITERAL, "%"),
-        (ENCLOSE_UNDER, precedence["mod"], (STRING, "__")),
+        (ENCLOSE_UNDER, precedence["mod"], (STRING_TWOUNDERLINE, )),
     ]
     return [(EXPRESSION, precedence["mod"], targets)]
 
