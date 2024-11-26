@@ -139,6 +139,12 @@ echo '_FENJING_COMPLETE=fish_source fenjing | source' > ~/.config/fish/completio
 - 使用`--replaced-keyword-strategy`手动指定遇到字符替换型waf时的行为
 - 使用`--eval-args-payload`减少请求次数
 
+## 命令执行拿不到flag怎么办
+
+有些题目把flag读取到python之中就删掉了，这时flag一般在当前模块也就是`__main__`模块中，我们可以配合eval功能让焚靖生成对应的表达式
+
+比如说[这题](https://xz.aliyun.com/t/16138#toc-3)把flag从环境变量中读取出来之后就删掉了，我们可以输入`@eval __import__('__main__').flag`获取当前模块中flag变量的内容。其中`@eval`表示调用eval函数解析表达式，`__import__('__main__')`表示import名为`__main__`的模块
+
 ## 详细使用
 
 见[examples.md](examples.md)以及`--help`选项
