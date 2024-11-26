@@ -115,6 +115,52 @@ flag=aaaPAYLOAD
 
 写好`req.txt`之后运行`python -m fenjing crack-request --host xxx.com --port 45108 --request-file ./req.txt`就可以根据`req.txt`攻击`xxx.com:45108`了
 
+### 攻击失败怎么办？
+
+如果payload生成失败，可以尝试调整以下选项：
+
+- 使用`--detect-mode fast`减少请求次数，并优先使用更高级的绕过技巧
+- 使用`--environment`手动指定目标的模板执行环境为flask或者jinja
+- 使用`--waf-keyword`手动指定waf页面含有的关键字
+- 使用`--detect-waf-keywords full`打开waf关键字检测功能
+- 使用`--replaced-keyword-strategy`手动指定遇到字符替换型waf时的行为
+- 使用`--eval-args-payload`减少请求次数
+
+### 命令执行拿不到flag怎么办？
+
+有些题目把flag读取到python之中就删掉了，这时flag一般在当前模块也就是`__main__`模块中，我们可以配合eval功能让焚靖生成对应的表达式
+
+比如说[这题](https://xz.aliyun.com/t/16138#toc-3)把flag从环境变量中读取出来之后就删掉了，我们可以输入`@eval __import__('__main__').flag`获取当前模块中flag变量的内容。其中`@eval`表示调用eval函数解析表达式，`__import__('__main__')`表示import名为`__main__`的模块
+
+### 配置Tab补全
+
+参考[这里](https://click.palletsprojects.com/en/8.1.x/shell-completion/)配置shell启用tab补全
+
+示例如下：
+
+bash
+
+```bash
+cat >> ~/.bashrc << EOF
+eval "$(_FENJING_COMPLETE=bash_source fenjing)"
+EOF
+```
+
+zsh
+
+```shell
+cat >> ~/.zshrc << EOF
+eval "$(_FENJING_COMPLETE=zsh_source fenjing)"
+EOF
+```
+
+fish
+
+```shell
+echo '_FENJING_COMPLETE=fish_source fenjing | source' > ~/.config/fish/completions/fenjing.fish
+```
+
+注意只有输入`fenjing ...`的形式可以进行补全，`python -m fenjing`等形式无法进行tab补全
 
 ## 作为库使用
 
