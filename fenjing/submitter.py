@@ -301,7 +301,9 @@ class PathSubmitter(BaseSubmitter):
                 self.add_tamperer(tamperer)
 
     def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
-        if any(w in raw_payload for w in ["/", ".."]):
+        # python requests would reencode url, resulting in payload being changed
+        # that's why we're avoiding spaces and '%'
+        if any(w in raw_payload for w in ["/", "..", " ", "%"]):
             logger.info(
                 "Don't submit %s because it can't be in the path.",
                 colored("yellow", repr(raw_payload)),
