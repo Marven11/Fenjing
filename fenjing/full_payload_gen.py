@@ -75,7 +75,11 @@ def get_outer_pattern(
         if waf_func(test_payload):
             return outer_pattern, will_print
         else:
-            logger.warning("Test pattern %s failed", colored("blue", outer_pattern))
+            logger.warning(
+                "Test pattern %s with %s failed",
+                colored("blue", repr(outer_pattern)),
+                colored("blue", repr(test_payload)),
+            )
     logger.warning(
         "Every pattern we know is %s There is %s we can generate anything!",
         colored("red", "BANNED!", bold=True),
@@ -272,8 +276,8 @@ class FullPayloadGen:
             "c",
             "%c",
             "_",
-            # "__", # payload_gen don't want to use it 
-                    # since it can just use '_'+'_'
+            # "__", # payload_gen don't want to use it
+            # since it can just use '_'+'_'
             "class",
             "globals",
             "init",
