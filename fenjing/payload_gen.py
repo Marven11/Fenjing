@@ -1437,13 +1437,32 @@ def gen_positive_integer_recurmulnoastral(context: dict, value: int):
 
 
 @expression_gen
-def gen_positive_integer_dictlength(context: dict, value: int):
-    target_list = [(LITERAL, "dict({}=x)|join|length".format("x" * value))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-@expression_gen
-def gen_positive_integer_cycleritemlength(context: dict, value: int):
-    target_list = [(LITERAL, "cycler({}).items|length".format(",".join("x" * value)))]
+def gen_positive_integer_lengthything(context: dict, value: int):
+    if value >= 50:
+        return [(UNSATISFIED,)]
+    lengthy_thing = (ONEOF, 
+        [(LITERAL, "cycler({}).items".format(",".join("x" * value)))],
+        [(LITERAL, "dict({}=x)|join".format("x" * value))],
+    )
+    target_list = [(ONEOF, 
+        [lengthy_thing, (LITERAL, "|length")],
+        [lengthy_thing, (LITERAL, "|count")],
+        targets_from_pattern("(LENGTHY_THING,)|map(LENGTH_OR_COUNT)|GETTHAT", {
+            "LENGTHY_THING": lengthy_thing,
+            "LENGTH_OR_COUNT": (ONEOF, 
+                [(LITERAL, "'le''ngth'")], 
+                [(LITERAL, '"le""ngth"')], 
+                [(LITERAL, "'co''unt'")], 
+                [(LITERAL, '"co""unt"')], 
+                [(VARIABLE_OF, "length")],
+                [(VARIABLE_OF, "count")]
+            ),
+            "GETTHAT": (ONEOF, 
+                [(LITERAL, "first")], 
+                [(LITERAL, "last")],
+            )
+        })
+    )]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
