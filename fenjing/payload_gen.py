@@ -140,6 +140,7 @@ gen_weight_default = {
     "gen_string_percent_lower_c_concat": 1,
     "gen_string_lower_c_joinerbatch": 1,
     "gen_string_percent_urlencode2": 1,
+    "gen_string_twostringconcat": 1,
     "gen_string_concat1": 1,
     "gen_string_concat2": 1,
     "gen_string_formatpercent": 1,
@@ -3181,6 +3182,19 @@ def gen_string_splitnamespacedictjoin3(context: dict, value: str):
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
+@expression_gen
+def gen_string_splitbyabc(context: dict, value: str):
+    matches = re.match("[a-z]{3,}", value)
+    if not matches or matches.group(0) == value:
+        return [(UNSATISFIED, )]
+    
+    return [(STRING_CONCAT, (STRING, matches.group(0)), (STRING, value[len(matches.group(0)):]))]
+
+@expression_gen
+def gen_string_splitbylength(context: dict, value: str):
+    if len(value) < 16:
+        return [(UNSATISFIED, )]
+    return [(STRING_CONCAT, (STRING, value[:8]), (STRING, value[8:]))]
 
 @expression_gen
 def gen_string_lipsumtobytes4(context: dict, value: str):
