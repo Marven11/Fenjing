@@ -128,6 +128,8 @@ flag=aaaPAYLOAD
 - 使用`--replaced-keyword-strategy`手动指定遇到字符替换型waf时的行为
 - 使用`--eval-args-payload`减少请求次数
 
+注：对于SSTIlab等掩盖500错误的题目，焚靖暂时无法检测出payload是引发了500错误还是触发了WAF. 对这些题目需要手动指定WAF的关键字，详情见[这里](https://github.com/Marven11/Fenjing/issues/42#issuecomment-2525224840)
+
 ### 命令执行拿不到flag怎么办？
 
 有些题目把flag读取到python之中就删掉了，这时flag一般在当前模块也就是`__main__`模块中，我们可以配合eval功能让焚靖生成对应的表达式
