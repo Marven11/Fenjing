@@ -1438,11 +1438,11 @@ def gen_positive_integer_recurmulnoastral(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_lengthything(context: dict, value: int):
-    if value >= 50:
+    if value >= 50 or value <= 3: # stop generating lengthy payload
         return [(UNSATISFIED,)]
     lengthy_thing = (ONEOF, 
-        [(LITERAL, "cycler({}).items".format(",".join("x" * value)))],
         [(LITERAL, "dict({}=x)|join".format("x" * value))],
+        [(LITERAL, "cycler({}).items".format(",".join("x" * value)))],
     )
     target_list = [(ONEOF, 
         [lengthy_thing, (LITERAL, "|length")],
