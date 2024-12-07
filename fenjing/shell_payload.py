@@ -27,6 +27,7 @@ def exec_cmd_payload(
     Returns:
         Tuple[str|None, bool|None]: 对应的payload, 以及payload是否能生成回显
     """
+    # TODO: add support for custom options
     full_payload = None
     if id(waf_func) not in full_payload_store:
         full_payload = FullPayloadGen(waf_func)
