@@ -55,6 +55,7 @@ if sys.version_info >= (3, 8):
     JinjaContextVarTarget = Tuple[Literal["jinja_context_var"], str]
     FlaskContextVarTarget = Tuple[Literal["flask_context_var"], str]
     RequirePython3Target = Tuple[Literal["require_python3"], str]
+    VariableOfTarget = Tuple[Literal["variable_of"], str]
 
     ZeroTarget = Tuple[Literal["zero"],]
     PositiveIntegerTarget = Tuple[Literal["positive_integer"], int]
@@ -92,10 +93,13 @@ if sys.version_info >= (3, 8):
         EncloseTarget,
         UnsatisfiedTarget,
         OneofTarget,
+
         WithContextVarTarget,
         JinjaContextVarTarget,
         FlaskContextVarTarget,
         RequirePython3Target,
+        VariableOfTarget,
+
         ZeroTarget,
         PositiveIntegerTarget,
         IntegerTarget,
@@ -664,6 +668,25 @@ class PayloadGenerator:
             return None
         return ("", {}, [])
 
+    @register_generate_func(lambda self, target: target[0] == VARIABLE_OF)
+    def variable_of_generate(
+        self, target: VariableOfTarget
+    ) -> Union[PayloadGeneratorResult, None]:
+        """在context中找到对应的变量
+
+        Args:
+            target (VariableOfTarget): 生成目标
+
+        Returns:
+            _type_: 生成结果
+        """
+        variables = [name for name, value in self.context.items() if value == target[1]]
+        if not variables:
+            return self.generate_by_list([(UNSATISFIED,)])
+        targets_list = [[(LITERAL, v), (WITH_CONTEXT_VAR, v)] for v in variables]
+        return self.generate_by_list([(ONEOF, *targets_list)]) # type: ignore
+
+
     @register_generate_func(lambda self, target: True)
     def common_generate(self, gen_req: Target) -> Union[PayloadGeneratorResult, None]:
         """为剩下所有类型的生成目标生成对应的payload, 遍历对应的expression_gen，拿到
@@ -793,15 +816,6 @@ class PayloadGenerator:
             del self.cache_by_repr[(gen_type, *args)]
 
 
-@expression_gen
-def gen_variable_of_context(context: dict, var_value):
-    variables = [name for name, value in context.items() if value == var_value]
-    if not variables:
-        return [(UNSATISFIED,)]
-    targets_list = [[(LITERAL, v), (WITH_CONTEXT_VAR, v)] for v in variables]
-    return [(ONEOF, *targets_list)]
-
-
 # ---
 @expression_gen
 def gen_enclose_normal(context: dict, target):
@@ -872,16 +886,10 @@ def gen_string_concatmany_onebyone(context: dict, parts):
 
 @expression_gen
 def gen_string_concatmany_join(context: dict, parts):
-    target_list = (
-        [
-            (LITERAL, "("),
-        ]
-        + join_target(sep=(LITERAL, ","), targets=parts)
-        + [
-            (LITERAL, ")|join"),
-        ]
-    )
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    targets = targets_from_pattern("(PARTS)|join", {
+        "PARTS": (ONEOF, join_target(sep=(LITERAL, ","), targets=parts)), # type: ignore
+    })
+    return [(EXPRESSION, precedence["filter"], targets)]
 
 
 # lipsum.__globals__.concat(("a", "b"))
@@ -2510,13 +2518,13 @@ def gen_string_many_format_c_complex(context, num):
 
 @expression_gen
 def gen_char_literal1(context, c):
-    target_list = [(LITERAL, f"'{c}'" if c != "'" else "'\\''")]
+    target_list = [(LITERAL, f"'{c}'" if c != "'" and c != "\\" else "'\\"+c+"'")]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
 
 @expression_gen
 def gen_char_literal2(context, c):
-    target_list = [(LITERAL, f'"{c}"' if c != '"' else '"\\""')]
+    target_list = [(LITERAL, f'"{c}"' if c != '"' and c != "\\" else '"\\'+c+'"')]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
 

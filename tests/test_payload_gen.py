@@ -21,6 +21,28 @@ def get_payload_gen(blacklist, context):
 
     return PayloadGenerator(waf_func, context)
 
+class PayloadGenTestsStringExpr(unittest.TestCase):
+    def setUp(self):
+        self.payload_gen = get_payload_gen([], {})
+        self.target_strings = [
+            "aaa",
+            "114",
+            "\\x61",
+            "echo 123 | base64 -d",
+            "!@#$%^&|;-_ ()[]{}"
+        ]
+    def test_rules(self):
+        for rule in expression_gens["string"]:
+            for target_string in self.target_strings:
+                target_list = rule({}, target_string)
+                result = self.payload_gen.generate_by_list(target_list)
+                if not result:
+                    continue
+                try:
+                    render_result = Template("{{"+result[0]+"}}").render()
+                except Exception as e:
+                    raise ValueError(f"{rule} failed generating {target_string!r}") from e
+                self.assertIn(target_string, render_result)
 
 
 class PayloadGenTestsTargetRules(unittest.TestCase):
