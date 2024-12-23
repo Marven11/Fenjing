@@ -49,14 +49,19 @@ if sys.version_info >= (3, 8):
     EncloseUnderTarget = Tuple[Literal["enclose_under"], int, List["Target"]]
     EncloseTarget = Tuple[Literal["enclose"], List["Target"]]
     UnsatisfiedTarget = Tuple[Literal["unsatisfied"],]
-    OneofTarget = Tuple[Literal["oneof"], List["Target"]]
+    OneofTarget = Tuple[Literal["oneof"], ...,]
+
     WithContextVarTarget = Tuple[Literal["with_context_var"], str]
     JinjaContextVarTarget = Tuple[Literal["jinja_context_var"], str]
     FlaskContextVarTarget = Tuple[Literal["flask_context_var"], str]
     RequirePython3Target = Tuple[Literal["require_python3"], str]
+
     ZeroTarget = Tuple[Literal["zero"],]
     PositiveIntegerTarget = Tuple[Literal["positive_integer"], int]
     IntegerTarget = Tuple[Literal["integer"], int]
+
+    WhiteSpaceTarget = Tuple[Literal["whitespace"]]
+
     StringConcatTarget = Tuple[Literal["string_string_concat"],]
     StringPercentTarget = Tuple[Literal["string_percent"],]
     StringPercentLowerCTarget = Tuple[Literal["string_percent_lower_c"],]
@@ -66,6 +71,7 @@ if sys.version_info >= (3, 8):
     StringManyFormatCTarget = Tuple[Literal["string_many_format_c"], int]
     CharTarget = Tuple[Literal["char"], str]
     StringTarget = Tuple[Literal["string"], str]
+
     FormularSumTarget = Tuple[Literal["formular_sum"], List["Target"]]
     AttributeTarget = Tuple[Literal["attribute"], "Target", str]
     ItemTarget = Tuple[Literal["item"], "Target", str]
@@ -87,11 +93,13 @@ if sys.version_info >= (3, 8):
         UnsatisfiedTarget,
         OneofTarget,
         WithContextVarTarget,
-        FlaskContextVarTarget,
         JinjaContextVarTarget,
+        FlaskContextVarTarget,
+        RequirePython3Target,
         ZeroTarget,
         PositiveIntegerTarget,
         IntegerTarget,
+        WhiteSpaceTarget,
         StringConcatTarget,
         StringPercentTarget,
         StringPercentLowerCTarget,
@@ -1441,25 +1449,25 @@ def gen_positive_integer_recurmulnoastral(context: dict, value: int):
 def gen_positive_integer_lengthything(context: dict, value: int):
     if value >= 50 or value <= 3: # stop generating lengthy payload
         return [(UNSATISFIED,)]
-    lengthy_thing = (ONEOF, 
+    lengthy_thing = (ONEOF,
         [(LITERAL, "dict({}=x)|join".format("x" * value))],
         [(LITERAL, "cycler({}).items".format(",".join("x" * value)))],
     )
-    target_list = [(ONEOF, 
+    target_list = [(ONEOF,
         [lengthy_thing, (LITERAL, "|length")],
         [lengthy_thing, (LITERAL, "|count")],
-        targets_from_pattern("(LENGTHY_THING,)|map(LENGTH_OR_COUNT)|GETTHAT", {
+        targets_from_pattern("(LENGTHY_THING,)|map(LENGTH_OR_COUNT)|GETTHAT", { # type: ignore
             "LENGTHY_THING": lengthy_thing,
             "LENGTH_OR_COUNT": (ONEOF, 
-                [(LITERAL, "'le''ngth'")], 
-                [(LITERAL, '"le""ngth"')], 
-                [(LITERAL, "'co''unt'")], 
-                [(LITERAL, '"co""unt"')], 
+                [(LITERAL, "'le''ngth'")],
+                [(LITERAL, '"le""ngth"')],
+                [(LITERAL, "'co''unt'")],
+                [(LITERAL, '"co""unt"')],
                 [(VARIABLE_OF, "length")],
                 [(VARIABLE_OF, "count")]
             ),
             "GETTHAT": (ONEOF, 
-                [(LITERAL, "first")], 
+                [(LITERAL, "first")],
                 [(LITERAL, "last")],
             )
         })
