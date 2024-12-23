@@ -2767,7 +2767,7 @@ def gen_string_manypercentlowerc(context: dict, value: str):
 
 @expression_gen
 def gen_string_twostringconcat(context: dict, value: str):
-    if len(value) <= 2 or len(value) > 20:
+    if len(value) < 2 or len(value) > 20:
         return [(UNSATISFIED,)]
     target_list = [
         # (LITERAL, "'"),  # ONEOF should output a valid expression
@@ -2778,7 +2778,7 @@ def gen_string_twostringconcat(context: dict, value: str):
                     (LITERAL, "'{}'".format(str_escape(value[:i], "'"))),
                     (LITERAL, "'{}'".format(str_escape(value[i:], "'"))),
                 ]
-                for i in range(1, len(value) - 1)
+                for i in range(1, len(value))
             ],
         ),
     ]
@@ -2787,7 +2787,7 @@ def gen_string_twostringconcat(context: dict, value: str):
 
 @expression_gen
 def gen_string_twostringconcat2(context: dict, value: str):
-    if len(value) <= 2 or len(value) > 20:
+    if len(value) < 2 or len(value) > 20:
         return [(UNSATISFIED,)]
     target_list = [
         # (LITERAL, '"'),  # ONEOF should output a valid expression
@@ -2798,7 +2798,7 @@ def gen_string_twostringconcat2(context: dict, value: str):
                     (LITERAL, '"{}"'.format(str_escape(value[:i], '"'))),
                     (LITERAL, '"{}"'.format(str_escape(value[i:], '"'))),
                 ]
-                for i in range(1, len(value) - 1)
+                for i in range(1, len(value))
             ],
         ),
     ]
