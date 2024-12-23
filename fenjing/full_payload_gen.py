@@ -227,8 +227,8 @@ class FullPayloadGen:
             return "failed"
         expression, used_context, _ = ret
 
-        if len(expression) - len(repr(value)) < 3:
-            logger.warning(
+        if len(expression) - len(repr(value)) < 3 or '(' not in expression:
+            logger.info(
                 "Generated expression %s is too simple, skip it.",
                 colored("blue", expression),
             )
