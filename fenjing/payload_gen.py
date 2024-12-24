@@ -46,7 +46,7 @@ if sys.version_info >= (3, 8):
 
     LiteralTarget = Tuple[Literal["literal"], str]
     ExpressionTarget = Tuple[Literal["expression"], int, List["Target"]]
-    EncloseUnderTarget = Tuple[Literal["enclose_under"], int, List["Target"]]
+    EncloseUnderTarget = Tuple[Literal["enclose_under"], int, "Target"]
     EncloseTarget = Tuple[Literal["enclose"], List["Target"]]
     UnsatisfiedTarget = Tuple[Literal["unsatisfied"],]
     OneofTarget = Tuple[Literal["oneof"], ...,]
@@ -68,6 +68,8 @@ if sys.version_info >= (3, 8):
     StringPercentLowerCTarget = Tuple[Literal["string_percent_lower_c"],]
     StringUnderlineTarget = Tuple[Literal["string_underline"],]
     StringLowerCTarget = Tuple[Literal["string_lower_c"],]
+    StringTwoUnderlineTarget = Tuple[Literal["string_twounderline"],]
+    
     StringManyPercentLowerCTarget = Tuple[Literal["string_many_percent_lower_c"], int]
     StringManyFormatCTarget = Tuple[Literal["string_many_format_c"], int]
     CharTarget = Tuple[Literal["char"], str]
@@ -109,6 +111,7 @@ if sys.version_info >= (3, 8):
         StringPercentLowerCTarget,
         StringUnderlineTarget,
         StringLowerCTarget,
+        StringTwoUnderlineTarget,
         StringManyPercentLowerCTarget,
         StringManyFormatCTarget,
         CharTarget,
@@ -2841,15 +2844,14 @@ def gen_string_removedunder(context: dict, value: str):
 def gen_string_removedunder3(context: dict, value: str):
     if not re.match("^__[A-Za-z][A-Za-z0-9]+__$", value):
         return [(UNSATISFIED,)]
-    # "%slo%%s"|format("__")|format("__")
-    tofmt = "%s" + value[2:-2] + "%%s"
-    targets = [
-        (ENCLOSE_UNDER, precedence["mod"], (STRING, tofmt)),
-        (LITERAL, "%"),
-        (ENCLOSE_UNDER, precedence["mod"], (STRING_TWOUNDERLINE, )),
-        (LITERAL, "%"),
-        (ENCLOSE_UNDER, precedence["mod"], (STRING_TWOUNDERLINE, )),
-    ]
+    # "%slo%%s"%("__")%("__")
+    targets = targets_from_pattern(
+        "STRING%DUNDER%DUNDER",
+        {
+            "STRING": (ENCLOSE_UNDER, precedence["mod"], (STRING, "%s" + value[2:-2] + "%%s")),
+            "DUNDER": (ENCLOSE_UNDER, precedence["mod"], (STRING_TWOUNDERLINE, ))
+        }
+    )
     return [(EXPRESSION, precedence["mod"], targets)]
 
 @expression_gen
