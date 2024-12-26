@@ -290,7 +290,7 @@ def tree_precedence(tree):
     return answer if answer != float("inf") else None
 
 
-def targets_from_pattern(pattern: str, mapping: Dict[str, Target]) -> List[Target]:
+def targets_from_pattern(pattern: str, mapping: Dict[str, Union[Target, List[Target]]]) -> List[Target]:
     """根据pattern将字符串转换成对应的target列表
     示例："'abcde'[NUM]", {"NUM": (INTEGER, 1)} ---> [
         (LITERAL, "'abcde'["),
@@ -300,7 +300,7 @@ def targets_from_pattern(pattern: str, mapping: Dict[str, Target]) -> List[Targe
 
     Args:
         pattern (str): 给定的pattern
-        mapping (Dict[str, Target]): 关键字和target的对应关系
+        mapping (Dict[str, Union[Target, List[Target]]]): 关键字和target的对应关系
 
     Returns:
         List[Target]: 生成结果
@@ -309,10 +309,13 @@ def targets_from_pattern(pattern: str, mapping: Dict[str, Target]) -> List[Targe
     toparse = ""
     while pattern:
         found = False
-        for keyword, target in mapping.items():
+        for keyword, value in mapping.items():
             if pattern.startswith(keyword):
                 result.append((LITERAL, toparse))
-                result.append(target)
+                if isinstance(value, list):
+                    result += value
+                else:
+                    result.append(value)
                 toparse = ""
                 pattern = removeprefix_string(pattern, keyword)
                 found = True
@@ -2859,20 +2862,14 @@ def gen_string_removedunder4(context: dict, value: str):
     if not re.match("^__[A-Za-z][A-Za-z0-9]+__$", value):
         return [(UNSATISFIED,)]
     # "%slo%%s"|format("__")|format("__")
-    tofmt = "%s" + value[2:-2] + "%%s"
-    targets = [
-        (ENCLOSE_UNDER, precedence["filter"], (STRING, tofmt)),
-        (LITERAL, "|format("),
-        (WHITESPACE, ),
-        (STRING, "__"),
-        (WHITESPACE, ),
-        (LITERAL, ")"),
-        (LITERAL, "|format("),
-        (WHITESPACE, ),
-        (STRING, "__"),
-        (WHITESPACE, ),
-        (LITERAL, ")"),
-    ]
+    targets = targets_from_pattern(
+        "{STRING}{WS}|{WS}format({WS}{DUNDER}{WS}){WS}|{WS}format({WS}{DUNDER}{WS})",
+        {
+            "{STRING}": (ENCLOSE_UNDER, precedence["mod"], (STRING, "%s" + value[2:-2] + "%%s")),
+            "{DUNDER}": (ENCLOSE_UNDER, precedence["mod"], (STRING_TWOUNDERLINE, )),
+            "{WS}": (WHITESPACE, )
+        }
+    )
     return [(EXPRESSION, precedence["filter_with_function_call"], targets)]
 
 
@@ -3216,51 +3213,30 @@ def gen_string_splitbylength(context: dict, value: str):
 
 @expression_gen
 def gen_string_lipsumtobytes4(context: dict, value: str):
-    value_tpl = (
-        [(LITERAL, "("), (WHITESPACE, )]
-        + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
-        + [ (WHITESPACE, ), (LITERAL, ")")]
+    bytes_targets = targets_from_pattern(
+        "lipsum[GLOBALS][BUILTINS][BYTES]( ( INTS ) MAYBE_COMMA)[DECODE]CALL",
+        {
+            "GLOBALS": (VARIABLE_OF, "__globals__"),
+            "BUILTINS": (VARIABLE_OF, "__builtins__"),
+            "BYTES": (VARIABLE_OF, "bytes"),
+            " ": (WHITESPACE, ),
+            "INTS": join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]),
+            "MAYBE_COMMA": (ONEOF, [(LITERAL, ",")], [(LITERAL, "")]),
+            "DECODE": (VARIABLE_OF, "decode"),
+            "CALL": (
+                ONEOF,
+                [(LITERAL, "()")],
+                [(LITERAL, "( )")],
+                [(LITERAL, "(\n)")],
+                [(LITERAL, "(\t)")],
+            )
+        } # type: ignore
     )
-    bytes_targets_noendbracket = [
-        (LITERAL, "lipsum["),
-        (VARIABLE_OF, "__globals__"),
-        (LITERAL, "]["),
-        (VARIABLE_OF, "__builtins__"),
-        (LITERAL, "]["),
-        (VARIABLE_OF, "bytes"),
-        (LITERAL, "]("),
-        (WHITESPACE, ),
-    ] + value_tpl
-    functioncall = (
-        ONEOF,
-        [(LITERAL, "()")],
-        [(LITERAL, "( )")],
-        [(LITERAL, "(\n)")],
-        [(LITERAL, "(\t)")],
-    )
-    target_list1 = bytes_targets_noendbracket + [
-        (WHITESPACE, ),
-        (LITERAL, ")"),
-        (LITERAL, "["),
-        (VARIABLE_OF, "decode"),
-        (LITERAL, "]"),
-        functioncall,
-    ]
-    target_list2 = bytes_targets_noendbracket + [
-        (WHITESPACE, ),
-        (LITERAL, ",)"),
-        (LITERAL, "["),
-        (VARIABLE_OF, "decode"),
-        (LITERAL, "]"),
-        functioncall,
-    ]
     return [
         (
             EXPRESSION,
             precedence["function_call"],
-            [
-                (ONEOF, target_list1, target_list2),
-            ],
+            bytes_targets,
         )
     ] + [(REQUIRE_PYTHON3,)]
 
