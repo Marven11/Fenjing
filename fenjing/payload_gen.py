@@ -3265,11 +3265,14 @@ def gen_string_intbytes1(context: dict, value: str):
     if not all(x < 128 for x in value.encode()):
         return [(UNSATISFIED, )]
     n = int.from_bytes(value.encode(), "big")
-    targets = [
-        (LITERAL, f"({n}).to_bytes({len(value)},"),
-        (ONEOF, [(LITERAL, "'big'")], [(LITERAL, '"big"')], [(VARIABLE_OF, "big")]),
-        (LITERAL, ").decode()")
-    ]
+    targets = targets_from_pattern(
+        "(N).to_bytes(LENGTH,BIG).decode()",
+        {
+            "N": (LITERAL, str(n)),
+            "LENGTH": (LITERAL, str(len(value))),
+            "BIG": (ONEOF, [(LITERAL, "'big'")], [(LITERAL, '"big"')], [(VARIABLE_OF, "big")]) # type: ignore
+        }
+    )
     return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3, )]
 
 
@@ -3384,52 +3387,26 @@ def gen_string_chars2(context: dict, value: str):
 @expression_gen
 def gen_string_joinbyreplace(context: dict, value: str):
     # 12|replace(1,a)|replace(2,b)
-    if re.search(r"\d", value) or len(value) == 1:
+    if re.search(r"\d", value) or len(value) <= 1:
         return [(UNSATISFIED,)]
     split = len(value) // 2
     if len(value) > 2 and value[:2] == "__":
         split = 2
     elif len(value) > 2 and value[-2:] == "__":
         split = -2
-    target_list = [
-        (INTEGER, 12),
-        (LITERAL, "|replace("),
-        (INTEGER, 1),
-        (LITERAL, ","),
-        (STRING, value[:split]),
-        (LITERAL, ")|replace("),
-        (INTEGER, 2),
-        (LITERAL, ","),
-        (STRING, value[split:]),
-        (LITERAL, ")"),
-    ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
-def gen_string_joinbyreplace2(context: dict, value: str):
-    # 12|replace(1,a,)|replace(2,b,)
-    if re.search(r"\d", value) or len(value) == 1:
-        return [(UNSATISFIED,)]
-    split = len(value) // 2
-    if len(value) > 2 and value[:2] == "__":
-        split = 2
-    elif len(value) > 2 and value[-2:] == "__":
-        split = -2
-    target_list = [
-        (INTEGER, 12),
-        (LITERAL, "|replace("),
-        (INTEGER, 1),
-        (LITERAL, ","),
-        (STRING, value[:split]),
-        (LITERAL, ",)|replace("),
-        (INTEGER, 2),
-        (LITERAL, ","),
-        (STRING, value[split:]),
-        (LITERAL, ",)"),
-    ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
+    targets = targets_from_pattern(
+        "{12}|replace( {1} , {STR1} {,} )|replace( {2} , {STR2} {,} )",
+        {
+            " ": (WHITESPACE, ),
+            "{12}": (INTEGER, 12),
+            "{1}": (INTEGER, 1),
+            "{2}": (INTEGER, 2),
+            "{STR1}": (STRING, value[:split]),
+            "{STR2}": (STRING, value[split:]),
+            "{,}": (ONEOF, [(LITERAL, ",")], [(LITERAL, "")]) # type: ignore
+        }
+    )
+    return [(EXPRESSION, precedence["filter"], targets)]
 
 @expression_gen
 def gen_string_stringaschars(context: dict, value: str):
