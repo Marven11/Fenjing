@@ -19,7 +19,9 @@ def get_payload_gen(blacklist, context):
     def waf_func(x):
         return all(word not in x for word in blacklist)
 
-    return PayloadGenerator(waf_func, context)
+    return PayloadGenerator(waf_func, context, options=fenjing.Options(
+        python_version=fenjing.const.PythonEnvironment.PYTHON3
+    ))
 
 class PayloadGenTestsStringExpr(unittest.TestCase):
     def setUp(self):
