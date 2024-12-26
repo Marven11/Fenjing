@@ -3214,7 +3214,7 @@ def gen_string_splitbylength(context: dict, value: str):
 @expression_gen
 def gen_string_lipsumtobytes4(context: dict, value: str):
     bytes_targets = targets_from_pattern(
-        "lipsum[GLOBALS][BUILTINS][BYTES]( ( INTS ) MAYBE_COMMA)[DECODE]CALL",
+        "lipsum[GLOBALS][BUILTINS][BYTES]( ( INTS ) MAYBE_COMMA)[DECODE]( )",
         {
             "GLOBALS": (VARIABLE_OF, "__globals__"),
             "BUILTINS": (VARIABLE_OF, "__builtins__"),
@@ -3223,13 +3223,6 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
             "INTS": join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]),
             "MAYBE_COMMA": (ONEOF, [(LITERAL, ",")], [(LITERAL, "")]),
             "DECODE": (VARIABLE_OF, "decode"),
-            "CALL": (
-                ONEOF,
-                [(LITERAL, "()")],
-                [(LITERAL, "( )")],
-                [(LITERAL, "(\n)")],
-                [(LITERAL, "(\t)")],
-            )
         } # type: ignore
     )
     return [
@@ -3243,52 +3236,26 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
 
 @expression_gen
 def gen_string_lipsumtobytes5(context: dict, value: str):
-    value_tpl = (
-        [(LITERAL, "(")]
-        + join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value])
-        + [(LITERAL, ")")]
+
+    bytes_targets = targets_from_pattern(
+        "lipsum|attr(GLOBALS)|attr(GETITEM)(BUILTINS)"
+        "|attr(GETITEM)(BYTES)( ( INTS ) MAYBE_COMMA)|attr(DECODE)( )",
+        {
+            "GLOBALS": (VARIABLE_OF, "__globals__"),
+            "GETITEM": (VARIABLE_OF, "__getitem__"),
+            "BUILTINS": (VARIABLE_OF, "__builtins__"),
+            "BYTES": (VARIABLE_OF, "bytes"),
+            " ": (WHITESPACE, ),
+            "INTS": join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]),
+            "MAYBE_COMMA": (ONEOF, [(LITERAL, ",")], [(LITERAL, "")]),
+            "DECODE": (VARIABLE_OF, "decode"),
+        } # type: ignore
     )
-    bytes_targets_noendbracket = [
-        (LITERAL, "lipsum|attr("),
-        (VARIABLE_OF, "__globals__"),
-        (LITERAL, ")|attr("),
-        (VARIABLE_OF, "__getitem__"),
-        (LITERAL, ")("),
-        (VARIABLE_OF, "__builtins__"),
-        (LITERAL, ")|attr("),
-        (VARIABLE_OF, "__getitem__"),
-        (LITERAL, ")("),
-        (VARIABLE_OF, "bytes"),
-        (LITERAL, ")("),
-    ] + value_tpl
-    functioncall = (
-        ONEOF,
-        [(LITERAL, "()")],
-        [(LITERAL, "( )")],
-        [(LITERAL, "(\n)")],
-        [(LITERAL, "(\t)")],
-    )
-    target_list1 = bytes_targets_noendbracket + [
-        (LITERAL, ")"),
-        (LITERAL, "|attr("),
-        (VARIABLE_OF, "decode"),
-        (LITERAL, ")"),
-        functioncall,
-    ]
-    target_list2 = bytes_targets_noendbracket + [
-        (LITERAL, ",)"),
-        (LITERAL, "|attr("),
-        (VARIABLE_OF, "decode"),
-        (LITERAL, ")"),
-        functioncall,
-    ]
     return [
         (
             EXPRESSION,
             precedence["filter"],
-            [
-                (ONEOF, target_list1, target_list2),
-            ],
+            bytes_targets,
         )
     ] + [(REQUIRE_PYTHON3,)]
 
@@ -3299,7 +3266,7 @@ def gen_string_intbytes1(context: dict, value: str):
         return [(UNSATISFIED, )]
     n = int.from_bytes(value.encode(), "big")
     targets = [
-        (LITERAL, f"({n}).to_bytes({len(value)}"),
+        (LITERAL, f"({n}).to_bytes({len(value)},"),
         (ONEOF, [(LITERAL, "'big'")], [(LITERAL, '"big"')], [(VARIABLE_OF, "big")]),
         (LITERAL, ").decode()")
     ]
