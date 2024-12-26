@@ -3031,7 +3031,7 @@ def gen_string_dictfirstreverse(context: dict, value: str):
 def gen_string_x1(context: dict, value: str):
     if any(ord(c) >= 128 for c in value):
         return [(UNSATISFIED,)]
-    target = "".join("\\x" + hex(ord(c))[2:] for c in value)
+    target = "".join("\\x" + hex(ord(c))[2:].zfill(2) for c in value)
     target_list = [(LITERAL, '"{}"'.format(target))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
@@ -3040,7 +3040,7 @@ def gen_string_x1(context: dict, value: str):
 def gen_string_x2(context: dict, value: str):
     if any(ord(c) >= 128 for c in value):
         return [(UNSATISFIED,)]
-    target = "".join("\\x" + hex(ord(c))[2:] for c in value)
+    target = "".join("\\x" + hex(ord(c))[2:].zfill(2) for c in value)
     target_list = [(LITERAL, "'{}'".format(target))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
@@ -3049,7 +3049,7 @@ def gen_string_x2(context: dict, value: str):
 def gen_string_u1(context: dict, value: str):
     if any(ord(c) >= 128 for c in value):
         return [(UNSATISFIED,)]
-    target = "".join("\\u00" + hex(ord(c))[2:] for c in value)
+    target = "".join("\\u00" + hex(ord(c))[2:].zfill(2) for c in value)
     target_list = [(LITERAL, "'{}'".format(target))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
@@ -3058,7 +3058,7 @@ def gen_string_u1(context: dict, value: str):
 def gen_string_u2(context: dict, value: str):
     if any(ord(c) >= 128 for c in value):
         return [(UNSATISFIED,)]
-    target = "".join("\\u00" + hex(ord(c))[2:] for c in value)
+    target = "".join("\\u00" + hex(ord(c))[2:].zfill(2) for c in value)
     target_list = [(LITERAL, "'{}'".format(target))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
@@ -3067,7 +3067,7 @@ def gen_string_u2(context: dict, value: str):
 def gen_string_o1(context: dict, value: str):
     if any(ord(c) >= 128 for c in value):
         return [(UNSATISFIED,)]
-    target = "".join("\\" + oct(ord(c))[2:] for c in value)
+    target = "".join("\\" + oct(ord(c))[2:].zfill(2) for c in value)
     target_list = [(LITERAL, "'{}'".format(target))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
@@ -3076,7 +3076,7 @@ def gen_string_o1(context: dict, value: str):
 def gen_string_o2(context: dict, value: str):
     if any(ord(c) >= 128 for c in value):
         return [(UNSATISFIED,)]
-    target = "".join("\\" + oct(ord(c))[2:] for c in value)
+    target = "".join("\\" + oct(ord(c))[2:].zfill(2) for c in value)
     target_list = [(LITERAL, "'{}'".format(target))]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
