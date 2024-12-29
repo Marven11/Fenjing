@@ -48,6 +48,58 @@ class PayloadGenTestsStringExpr(unittest.TestCase):
                 self.assertIn(target_string, render_result)
 
 
+class PayloadGenTestsStringPiecesExpr(unittest.TestCase):
+    def setUp(self):
+        self.payload_gen = get_payload_gen([], {})
+
+    def test_many_format_c(self):
+        for rule in expression_gens["string_many_format_c"]:
+            target_list = rule({}, 3)
+            result = self.payload_gen.generate_by_list(target_list)
+            if not result:
+                continue
+            try:
+                render_result = Template("{{"+result[0]+"}}").render()
+            except Exception as e:
+                raise ValueError(f"{rule} failed generating string_many_format_c") from e
+            self.assertIn("{:c}" * 3, render_result)
+
+    def test_many_percent_lower_c(self):
+        for rule in expression_gens["string_many_percent_lower_c"]:
+            target_list = rule({}, 3)
+            result = self.payload_gen.generate_by_list(target_list)
+            if not result:
+                continue
+            try:
+                render_result = Template("{{"+result[0]+"}}").render()
+            except Exception as e:
+                raise ValueError(f"{rule} failed generating string_many_percent_lower_c") from e
+            self.assertIn("%c" * 3, render_result)
+
+    def test_percent(self):
+        for rule in expression_gens["string_percent"]:
+            target_list = rule({})
+            result = self.payload_gen.generate_by_list(target_list)
+            if not result:
+                continue
+            try:
+                render_result = Template("{{"+result[0]+"}}").render()
+            except Exception as e:
+                raise ValueError(f"{rule} failed generating string_percent") from e
+            self.assertIn("%", render_result)
+
+    def test_lower_c(self):
+        for rule in expression_gens["string_lower_c"]:
+            target_list = rule({})
+            result = self.payload_gen.generate_by_list(target_list)
+            if not result:
+                continue
+            try:
+                render_result = Template("{{"+result[0]+"}}").render()
+            except Exception as e:
+                raise ValueError(f"{rule} failed generating string_percent") from e
+            self.assertIn("c", render_result)
+
 class PayloadGenTestsTargetRules(unittest.TestCase):
 
     def setUp(self):
