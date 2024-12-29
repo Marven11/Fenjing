@@ -49,7 +49,10 @@ if sys.version_info >= (3, 8):
     EncloseUnderTarget = Tuple[Literal["enclose_under"], int, "Target"]
     EncloseTarget = Tuple[Literal["enclose"], List["Target"]]
     UnsatisfiedTarget = Tuple[Literal["unsatisfied"],]
-    OneofTarget = Tuple[Literal["oneof"], ...,]
+    OneofTarget = Tuple[
+        Literal["oneof"],
+        ...,
+    ]
 
     WithContextVarTarget = Tuple[Literal["with_context_var"], str]
     JinjaContextVarTarget = Tuple[Literal["jinja_context_var"], str]
@@ -69,7 +72,7 @@ if sys.version_info >= (3, 8):
     StringUnderlineTarget = Tuple[Literal["string_underline"],]
     StringLowerCTarget = Tuple[Literal["string_lower_c"],]
     StringTwoUnderlineTarget = Tuple[Literal["string_twounderline"],]
-    
+
     StringManyPercentLowerCTarget = Tuple[Literal["string_many_percent_lower_c"], int]
     StringManyFormatCTarget = Tuple[Literal["string_many_format_c"], int]
     CharTarget = Tuple[Literal["char"], str]
@@ -95,13 +98,11 @@ if sys.version_info >= (3, 8):
         EncloseTarget,
         UnsatisfiedTarget,
         OneofTarget,
-
         WithContextVarTarget,
         JinjaContextVarTarget,
         FlaskContextVarTarget,
         RequirePython3Target,
         VariableOfTarget,
-
         ZeroTarget,
         PositiveIntegerTarget,
         IntegerTarget,
@@ -276,7 +277,15 @@ def tree_precedence(tree):
             pass
         elif target[0] == EXPRESSION:
             answer = min(answer, target[1])
-        elif target[0] in [PLUS, MULTIPLY, MOD, ATTRIBUTE, ITEM, MODULE_OS, FUNCTION_CALL]:
+        elif target[0] in [
+            PLUS,
+            MULTIPLY,
+            MOD,
+            ATTRIBUTE,
+            ITEM,
+            MODULE_OS,
+            FUNCTION_CALL,
+        ]:
             # might be transformed into filters
             sub_target_answer = tree_precedence(sub_target_tree)
             if sub_target_answer:
@@ -290,7 +299,9 @@ def tree_precedence(tree):
     return answer if answer != float("inf") else None
 
 
-def targets_from_pattern(pattern: str, mapping: Dict[str, Union[Target, List[Target]]]) -> List[Target]:
+def targets_from_pattern(
+    pattern: str, mapping: Dict[str, Union[Target, List[Target]]]
+) -> List[Target]:
     """根据pattern将字符串转换成对应的target列表
     示例："'abcde'[NUM]", {"NUM": (INTEGER, 1)} ---> [
         (LITERAL, "'abcde'["),
@@ -347,6 +358,7 @@ def transform_int_chars_unicode(int_chars):
         for charcodes in UNICODE_INT_CHARCODES
     ]
 
+
 def removeprefix_string(text: str, prefix: str) -> str:
     """兼容python 3.9及以下的removeprefix函数
 
@@ -361,6 +373,7 @@ def removeprefix_string(text: str, prefix: str) -> str:
         return text[len(prefix) :]
     return text
 
+
 def unwrap_whitespace(target_list: List[Target]) -> List[Target]:
     """替换target_list中的whitespace target为实际的literal
     会被payloadgen调用而不是被expression_gen调用
@@ -371,18 +384,19 @@ def unwrap_whitespace(target_list: List[Target]) -> List[Target]:
     Returns:
         List[Target]: 输出，如果没有whitespace则返回原target list
     """
-    if all(target != (WHITESPACE, ) for target in target_list):
+    if all(target != (WHITESPACE,) for target in target_list):
         return target_list
     alternatives = []
     for whitespace in ["", " ", "\t", "\n"]:
         alternative = []
         for target in target_list:
-            if target == (WHITESPACE, ):
+            if target == (WHITESPACE,):
                 alternative.append((LITERAL, whitespace))
             else:
                 alternative.append(target)
         alternatives.append(alternative)
     return [(ONEOF, *alternatives)]
+
 
 class CacheByRepr:
     """缓存传入的对象，其中键可以是任意对象
@@ -562,8 +576,8 @@ class PayloadGenerator:
         result_precedence = tree_precedence(tree)
         assert result_precedence is not None, str_result + repr(tree)
         should_enclose = (
-            result_precedence <= target[1] 
-            if result_precedence == precedence["mod"] 
+            result_precedence <= target[1]
+            if result_precedence == precedence["mod"]
             else result_precedence < target[1]
         )
         if should_enclose:
@@ -690,8 +704,7 @@ class PayloadGenerator:
         if not variables:
             return self.generate_by_list([(UNSATISFIED,)])
         targets_list = [[(LITERAL, v), (WITH_CONTEXT_VAR, v)] for v in variables]
-        return self.generate_by_list([(ONEOF, *targets_list)]) # type: ignore
-
+        return self.generate_by_list([(ONEOF, *targets_list)])  # type: ignore
 
     @register_generate_func(lambda self, target: True)
     def common_generate(self, gen_req: Target) -> Union[PayloadGeneratorResult, None]:
@@ -826,13 +839,17 @@ class PayloadGenerator:
 @expression_gen
 def gen_enclose_normal(context: dict, target):
     return [
-        (EXPRESSION, precedence["enclose"], [
-            (LITERAL, "("),
-            (WHITESPACE, ),
-            target,
-            (WHITESPACE, ),
-            (LITERAL, ")"),
-        ])
+        (
+            EXPRESSION,
+            precedence["enclose"],
+            [
+                (LITERAL, "("),
+                (WHITESPACE,),
+                target,
+                (WHITESPACE,),
+                (LITERAL, ")"),
+            ],
+        )
     ]
 
 
@@ -841,9 +858,9 @@ def gen_enclose_normal(context: dict, target):
 def gen_wrap_normal(context: dict, targets: List[Target]):
     return [
         (LITERAL, "("),
-        (WHITESPACE, ),
+        (WHITESPACE,),
         *targets,
-        (WHITESPACE, ),
+        (WHITESPACE,),
         (LITERAL, ")"),
     ]
 
@@ -871,13 +888,17 @@ def gen_string_concat_format(context: dict, a, b):
     target_list = [
         (ONEOF, [(LITERAL, "'%s%s'")], [(LITERAL, '"%s%s"')], [(VARIABLE_OF, "%s%s")]),
         (LITERAL, "%"),
-        (WRAP, [
-            a,
-            (LITERAL, ","),
-            b,
-        ])
+        (
+            WRAP,
+            [
+                a,
+                (LITERAL, ","),
+                b,
+            ],
+        ),
     ]
     return [(EXPRESSION, precedence["mod"], target_list)]
+
 
 # ---
 
@@ -892,13 +913,17 @@ def gen_string_concatmany_onebyone(context: dict, parts):
 
 @expression_gen
 def gen_string_concatmany_join(context: dict, parts):
-    targets = targets_from_pattern("(PARTS)|join", {
-        "PARTS": (ONEOF, join_target(sep=(LITERAL, ","), targets=parts)), # type: ignore
-    })
+    targets = targets_from_pattern(
+        "(PARTS)|join",
+        {
+            "PARTS": (ONEOF, join_target(sep=(LITERAL, ","), targets=parts)),  # type: ignore
+        },
+    )
     return [(EXPRESSION, precedence["filter"], targets)]
 
 
 # lipsum.__globals__.concat(("a", "b"))
+
 
 @expression_gen
 def gen_string_concatmany_lipsumglobals1(context: dict, parts):
@@ -912,6 +937,7 @@ def gen_string_concatmany_lipsumglobals1(context: dict, parts):
         ]
     )
     return [(EXPRESSION, precedence["function_call"], target_list)]
+
 
 @expression_gen
 def gen_string_concatmany_lipsumglobals2(context: dict, parts):
@@ -960,9 +986,12 @@ def gen_plus_addfunc(context: dict, a, b):
             [
                 (ENCLOSE_UNDER, precedence["attribute"], a),
                 (LITERAL, ".__add__"),
-                (WRAP, [
-                    b,
-                ])
+                (
+                    WRAP,
+                    [
+                        b,
+                    ],
+                ),
             ],
         )
     ]
@@ -985,9 +1014,12 @@ def gen_plus_addfuncbyfilter(context: dict, a, b):
             [
                 (ENCLOSE_UNDER, precedence["filter"], a),
                 get_add_func,
-                (WRAP, [
-                    b,
-                ])
+                (
+                    WRAP,
+                    [
+                        b,
+                    ],
+                ),
             ],
         )
     ]
@@ -1012,9 +1044,12 @@ def gen_mod_func(context: dict, a, b):
             [
                 (ENCLOSE_UNDER, precedence["attribute"], a),
                 (LITERAL, ".__mod__"),
-                (WRAP, [
-                    b,
-                ])
+                (
+                    WRAP,
+                    [
+                        b,
+                    ],
+                ),
             ],
         )
     ]
@@ -1035,9 +1070,12 @@ def gen_mod_func2(context: dict, a, b):
             [
                 (ENCLOSE_UNDER, precedence["filter"], a),
                 mod_func,
-                (WRAP, [
-                    b,
-                ])
+                (
+                    WRAP,
+                    [
+                        b,
+                    ],
+                ),
             ],
         )
     ]
@@ -1045,17 +1083,18 @@ def gen_mod_func2(context: dict, a, b):
 
 # ---
 
+
 @expression_gen
 def gen_function_call_forattr(context: dict, function_target, args_target_list):
     target_list = (
         [
             (ENCLOSE_UNDER, precedence["function_call"], function_target),
             (LITERAL, "("),
-            (WHITESPACE, ),
+            (WHITESPACE,),
         ]
         + join_target((LITERAL, ","), args_target_list)
         + [
-            (WHITESPACE, ),
+            (WHITESPACE,),
             (LITERAL, ")"),
         ]
     )
@@ -1068,17 +1107,16 @@ def gen_function_call_forattr2(context: dict, function_target, args_target_list)
         [
             (ENCLOSE_UNDER, precedence["function_call"], function_target),
             (LITERAL, "("),
-            (WHITESPACE, ),
+            (WHITESPACE,),
         ]
         + join_target((LITERAL, ","), args_target_list)
         + [
             (LITERAL, ","),
-            (WHITESPACE, ),
+            (WHITESPACE,),
             (LITERAL, ")"),
         ]
     )
     return [(EXPRESSION, precedence["function_call"], target_list)]
-
 
 
 @expression_gen
@@ -1087,11 +1125,11 @@ def gen_function_call_forfilter1(context: dict, function_target, args_target_lis
         [
             (ENCLOSE_UNDER, precedence["filter_with_function_call"], function_target),
             (LITERAL, "("),
-            (WHITESPACE, ),
+            (WHITESPACE,),
         ]
         + join_target((LITERAL, ","), args_target_list)
         + [
-            (WHITESPACE, ),
+            (WHITESPACE,),
             (LITERAL, ")"),
         ]
     )
@@ -1104,12 +1142,12 @@ def gen_function_call_forfilter2(context: dict, function_target, args_target_lis
         [
             (ENCLOSE_UNDER, precedence["filter_with_function_call"], function_target),
             (LITERAL, "("),
-            (WHITESPACE, ),
+            (WHITESPACE,),
         ]
         + join_target((LITERAL, ","), args_target_list)
         + [
             (LITERAL, ","),
-            (WHITESPACE, ),
+            (WHITESPACE,),
             (LITERAL, ")"),
         ]
     )
@@ -1135,9 +1173,12 @@ def gen_multiply_func(context: dict, a, b):
             [
                 (ENCLOSE_UNDER, precedence["attribute"], a),
                 (LITERAL, ".__mul__"),
-                (WRAP, [
-                    b,
-                ])
+                (
+                    WRAP,
+                    [
+                        b,
+                    ],
+                ),
             ],
         )
     ]
@@ -1149,9 +1190,7 @@ def gen_multiply_func2(context: dict, a, b):
         ONEOF,
         [(LITERAL, "|attr('__mul__')")],
         [(LITERAL, '|attr("__mul__")')],
-        [(LITERAL, "|attr"), (WRAP, [
-            (VARIABLE_OF, "__mul__")
-        ])],
+        [(LITERAL, "|attr"), (WRAP, [(VARIABLE_OF, "__mul__")])],
     )
     return [
         (
@@ -1160,9 +1199,12 @@ def gen_multiply_func2(context: dict, a, b):
             [
                 (ENCLOSE_UNDER, precedence["filter"], a),
                 mul_func,
-                (WRAP, [
-                    b,
-                ])
+                (
+                    WRAP,
+                    [
+                        b,
+                    ],
+                ),
             ],
         )
     ]
@@ -1222,6 +1264,7 @@ def gen_zero_3(context: dict):
 def gen_zero_4(context: dict):
     return [(EXPRESSION, precedence["filter"], [(LITERAL, "{}|urlencode|count")])]
 
+
 @expression_gen
 def gen_zero_cycler(context: dict):
     return [(EXPRESSION, precedence["attribute"], [(LITERAL, "cycler(cycler).pos")])]
@@ -1231,12 +1274,15 @@ def gen_zero_cycler(context: dict):
 def gen_zero_cycler2(context: dict):
     targets = [
         (LITERAL, "cycler(cycler)["),
-        (ONEOF, [
-            (LITERAL, "'pos'"),
-            (LITERAL, '"pos"'),
-            (VARIABLE_OF, "pos"),
-        ]),
-        (LITERAL, "]")
+        (
+            ONEOF,
+            [
+                (LITERAL, "'pos'"),
+                (LITERAL, '"pos"'),
+                (VARIABLE_OF, "pos"),
+            ],
+        ),
+        (LITERAL, "]"),
     ]
     return [(EXPRESSION, precedence["item"], targets)]
 
@@ -1319,7 +1365,7 @@ def gen_positive_integer_unicode(context: dict, value: int):
             EXPRESSION,
             precedence["literal"],
             [(LITERAL, str(value)[0]), (ONEOF, *payload_targets)],
-        )
+        ),
     ]
 
 
@@ -1344,6 +1390,7 @@ def gen_positive_integer_hexunderline(context: dict, value: int):
     literal = "0x_{}".format("_".join(digits))
     return [(EXPRESSION, precedence["literal"], [(LITERAL, literal)])]
 
+
 @expression_gen
 def gen_positive_integer_octunderline(context: dict, value: int):
     if value < 0:
@@ -1351,7 +1398,6 @@ def gen_positive_integer_octunderline(context: dict, value: int):
     digits = oct(value)[2:]
     literal = "0o_{}".format("_".join(digits))
     return [(EXPRESSION, precedence["literal"], [(LITERAL, literal)])]
-
 
 
 @expression_gen
@@ -1393,9 +1439,16 @@ def gen_positive_integer_recurmulitiply(context: dict, value: int):
             ONEOF,
             *[
                 [
-                    (WRAP, [
-                        (MULTIPLY, (POSITIVE_INTEGER, value // x), (POSITIVE_INTEGER, x))
-                    ])
+                    (
+                        WRAP,
+                        [
+                            (
+                                MULTIPLY,
+                                (POSITIVE_INTEGER, value // x),
+                                (POSITIVE_INTEGER, x),
+                            )
+                        ],
+                    )
                 ]
                 for x in xs
             ],
@@ -1461,31 +1514,40 @@ def gen_positive_integer_recurmulnoastral(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_lengthything(context: dict, value: int):
-    if value >= 50 or value <= 3: # stop generating lengthy payload
+    if value >= 50 or value <= 3:  # stop generating lengthy payload
         return [(UNSATISFIED,)]
-    lengthy_thing = (ONEOF,
+    lengthy_thing = (
+        ONEOF,
         [(LITERAL, "dict({}=x)|join".format("x" * value))],
         [(LITERAL, "cycler({}).items".format(",".join("x" * value)))],
     )
-    target_list = [(ONEOF,
-        [lengthy_thing, (LITERAL, "|length")],
-        [lengthy_thing, (LITERAL, "|count")],
-        targets_from_pattern("(LENGTHY_THING,)|map(LENGTH_OR_COUNT)|GETTHAT", { # type: ignore
-            "LENGTHY_THING": lengthy_thing,
-            "LENGTH_OR_COUNT": (ONEOF, 
-                [(LITERAL, "'le''ngth'")],
-                [(LITERAL, '"le""ngth"')],
-                [(LITERAL, "'co''unt'")],
-                [(LITERAL, '"co""unt"')],
-                [(VARIABLE_OF, "length")],
-                [(VARIABLE_OF, "count")]
+    target_list = [
+        (
+            ONEOF,
+            [lengthy_thing, (LITERAL, "|length")],
+            [lengthy_thing, (LITERAL, "|count")],
+            targets_from_pattern(
+                "(LENGTHY_THING,)|map(LENGTH_OR_COUNT)|GETTHAT",
+                {  # type: ignore
+                    "LENGTHY_THING": lengthy_thing,
+                    "LENGTH_OR_COUNT": (
+                        ONEOF,
+                        [(LITERAL, "'le''ngth'")],
+                        [(LITERAL, '"le""ngth"')],
+                        [(LITERAL, "'co''unt'")],
+                        [(LITERAL, '"co""unt"')],
+                        [(VARIABLE_OF, "length")],
+                        [(VARIABLE_OF, "count")],
+                    ),
+                    "GETTHAT": (
+                        ONEOF,
+                        [(LITERAL, "first")],
+                        [(LITERAL, "last")],
+                    ),
+                },
             ),
-            "GETTHAT": (ONEOF, 
-                [(LITERAL, "first")],
-                [(LITERAL, "last")],
-            )
-        })
-    )]
+        )
+    ]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -1644,7 +1706,7 @@ def gen_positive_integer_indexofglobal(context: dict, value: int):
         )
         alternatives.append(target_list)
     return [(EXPRESSION, precedence["function_call"], [(ONEOF, *alternatives)])]
-    
+
 
 # ---
 
@@ -1682,7 +1744,10 @@ def gen_integer_positive(context: dict, value: int):
 def gen_integer_negative(context: dict, value: int):
     if value >= 0:
         return [(UNSATISFIED,)]
-    target_list = [(LITERAL, "-"), (ENCLOSE_UNDER, precedence["subtract"], (POSITIVE_INTEGER, abs(value)))]
+    target_list = [
+        (LITERAL, "-"),
+        (ENCLOSE_UNDER, precedence["subtract"], (POSITIVE_INTEGER, abs(value))),
+    ]
     return [(EXPRESSION, precedence["subtract"], target_list)]
 
 
@@ -1751,10 +1816,16 @@ def gen_string_lower_c_literal2(context):
 def gen_string_lower_c_joindict(context):
     return [(EXPRESSION, precedence["filter"], [(LITERAL, "dict(c=x)|join")])]
 
+
 @expression_gen
 def gen_string_lower_c_joinnamespacedict(context):
-    return [(EXPRESSION, precedence["filter"], [(LITERAL, "namespace(c=x)._Namespace__attrs|join")])]
-
+    return [
+        (
+            EXPRESSION,
+            precedence["filter"],
+            [(LITERAL, "namespace(c=x)._Namespace__attrs|join")],
+        )
+    ]
 
 
 @expression_gen
@@ -1898,6 +1969,7 @@ def gen_string_percent_lipsum1(context):
         )
     ]
 
+
 @expression_gen
 def gen_string_percent_lipsum2(context):
     return [
@@ -1923,9 +1995,9 @@ def gen_string_percent_lipsum3(context):
                 (LITERAL, "]["),
                 (VARIABLE_OF, "chr"),
                 (LITERAL, "]("),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (INTEGER, 37),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (LITERAL, ")"),
             ],
         )
@@ -1941,29 +2013,29 @@ def gen_string_percent_lipsum4(context):
             precedence["filter_with_function_call"],
             [
                 (LITERAL, "lipsum|attr("),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (VARIABLE_OF, "__globals__"),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (LITERAL, ")|attr("),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (VARIABLE_OF, "__getitem__"),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (LITERAL, ")("),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (VARIABLE_OF, "__builtins__"),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (LITERAL, ")|attr("),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (VARIABLE_OF, "__getitem__"),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (LITERAL, ")("),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (VARIABLE_OF, "chr"),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (LITERAL, ")("),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (INTEGER, 37),
-                (WHITESPACE, ),
+                (WHITESPACE,),
                 (LITERAL, ")"),
             ],
         )
@@ -1999,8 +2071,13 @@ def gen_string_percent_moddoc(context):
         (
             ONEOF,
             [(LITERAL, "["), (INTEGER, 11), (LITERAL, "]")],
-                
-            [(LITERAL, ".__getitem__("), (WHITESPACE, ), (INTEGER, 11), (WHITESPACE, ), (LITERAL, ")")],
+            [
+                (LITERAL, ".__getitem__("),
+                (WHITESPACE,),
+                (INTEGER, 11),
+                (WHITESPACE,),
+                (LITERAL, ")"),
+            ],
             [(LITERAL, "|batch(12)|first|last")],
         ),
     ]
@@ -2014,9 +2091,9 @@ def gen_string_percent_namespace(context):
             LITERAL,
             "namespace['__ini''t__']['__glob''al''s__']['__builti''ns__']['chr'](",
         ),
-        (WHITESPACE, ),
+        (WHITESPACE,),
         (INTEGER, 37),
-        (WHITESPACE, ),
+        (WHITESPACE,),
         (LITERAL, ")"),
     ]
     return [(EXPRESSION, precedence["function_call"], target_list)]
@@ -2041,7 +2118,10 @@ def gen_string_percent_dictbatch(context):
         (INTEGER, 37),
         (LITERAL, ")"),
     ]
-    return [(EXPRESSION, precedence["filter_with_function_call"], target_list), (REQUIRE_PYTHON3, )]
+    return [
+        (EXPRESSION, precedence["filter_with_function_call"], target_list),
+        (REQUIRE_PYTHON3,),
+    ]
 
 
 @expression_gen
@@ -2087,7 +2167,8 @@ def gen_string_percent_lipsumcomplex(context):
 @expression_gen
 def gen_string_percent_urlencodelong(context):
     target_list = [
-        (ONEOF,
+        (
+            ONEOF,
             [(LITERAL, "(lipsum,)|map(")],
             [(LITERAL, "(cycler,)|map(")],
             [(LITERAL, "(joiner,)|map(")],
@@ -2098,9 +2179,9 @@ def gen_string_percent_urlencodelong(context):
             [(LITERAL, "'ur''lencode'")],
             [(LITERAL, '"ur""lencode"')],
             [(LITERAL, "dict(urlencode=x)|first")],
-            [(LITERAL, "dict(ur=x,lenc=x,ode=x)|join"), (REQUIRE_PYTHON3, )],
-            [(LITERAL, "dict(ur=x,le=x,nco=x,de=x)|join"), (REQUIRE_PYTHON3, )],
-            [(VARIABLE_OF, 'urlencode')],
+            [(LITERAL, "dict(ur=x,lenc=x,ode=x)|join"), (REQUIRE_PYTHON3,)],
+            [(LITERAL, "dict(ur=x,le=x,nco=x,de=x)|join"), (REQUIRE_PYTHON3,)],
+            [(VARIABLE_OF, "urlencode")],
         ),
         (LITERAL, ")|first|first"),
     ]
@@ -2164,7 +2245,7 @@ def gen_string_percent_replaceformat3(context):
         (INTEGER, 37),
         (LITERAL, ")"),
     ]
-    return [(EXPRESSION, precedence["function_call"], target_list), (REQUIRE_PYTHON3, )]
+    return [(EXPRESSION, precedence["function_call"], target_list), (REQUIRE_PYTHON3,)]
 
 
 # ---
@@ -2191,20 +2272,29 @@ def gen_string_percent_lower_c_literal3(context):
 @expression_gen
 def gen_string_percent_lower_c_literal5(context):
     target_list = [
-        (ONEOF, *[
-            [(LITERAL, "'%'")],
-            [(LITERAL, '"%"')],
-        ]),
-        (ONEOF, *[
-            [(LITERAL, " ")],
-            [(LITERAL, "\t")],
-            [(LITERAL, "\n")],
-            [(LITERAL, "\r")],
-        ]),
-        (ONEOF, *[
-            [(LITERAL, "'c'")],
-            [(LITERAL, '"c"')],
-        ]),
+        (
+            ONEOF,
+            *[
+                [(LITERAL, "'%'")],
+                [(LITERAL, '"%"')],
+            ],
+        ),
+        (
+            ONEOF,
+            *[
+                [(LITERAL, " ")],
+                [(LITERAL, "\t")],
+                [(LITERAL, "\n")],
+                [(LITERAL, "\r")],
+            ],
+        ),
+        (
+            ONEOF,
+            *[
+                [(LITERAL, "'c'")],
+                [(LITERAL, '"c"')],
+            ],
+        ),
     ]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
@@ -2227,21 +2317,19 @@ def gen_string_percent_lower_c_concat(context):
 def gen_string_percent_lower_c_dictjoin(context):
     # "(dict([('%',x),('c',x)])|join)"
     pattern = "dict([(PERCENT,x),(LOWERC,x)])|join"
-    targets = targets_from_pattern(pattern, {
-        "PERCENT": (STRING_PERCENT, ),
-        "LOWERC": (STRING_LOWERC, )
-    })
-    return [(EXPRESSION, precedence["filter"], targets), (REQUIRE_PYTHON3, )]
+    targets = targets_from_pattern(
+        pattern, {"PERCENT": (STRING_PERCENT,), "LOWERC": (STRING_LOWERC,)}
+    )
+    return [(EXPRESSION, precedence["filter"], targets), (REQUIRE_PYTHON3,)]
 
 
 @expression_gen
 def gen_string_percent_lower_c_listjoin(context):
     # "(['%','c']|join)"
     pattern = "[PERCENT,LOWERC]|join"
-    targets = targets_from_pattern(pattern, {
-        "PERCENT": (STRING_PERCENT, ),
-        "LOWERC": (STRING_LOWERC, )
-    })
+    targets = targets_from_pattern(
+        pattern, {"PERCENT": (STRING_PERCENT,), "LOWERC": (STRING_LOWERC,)}
+    )
     return [(EXPRESSION, precedence["filter"], targets)]
 
 
@@ -2249,10 +2337,9 @@ def gen_string_percent_lower_c_listjoin(context):
 def gen_string_percent_lower_c_tuplejoin(context):
     # "(('%','c')|join)"
     pattern = "(PERCENT,LOWERC)|join"
-    targets = targets_from_pattern(pattern, {
-        "PERCENT": (STRING_PERCENT, ),
-        "LOWERC": (STRING_LOWERC, )
-    })
+    targets = targets_from_pattern(
+        pattern, {"PERCENT": (STRING_PERCENT,), "LOWERC": (STRING_LOWERC,)}
+    )
     return [(EXPRESSION, precedence["filter"], targets)]
 
 
@@ -2260,22 +2347,22 @@ def gen_string_percent_lower_c_tuplejoin(context):
 def gen_string_percent_lower_c_replaceconcat(context):
     # ('c'|replace(x|trim,'%',1))
     pattern = "LOWERC|replace(x|trim,PERCENT,ONE)"
-    targets = targets_from_pattern(pattern, {
-        "LOWERC": (STRING_LOWERC, ),
-        "PERCENT": (STRING_PERCENT, ),
-        "ONE": (INTEGER, 1)
-    })
+    targets = targets_from_pattern(
+        pattern,
+        {"LOWERC": (STRING_LOWERC,), "PERCENT": (STRING_PERCENT,), "ONE": (INTEGER, 1)},
+    )
     return [(EXPRESSION, precedence["filter"], targets)]
 
 
 @expression_gen
 def gen_string_percent_lower_c_cycler(context):
-    pattern = ("cycler|pprint|list|pprint|urlencode|batch(TEN)"
-               +"|first|join|batch(EIGHT)|list|last|reverse|join|lower")
-    targets = targets_from_pattern(pattern, {
-        "TEN": (INTEGER, 10),
-        "EIGHT": (INTEGER, 8)
-    })
+    pattern = (
+        "cycler|pprint|list|pprint|urlencode|batch(TEN)"
+        + "|first|join|batch(EIGHT)|list|last|reverse|join|lower"
+    )
+    targets = targets_from_pattern(
+        pattern, {"TEN": (INTEGER, 10), "EIGHT": (INTEGER, 8)}
+    )
     return [(EXPRESSION, precedence["filter"], targets)]
 
 
@@ -2324,7 +2411,7 @@ def gen_string_many_percent_lower_c_replacespace(context, count: int):
         (INTEGER, count),
         (LITERAL, ")|replace(x|center|first,"),
         (STRING_PERCENT_LOWER_C,),
-        (WHITESPACE, ),
+        (WHITESPACE,),
         (LITERAL, ")"),
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
@@ -2338,7 +2425,13 @@ def gen_string_many_percent_lower_c_nulljoin(context, count: int):
             (LITERAL, "("),
         ]
         + [(LITERAL, "x,") for _ in range(count + 1)]
-        + [(LITERAL, ")|join("), (WHITESPACE, ), (STRING_PERCENT_LOWER_C,), (WHITESPACE, ), (LITERAL, ")")]
+        + [
+            (LITERAL, ")|join("),
+            (WHITESPACE,),
+            (STRING_PERCENT_LOWER_C,),
+            (WHITESPACE,),
+            (LITERAL, ")"),
+        ]
     )
     return [(EXPRESSION, precedence["filter"], target_list)]
 
@@ -2364,15 +2457,17 @@ def gen_string_many_percent_lower_c_concat(context, count: int):
 @expression_gen
 def gen_string_many_percent_lower_c_join(context, count: int):
     l = [
-        [
-            (LITERAL, "("),
-            (STRING_PERCENT_LOWER_C,),
-        ]
-        if i == 0
-        else [
-            (LITERAL, ","),
-            (STRING_PERCENT_LOWER_C,),
-        ]
+        (
+            [
+                (LITERAL, "("),
+                (STRING_PERCENT_LOWER_C,),
+            ]
+            if i == 0
+            else [
+                (LITERAL, ","),
+                (STRING_PERCENT_LOWER_C,),
+            ]
+        )
         for i in range(count)
     ] + [[(LITERAL, ")|join")]]
     target_list = [item for lst in l for item in lst]
@@ -2405,13 +2500,16 @@ def gen_string_underline_context(context: dict):
 @expression_gen
 def gen_string_underline_format(context):
     targets = [
-        (ONEOF, *[
-            [(LITERAL, '"%c"%')], 
-            [(LITERAL, '"%""c"%')], 
-            [(LITERAL, "'%c'%")],
-            [(LITERAL, "'%''c'%")],
-        ]),
-        (ENCLOSE_UNDER, precedence["mod"], (INTEGER, ord("_")))
+        (
+            ONEOF,
+            *[
+                [(LITERAL, '"%c"%')],
+                [(LITERAL, '"%""c"%')],
+                [(LITERAL, "'%c'%")],
+                [(LITERAL, "'%''c'%")],
+            ],
+        ),
+        (ENCLOSE_UNDER, precedence["mod"], (INTEGER, ord("_"))),
     ]
     return [(EXPRESSION, precedence["mod"], targets)]
 
@@ -2452,6 +2550,7 @@ def gen_string_underline_gget(context):
 
 # ---
 
+
 @expression_gen
 def gen_string_twounderline_variable(context):
     return [(VARIABLE_OF, "__")]
@@ -2459,42 +2558,46 @@ def gen_string_twounderline_variable(context):
 
 @expression_gen
 def gen_string_twounderline_concat(context):
-    return [(STRING_CONCAT, (STRING_UNDERLINE, ), (STRING_UNDERLINE, ))]
+    return [(STRING_CONCAT, (STRING_UNDERLINE,), (STRING_UNDERLINE,))]
 
 
 @expression_gen
 def gen_string_twounderline_multiply(context):
-    return [(MULTIPLY, (STRING_UNDERLINE, ), (INTEGER, 2))]
+    return [(MULTIPLY, (STRING_UNDERLINE,), (INTEGER, 2))]
+
 
 @expression_gen
 def gen_string_twounderline_format(context):
     targets = [
         (ENCLOSE_UNDER, precedence["mod"], (STRING, "%s%%s")),
         (LITERAL, "%"),
-        (ENCLOSE_UNDER, precedence["mod"], (STRING_UNDERLINE, )),
+        (ENCLOSE_UNDER, precedence["mod"], (STRING_UNDERLINE,)),
         (LITERAL, "%"),
-        (ENCLOSE_UNDER, precedence["mod"], (STRING_UNDERLINE, )),
+        (ENCLOSE_UNDER, precedence["mod"], (STRING_UNDERLINE,)),
     ]
     return [(EXPRESSION, precedence["mod"], targets)]
+
 
 @expression_gen
 def gen_string_twounderline_formatfilter(context):
     targets = [
         (ENCLOSE_UNDER, precedence["filter"], (STRING, "%s%%s")),
         (LITERAL, "|format("),
-        (WHITESPACE, ),
-        (STRING_UNDERLINE, ),
-        (WHITESPACE, ),
+        (WHITESPACE,),
+        (STRING_UNDERLINE,),
+        (WHITESPACE,),
         (LITERAL, ")"),
         (LITERAL, "|format("),
-        (WHITESPACE, ),
-        (STRING_UNDERLINE, ),
-        (WHITESPACE, ),
+        (WHITESPACE,),
+        (STRING_UNDERLINE,),
+        (WHITESPACE,),
         (LITERAL, ")"),
     ]
     return [(EXPRESSION, precedence["filter_with_function_call"], targets)]
 
+
 # ---
+
 
 @expression_gen
 def gen_string_many_format_c_complex(context, num):
@@ -2507,7 +2610,7 @@ def gen_string_many_format_c_complex(context, num):
             ),
         ),
         (STRING_LOWERC,),
-        (WHITESPACE, ),
+        (WHITESPACE,),
         (LITERAL, ")"),
     ]
     return [
@@ -2524,13 +2627,13 @@ def gen_string_many_format_c_complex(context, num):
 
 @expression_gen
 def gen_char_literal1(context, c):
-    target_list = [(LITERAL, f"'{c}'" if c != "'" and c != "\\" else "'\\"+c+"'")]
+    target_list = [(LITERAL, f"'{c}'" if c != "'" and c != "\\" else "'\\" + c + "'")]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
 
 @expression_gen
 def gen_char_literal2(context, c):
-    target_list = [(LITERAL, f'"{c}"' if c != '"' and c != "\\" else '"\\'+c+'"')]
+    target_list = [(LITERAL, f'"{c}"' if c != '"' and c != "\\" else '"\\' + c + '"')]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
 
@@ -2546,7 +2649,6 @@ def gen_char_percent(context, c):
     return [(EXPRESSION, precedence["literal"], target_list)]
 
 
-
 @expression_gen
 def gen_char_selectpy3(context, c):
     matches = []
@@ -2557,7 +2659,8 @@ def gen_char_selectpy3(context, c):
     if not matches:
         return [(UNSATISFIED,)]
     target_list = [(ONEOF, *matches)]
-    return [(REQUIRE_PYTHON3, ), (EXPRESSION, precedence["filter"], target_list)]
+    return [(REQUIRE_PYTHON3,), (EXPRESSION, precedence["filter"], target_list)]
+
 
 @expression_gen
 def gen_char_selectpy2(context, c):
@@ -2596,7 +2699,12 @@ def gen_char_flaskg(context, c):
     pattern = "|e|batch(INDEX)|first|last"
     for index, value in d.items():
         if value == c:
-            matches.append([(FLASK_CONTEXT_VAR, "g"), (LITERAL, pattern.replace("INDEX", str(index)))])
+            matches.append(
+                [
+                    (FLASK_CONTEXT_VAR, "g"),
+                    (LITERAL, pattern.replace("INDEX", str(index))),
+                ]
+            )
     target_list = [(ONEOF, *matches)]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
@@ -2607,6 +2715,7 @@ def gen_char_dict(context, c):
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, f"dict({c}=x)|join")]
     return [(EXPRESSION, precedence["filter"], target_list)]
+
 
 @expression_gen
 def gen_char_namespacedict(context, c):
@@ -2646,16 +2755,21 @@ def gen_char_num2(context, c):
 def gen_char_lipsumdoc(context, c):
     lipsum_doc = """Generate some lorem ipsum for the template."""
     if c not in lipsum_doc:
-        return [(UNSATISFIED, )]
-    return [(EXPRESSION, precedence["item"], [
-        (JINJA_CONTEXT_VAR, "lipsum"),
-        (LITERAL, "["),
-        (VARIABLE_OF, "__doc__"),
-        (LITERAL, "]["),
-        (INTEGER, lipsum_doc.index(c)),
-        (LITERAL, "]")
-    ])]
-
+        return [(UNSATISFIED,)]
+    return [
+        (
+            EXPRESSION,
+            precedence["item"],
+            [
+                (JINJA_CONTEXT_VAR, "lipsum"),
+                (LITERAL, "["),
+                (VARIABLE_OF, "__doc__"),
+                (LITERAL, "]["),
+                (INTEGER, lipsum_doc.index(c)),
+                (LITERAL, "]"),
+            ],
+        )
+    ]
 
 
 @expression_gen
@@ -2724,26 +2838,38 @@ def gen_char_cycledoc2(context, c):
     .. versionadded:: 2.1
     """
     if c not in doc:
-        return [(UNSATISFIED, )]
-    return [(EXPRESSION, precedence["item"], [
-        (JINJA_CONTEXT_VAR, "cycler"),
-        (LITERAL, "["),
-        (VARIABLE_OF, "__doc__"),
-        (LITERAL, "]["),
-        (INTEGER, doc.index(c)),
-        (LITERAL, "]")
-    ])]
+        return [(UNSATISFIED,)]
+    return [
+        (
+            EXPRESSION,
+            precedence["item"],
+            [
+                (JINJA_CONTEXT_VAR, "cycler"),
+                (LITERAL, "["),
+                (VARIABLE_OF, "__doc__"),
+                (LITERAL, "]["),
+                (INTEGER, doc.index(c)),
+                (LITERAL, "]"),
+            ],
+        )
+    ]
 
 
 @expression_gen
 def gen_char_format(cotext, c):
     if ord(c) > 256:
-        return [(UNSATISFIED, )] 
-    return [(EXPRESSION, precedence["mod"], [
-        (ENCLOSE_UNDER, precedence["mod"], (STRING_PERCENT_LOWER_C, )),
-        (LITERAL, "%"),
-        (ENCLOSE_UNDER, precedence["mod"], (INTEGER, ord(c)))
-    ])]
+        return [(UNSATISFIED,)]
+    return [
+        (
+            EXPRESSION,
+            precedence["mod"],
+            [
+                (ENCLOSE_UNDER, precedence["mod"], (STRING_PERCENT_LOWER_C,)),
+                (LITERAL, "%"),
+                (ENCLOSE_UNDER, precedence["mod"], (INTEGER, ord(c))),
+            ],
+        )
+    ]
 
 
 # ---
@@ -2824,8 +2950,8 @@ def gen_string_context(context: dict, value: str):
 @expression_gen
 def gen_string_dunder(context: dict, value: str):
     if value != "__":
-        return [(UNSATISFIED, )]
-    return [(STRING_TWOUNDERLINE, )]
+        return [(UNSATISFIED,)]
+    return [(STRING_TWOUNDERLINE,)]
 
 
 @expression_gen
@@ -2836,12 +2962,13 @@ def gen_string_removedunder(context: dict, value: str):
         (
             STRING_CONCATMANY,
             [
-                (STRING_TWOUNDERLINE, ),
+                (STRING_TWOUNDERLINE,),
                 (STRING, value[2:-2]),
-                (STRING_TWOUNDERLINE, ),
+                (STRING_TWOUNDERLINE,),
             ],
         )
     ]
+
 
 @expression_gen
 def gen_string_removedunder3(context: dict, value: str):
@@ -2851,11 +2978,16 @@ def gen_string_removedunder3(context: dict, value: str):
     targets = targets_from_pattern(
         "STRING%DUNDER%DUNDER",
         {
-            "STRING": (ENCLOSE_UNDER, precedence["mod"], (STRING, "%s" + value[2:-2] + "%%s")),
-            "DUNDER": (ENCLOSE_UNDER, precedence["mod"], (STRING_TWOUNDERLINE, ))
-        }
+            "STRING": (
+                ENCLOSE_UNDER,
+                precedence["mod"],
+                (STRING, "%s" + value[2:-2] + "%%s"),
+            ),
+            "DUNDER": (ENCLOSE_UNDER, precedence["mod"], (STRING_TWOUNDERLINE,)),
+        },
     )
     return [(EXPRESSION, precedence["mod"], targets)]
+
 
 @expression_gen
 def gen_string_removedunder4(context: dict, value: str):
@@ -2865,10 +2997,14 @@ def gen_string_removedunder4(context: dict, value: str):
     targets = targets_from_pattern(
         "{STRING}{WS}|{WS}format({WS}{DUNDER}{WS}){WS}|{WS}format({WS}{DUNDER}{WS})",
         {
-            "{STRING}": (ENCLOSE_UNDER, precedence["mod"], (STRING, "%s" + value[2:-2] + "%%s")),
-            "{DUNDER}": (ENCLOSE_UNDER, precedence["mod"], (STRING_TWOUNDERLINE, )),
-            "{WS}": (WHITESPACE, )
-        }
+            "{STRING}": (
+                ENCLOSE_UNDER,
+                precedence["mod"],
+                (STRING, "%s" + value[2:-2] + "%%s"),
+            ),
+            "{DUNDER}": (ENCLOSE_UNDER, precedence["mod"], (STRING_TWOUNDERLINE,)),
+            "{WS}": (WHITESPACE,),
+        },
     )
     return [(EXPRESSION, precedence["filter_with_function_call"], targets)]
 
@@ -2993,7 +3129,9 @@ def gen_string_concat3(context: dict, value: str):
 
 @expression_gen
 def gen_string_concat4(context: dict, value: str):
-    target_list = [(LITERAL, " ".join('"{}"'.format(str_escape(c, '"')) for c in value))]
+    target_list = [
+        (LITERAL, " ".join('"{}"'.format(str_escape(c, '"')) for c in value))
+    ]
     return [(EXPRESSION, precedence["literal"], target_list)]
 
 
@@ -3119,7 +3257,7 @@ def gen_string_splitdictjoin(context: dict, value: str):
     target_list = [
         (LITERAL, "dict({})|join".format(",".join(f"{part}=x" for part in parts)))
     ]
-    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3, )]
+    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3,)]
 
 
 @expression_gen
@@ -3129,7 +3267,7 @@ def gen_string_splitdictjoin2(context: dict, value: str):
     parts = [value[i : i + 3] for i in range(0, len(value), 3)]
     targets = [(LITERAL, "dict({}=x)|join".format(part)) for part in parts]
     strings = [(EXPRESSION, precedence["filter"], [target]) for target in targets]
-    return [(STRING_CONCATMANY, strings), (REQUIRE_PYTHON3, )]
+    return [(STRING_CONCATMANY, strings), (REQUIRE_PYTHON3,)]
 
 
 @expression_gen
@@ -3143,7 +3281,7 @@ def gen_string_splitdictjoin3(context: dict, value: str):
     target_list = [
         (LITERAL, "dict({})|join".format(",".join(f"{part}=x" for part in value)))
     ]
-    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3, )]
+    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3,)]
 
 
 @expression_gen
@@ -3197,19 +3335,28 @@ def gen_string_splitnamespacedictjoin3(context: dict, value: str):
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
+
 @expression_gen
 def gen_string_splitbyabc(context: dict, value: str):
     matches = re.match("[a-z]{3,}", value)
     if not matches or matches.group(0) == value:
-        return [(UNSATISFIED, )]
-    
-    return [(STRING_CONCAT, (STRING, matches.group(0)), (STRING, value[len(matches.group(0)):]))]
+        return [(UNSATISFIED,)]
+
+    return [
+        (
+            STRING_CONCAT,
+            (STRING, matches.group(0)),
+            (STRING, value[len(matches.group(0)) :]),
+        )
+    ]
+
 
 @expression_gen
 def gen_string_splitbylength(context: dict, value: str):
     if len(value) < 16:
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
     return [(STRING_CONCAT, (STRING, value[:8]), (STRING, value[8:]))]
+
 
 @expression_gen
 def gen_string_lipsumtobytes4(context: dict, value: str):
@@ -3219,11 +3366,13 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
             "GLOBALS": (VARIABLE_OF, "__globals__"),
             "BUILTINS": (VARIABLE_OF, "__builtins__"),
             "BYTES": (VARIABLE_OF, "bytes"),
-            " ": (WHITESPACE, ),
-            "INTS": join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]),
+            " ": (WHITESPACE,),
+            "INTS": join_target(
+                sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]
+            ),
             "MAYBE_COMMA": (ONEOF, [(LITERAL, ",")], [(LITERAL, "")]),
             "DECODE": (VARIABLE_OF, "decode"),
-        } # type: ignore
+        },  # type: ignore
     )
     return [
         (
@@ -3245,11 +3394,13 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
             "GETITEM": (VARIABLE_OF, "__getitem__"),
             "BUILTINS": (VARIABLE_OF, "__builtins__"),
             "BYTES": (VARIABLE_OF, "bytes"),
-            " ": (WHITESPACE, ),
-            "INTS": join_target(sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]),
+            " ": (WHITESPACE,),
+            "INTS": join_target(
+                sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]
+            ),
             "MAYBE_COMMA": (ONEOF, [(LITERAL, ",")], [(LITERAL, "")]),
             "DECODE": (VARIABLE_OF, "decode"),
-        } # type: ignore
+        },  # type: ignore
     )
     return [
         (
@@ -3263,24 +3414,24 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
 @expression_gen
 def gen_string_intbytes1(context: dict, value: str):
     if not all(x < 128 for x in value.encode()):
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
     n = int.from_bytes(value.encode(), "big")
     targets = targets_from_pattern(
         "(N).to_bytes(LENGTH,BIG).decode()",
         {
             "N": (LITERAL, str(n)),
             "LENGTH": (LITERAL, str(len(value))),
-            "BIG": (ONEOF, [(LITERAL, "'big'")], [(LITERAL, '"big"')], [(VARIABLE_OF, "big")]) # type: ignore
-        }
+            "BIG": (ONEOF, [(LITERAL, "'big'")], [(LITERAL, '"big"')], [(VARIABLE_OF, "big")]),  # type: ignore
+        },
     )
-    return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3, )]
+    return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3,)]
 
 
 @expression_gen
 def gen_string_formatpercent1(context: dict, value: str):
     # (('%c'*n)%(97,98,99))
     if len(value) != 1:
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
     number_tuple = [(ENCLOSE_UNDER, precedence["mod"], (INTEGER, ord(value)))]
     return [
         (
@@ -3397,16 +3548,17 @@ def gen_string_joinbyreplace(context: dict, value: str):
     targets = targets_from_pattern(
         "{12}|replace( {1} , {STR1} {,} )|replace( {2} , {STR2} {,} )",
         {
-            " ": (WHITESPACE, ),
+            " ": (WHITESPACE,),
             "{12}": (INTEGER, 12),
             "{1}": (INTEGER, 1),
             "{2}": (INTEGER, 2),
             "{STR1}": (STRING, value[:split]),
             "{STR2}": (STRING, value[split:]),
-            "{,}": (ONEOF, [(LITERAL, ",")], [(LITERAL, "")]) # type: ignore
-        }
+            "{,}": (ONEOF, [(LITERAL, ",")], [(LITERAL, "")]),  # type: ignore
+        },
     )
     return [(EXPRESSION, precedence["filter"], targets)]
+
 
 @expression_gen
 def gen_string_stringaschars(context: dict, value: str):
@@ -3441,7 +3593,7 @@ def gen_string_splitdictjoincycler(context: dict, value: str):
             ),
         )
     ]
-    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3, )]
+    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3,)]
 
 
 # ---
@@ -3475,9 +3627,10 @@ def gen_attribute_attrfilter(context, obj_req, attr_name):
     target_list = [
         (ENCLOSE_UNDER, precedence["filter"], obj_req),
         (LITERAL, "|attr"),
-        (WRAP, [
-            (STRING, attr_name),
-        ])
+        (
+            WRAP,
+            [(STRING, attr_name)],
+        ),
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
@@ -3487,9 +3640,9 @@ def gen_attribute_attrfilter2(context, obj_req, attr_name):
     target_list = [
         (ENCLOSE_UNDER, precedence["filter"], obj_req),
         (LITERAL, "|attr("),
-        (WHITESPACE, ),
+        (WHITESPACE,),
         (STRING, attr_name),
-        (WHITESPACE, ),
+        (WHITESPACE,),
         (LITERAL, ",)"),
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
@@ -3497,12 +3650,15 @@ def gen_attribute_attrfilter2(context, obj_req, attr_name):
 
 @expression_gen
 def gen_attribute_map(context, obj_req, attr_name):
-    target_list = targets_from_pattern("( OBJ , ) | map( ATTR , NAME ) | first", {
-        "OBJ": obj_req,
-        " ": (WHITESPACE, ),
-        "ATTR": (STRING, "attr"),
-        "NAME": (STRING, attr_name)
-    })
+    target_list = targets_from_pattern(
+        "( OBJ , ) | map( ATTR , NAME ) | first",
+        {
+            "OBJ": obj_req,
+            " ": (WHITESPACE,),
+            "ATTR": (STRING, "attr"),
+            "NAME": (STRING, attr_name),
+        },
+    )
 
     return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
 
@@ -3548,9 +3704,9 @@ def gen_item_dunderfunc2(context, obj_req, item_name):
             (ATTRIBUTE, obj_req, "__getitem__"),
         ),
         (LITERAL, "("),
-        (WHITESPACE, ),
+        (WHITESPACE,),
         (STRING, item_name),
-        (WHITESPACE, ),
+        (WHITESPACE,),
     ]
     target = (ONEOF, target_head + [(LITERAL, ")")], target_head + [(LITERAL, ",)")])
     return [(EXPRESSION, precedence["function_call"], [target])]
@@ -3583,9 +3739,10 @@ def gen_class_attribute_attrfilter(context, obj_req, attr_name):
     target_list = [
         (ENCLOSE_UNDER, precedence["filter"], class_target),
         (LITERAL, "|attr"),
-        (WRAP, [
-            (STRING, attr_name),
-        ])
+        (
+            WRAP,
+            [(STRING, attr_name)],
+        ),
     ]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
@@ -3906,7 +4063,6 @@ def gen_os_popen_obj_eval(context, cmd):
 @expression_gen
 def gen_os_popen_read_normal(context, cmd):
     return [(FUNCTION_CALL, (ATTRIBUTE, (OS_POPEN_OBJ, cmd), "read"), [])]
-
 
 
 @expression_gen
