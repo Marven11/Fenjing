@@ -700,8 +700,10 @@ class PayloadGenerator:
         variables = [name for name, value in self.context.items() if value == target[1]]
         if not variables:
             return self.generate_by_list([(UNSATISFIED,)])
-        targets_list = [[(LITERAL, v), (WITH_CONTEXT_VAR, v)] for v in variables]
-        return self.generate_by_list([(ONEOF, targets_list)])  # type: ignore
+        targets_list: List[List[Target]] = [
+            [(LITERAL, v), (WITH_CONTEXT_VAR, v)] for v in variables
+        ]
+        return self.generate_by_list([(ONEOF, targets_list)])
 
     @register_generate_func(lambda self, target: True)
     def common_generate(self, gen_req: Target) -> Union[PayloadGeneratorResult, None]:
@@ -1541,7 +1543,7 @@ def gen_positive_integer_lengthything(context: dict, value: int):
                 [lengthy_thing, (LITERAL, "|count")],
                 targets_from_pattern(
                     "(LENGTHY_THING,)|map(LENGTH_OR_COUNT)|GETTHAT",
-                    {  # type: ignore
+                    {
                         "LENGTHY_THING": lengthy_thing,
                         "LENGTH_OR_COUNT": (
                             ONEOF,
@@ -3398,7 +3400,7 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
             "INTS": ints,
             "MAYBE_COMMA": (ONEOF, [[(LITERAL, ",")], [(LITERAL, "")]]),
             "DECODE": (VARIABLE_OF, "decode"),
-        },  # type: ignore
+        },
     )
     return [
         (
@@ -3426,7 +3428,7 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
             ),
             "MAYBE_COMMA": (ONEOF, [[(LITERAL, ",")], [(LITERAL, "")]]),
             "DECODE": (VARIABLE_OF, "decode"),
-        },  # type: ignore
+        },
     )
     return [
         (
@@ -3447,7 +3449,10 @@ def gen_string_intbytes1(context: dict, value: str):
         {
             "N": (LITERAL, str(n)),
             "LENGTH": (LITERAL, str(len(value))),
-            "BIG": (ONEOF, [[(LITERAL, "'big'")], [(LITERAL, '"big"')], [(VARIABLE_OF, "big")]]),  # type: ignore
+            "BIG": (
+                ONEOF,
+                [[(LITERAL, "'big'")], [(LITERAL, '"big"')], [(VARIABLE_OF, "big")]],
+            ),
         },
     )
     return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3,)]
@@ -3580,7 +3585,7 @@ def gen_string_joinbyreplace(context: dict, value: str):
             "{2}": (INTEGER, 2),
             "{STR1}": (STRING, value[:split]),
             "{STR2}": (STRING, value[split:]),
-            "{,}": (ONEOF, [[(LITERAL, ",")], [(LITERAL, "")]]),  # type: ignore
+            "{,}": (ONEOF, [[(LITERAL, ",")], [(LITERAL, "")]]),
         },
     )
     return [(EXPRESSION, precedence["filter"], targets)]
@@ -4079,8 +4084,10 @@ def gen_os_popen_obj_normal(context, cmd):
 
 @expression_gen
 def gen_os_popen_obj_eval(context, cmd):
-    cmd = cmd.replace("'", "\\'")
-    return [(EVAL, (STRING, "__import__('os').popen('" + cmd + "')"))]
+    targets = targets_from_pattern(
+        "__import__(OS).popen(CMD)", {"OS": (STRING, "os"), "CMD": (STRING, cmd)}
+    )
+    return [(EVAL, (EXPRESSION, precedence["function_call"], targets))]
 
 
 # ---
@@ -4098,14 +4105,9 @@ def gen_os_popen_read_normal2(context, cmd):
 
 @expression_gen
 def gen_os_popen_read_eval(context, cmd):
+    targets = targets_from_pattern(
+        "__import__(OS).popen(CMD).read()", {"OS": (STRING, "os"), "CMD": (STRING, cmd)}
+    )
     return [
-        (
-            EVAL,
-            (
-                STRING,
-                "__import__('os').popen('{}').read()".format(
-                    str_escape(cmd, quote="'")
-                ),
-            ),
-        ),
+        (EVAL, (EXPRESSION, precedence["function_call"], targets)),
     ]
