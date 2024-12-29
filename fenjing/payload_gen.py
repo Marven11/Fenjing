@@ -1682,7 +1682,7 @@ def gen_integer_positive(context: dict, value: int):
 def gen_integer_negative(context: dict, value: int):
     if value >= 0:
         return [(UNSATISFIED,)]
-    target_list = [(LITERAL, "-"), (POSITIVE_INTEGER, abs(value))]
+    target_list = [(LITERAL, "-"), (ENCLOSE_UNDER, precedence["subtract"], (POSITIVE_INTEGER, abs(value)))]
     return [(EXPRESSION, precedence["subtract"], target_list)]
 
 
