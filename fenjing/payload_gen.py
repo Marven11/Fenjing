@@ -47,7 +47,7 @@ if sys.version_info >= (3, 8):
     LiteralTarget = Tuple[Literal["literal"], str]
     ExpressionTarget = Tuple[Literal["expression"], int, List["Target"]]
     EncloseUnderTarget = Tuple[Literal["enclose_under"], int, "Target"]
-    EncloseTarget = Tuple[Literal["enclose"], List["Target"]]
+    EncloseTarget = Tuple[Literal["enclose"], "Target"]
     UnsatisfiedTarget = Tuple[Literal["unsatisfied"],]
     OneofTarget = Tuple[Literal["oneof"], List[List["Target"]]]
 
@@ -254,7 +254,7 @@ def find_bad_exprs(tree, is_expr_bad_func):
     return nodes
 
 
-def join_target(sep, targets):
+def join_target(sep: Target, targets: List[Target]) -> List[Target]:
     if len(targets) == 0:
         return []
     assert len(targets) >= 1
@@ -1526,7 +1526,7 @@ def gen_positive_integer_recurmulnoastral(context: dict, value: int):
 def gen_positive_integer_lengthything(context: dict, value: int):
     if value >= 50 or value <= 3:  # stop generating lengthy payload
         return [(UNSATISFIED,)]
-    lengthy_thing = (
+    lengthy_thing: OneofTarget = (
         ONEOF,
         [
             [(LITERAL, "dict({}=x)|join".format("x" * value))],
@@ -3385,6 +3385,9 @@ def gen_string_splitbylength(context: dict, value: str):
 
 @expression_gen
 def gen_string_lipsumtobytes4(context: dict, value: str):
+    ints: List[Target] = join_target(
+        sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]
+    )
     bytes_targets = targets_from_pattern(
         "lipsum[GLOBALS][BUILTINS][BYTES]( ( INTS ) MAYBE_COMMA)[DECODE]( )",
         {
@@ -3392,9 +3395,7 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
             "BUILTINS": (VARIABLE_OF, "__builtins__"),
             "BYTES": (VARIABLE_OF, "bytes"),
             " ": (WHITESPACE,),
-            "INTS": join_target(
-                sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]
-            ),
+            "INTS": ints,
             "MAYBE_COMMA": (ONEOF, [[(LITERAL, ",")], [(LITERAL, "")]]),
             "DECODE": (VARIABLE_OF, "decode"),
         },  # type: ignore
