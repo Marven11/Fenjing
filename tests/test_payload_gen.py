@@ -32,7 +32,9 @@ class PayloadGenTestsStringExpr(unittest.TestCase):
             "\\x61",
             "echo 123 | base64 -d",
             "!@#$%^&|;-_ ()[]{}",
-            "print(114514)\n\n"
+            "print(114514)\n\n",
+            "__globals__",
+            "__114514__"
         ]
     def test_rules(self):
         for rule in expression_gens["string"]:
