@@ -3020,6 +3020,30 @@ def gen_string_twostringconcat2(context: dict, value: str):
     return [(EXPRESSION, precedence["literal"], target_list)]
 
 
+@expression_gen
+def gen_string_concatdunder(context: dict, value: str):
+    if not re.match("^__[A-Za-z0-9_]+__$", value):
+        return [(UNSATISFIED,)]
+    target_list = [
+        (LITERAL, "'_'"),
+        (LITERAL, "'{}'".format(str_escape(value[1:-1], "'"))),
+        (LITERAL, "'_'"),
+    ]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
+def gen_string_concatdunder2(context: dict, value: str):
+    if not re.match("^__[A-Za-z0-9_]+__$", value):
+        return [(UNSATISFIED,)]
+    target_list = [
+        (LITERAL, '"_"'),
+        (LITERAL, '"{}"'.format(str_escape(value[1:-1], '"'))),
+        (LITERAL, '"_"'),
+    ]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
 # 如果上面的规则能用那就不要随便用上下文中的变量，否则会增加payload长度
 @expression_gen
 def gen_string_context(context: dict, value: str):
@@ -3039,6 +3063,22 @@ def gen_string_dunder(context: dict, value: str):
 
 @expression_gen
 def gen_string_removedunder(context: dict, value: str):
+    if not re.match("^__[A-Za-z0-9_]+__$", value):
+        return [(UNSATISFIED,)]
+    return [
+        (
+            STRING_CONCATMANY,
+            [
+                (STRING_UNDERLINE,),
+                (STRING, value[1:-1]),
+                (STRING_UNDERLINE,),
+            ],
+        )
+    ]
+
+
+@expression_gen
+def gen_string_removedunder2(context: dict, value: str):
     if not re.match("^__[A-Za-z0-9_]+__$", value):
         return [(UNSATISFIED,)]
     return [
