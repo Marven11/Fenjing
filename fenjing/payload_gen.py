@@ -3061,21 +3061,9 @@ def gen_string_dunder(context: dict, value: str):
     return [(STRING_TWOUNDERLINE,)]
 
 
-@expression_gen
-def gen_string_removedunder(context: dict, value: str):
-    if not re.match("^__[A-Za-z0-9_]+__$", value):
-        return [(UNSATISFIED,)]
-    return [
-        (
-            STRING_CONCATMANY,
-            [
-                (STRING_UNDERLINE,),
-                (STRING, value[1:-1]),
-                (STRING_UNDERLINE,),
-            ],
-        )
-    ]
-
+# 如果将__xxx__拆分成_ _xxx_ _
+# 那中间 _xxx_ 的表达式可能会过于复杂
+# 为了缩短payload还是拆成 __ xxx __ 比较好
 
 @expression_gen
 def gen_string_removedunder2(context: dict, value: str):
