@@ -3805,6 +3805,27 @@ def gen_item_normal2(context, obj_req, item_name):
 
 
 @expression_gen
+def gen_item_getfunc(context, obj_req, item_name):
+    target = (FUNCTION_CALL, (ATTRIBUTE, obj_req, "get"), [(STRING, item_name)])
+    return [(EXPRESSION, precedence["filter_with_function_call"], [target])]
+
+@expression_gen
+def gen_item_getfunc2(context, obj_req, item_name):
+    target_head = [
+        (
+            ENCLOSE_UNDER,
+            precedence["function_call"],
+            (ATTRIBUTE, obj_req, "get"),
+        ),
+        (LITERAL, "("),
+        (WHITESPACE,),
+        (STRING, item_name),
+        (WHITESPACE,),
+    ]
+    target = (ONEOF, [target_head + [(LITERAL, ")")], target_head + [(LITERAL, ",)")]])
+    return [(EXPRESSION, precedence["function_call"], [target])]
+
+@expression_gen
 def gen_item_dunderfunc(context, obj_req, item_name):
     target = (FUNCTION_CALL, (ATTRIBUTE, obj_req, "__getitem__"), [(STRING, item_name)])
     return [(EXPRESSION, precedence["filter_with_function_call"], [target])]
