@@ -54,5 +54,38 @@
           unset SOURCE_DATE_EPOCH
         '';
       };
+      packages.default = with pkgs.python3Packages; buildPythonPackage rec {
+        pname = "fenjing";
+        # it takes minutes
+        doCheck = false;
+
+        nativeBuildInputs = [ pkgs.installShellFiles ];
+
+        build-system = [
+          setuptools
+          setuptools-scm
+        ];
+
+        dependencies = [
+          requests
+          beautifulsoup4
+          click
+          flask
+          jinja2
+          prompt-toolkit
+          pygments
+          pysocks
+        ];
+
+        postInstall = ''
+          installShellCompletion --cmd fenjing \
+            --bash <(_FOO_BAR_COMPLETE=bash_source fenjing) \
+            --fish <(_FOO_BAR_COMPLETE=fish_source fenjing) \
+            --zsh <(_FOO_BAR_COMPLETE=zsh_source fenjing) \
+        '';
+
+        src = ./.;
+        version = (lib.strings.removeSuffix "\n" (builtins.readFile "${src}/VERSION"));
+      };
     });
 }
