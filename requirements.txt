@@ -6,3 +6,4 @@ jinja2
 prompt_toolkit
 pygments
 pysocks
+jmespath
