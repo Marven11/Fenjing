@@ -10,4 +10,3 @@ notebook
 ipython
 build
 black
-jmespath
