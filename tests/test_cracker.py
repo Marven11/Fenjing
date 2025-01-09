@@ -7,14 +7,11 @@ sys.path.append("..")
 from fenjing.form import get_form
 from fenjing.requester import HTTPRequester
 import unittest
-import fenjing
-from typing import Union
 from fenjing.const import TemplateEnvironment, ReplacedKeywordStrategy
 from fenjing.cracker import Cracker
 from fenjing.options import Options
 from fenjing.submitter import FormSubmitter, PathSubmitter, Submitter, HTTPResponse
-from fenjing import const, waf_func_gen
-import logging
+from fenjing import const
 import os
 
 VULUNSERVER_ADDR = os.environ.get("VULUNSERVER_ADDR", "http://127.0.0.1:5000")

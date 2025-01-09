@@ -12,8 +12,8 @@ import time
 from collections import namedtuple
 from string import ascii_lowercase
 
-
-from .payload_gen import TargetAndSubTargets, find_bad_exprs
+from .rules_types import TargetAndSubTargets
+from .rules_utils import find_bad_exprs
 from .requester import HTTPRequester
 from .form import random_fill
 from .submitter import FormSubmitter, RequestSubmitter, Submitter

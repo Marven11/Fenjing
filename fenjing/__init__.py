@@ -4,3 +4,7 @@ from .shell_payload import exec_cmd_payload
 from .config_payload import config_payload
 from .form import get_form, fill_form
 from .options import Options
+
+# dummy imports
+
+from . import rules
