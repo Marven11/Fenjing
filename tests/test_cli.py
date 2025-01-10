@@ -47,6 +47,16 @@ class TestCLI(unittest.TestCase):
         cli.crack_path.invoke(ctx)
 
 
+    def crack_json_test(self, params):
+        ctx = click.Context(cli.crack_json)
+        ctx.params = {
+            param.name: param.default
+            for param in cli.crack_json.get_params(ctx)
+            if param.name != "help"
+        }
+        ctx.params.update(params)
+        cli.crack_json.invoke(ctx)
+
     def scan_test(self, params):
         ctx = click.Context(cli.scan)
         ctx.params = {
@@ -195,6 +205,17 @@ class TestCLI(unittest.TestCase):
                 "url": VULUNSERVER_ADDR + "/crackpath-extra/",
                 "interval": SLEEP_INTERVAL,
                 "extra_params": "debug=1",
+                "exec_cmd": "ls /",
+            }
+        )
+
+    def test_crack_path_basic(self):
+        self.crack_json_test(
+            {
+                "url": VULUNSERVER_ADDR + "/crackjson",
+                "interval": SLEEP_INTERVAL,
+                "json_data":  '{"name": "admin", "age": 24, "msg": ""}',
+                "key": "msg",
                 "exec_cmd": "ls /",
             }
         )
