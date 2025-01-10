@@ -57,6 +57,7 @@ def shell_tamperer(shell_cmd: str) -> Tamperer:
 
     return tamperer
 
+
 def update_content_length(request: bytes) -> bytes:
     """更新请求体长度
 
@@ -73,10 +74,13 @@ def update_content_length(request: bytes) -> bytes:
         return request
     content_length = len(body)
     content_length_header = f"Content-Length: {content_length}".encode()
-    result, replace_count = re.subn(b"Content-Length:.*", content_length_header, header, 0, re.IGNORECASE)
+    result, replace_count = re.subn(
+        b"Content-Length:.*", content_length_header, header, 0, re.IGNORECASE
+    )
     if replace_count == 0:
         result += b"\r\n" + content_length_header
     return result + b"\r\n\r\n" + body
+
 
 class HTTPResponse(NamedTuple):
     """解析后的HTTP响应
@@ -143,6 +147,7 @@ class BaseSubmitter:
 
 class TCPSubmitter(BaseSubmitter):
     """根据模板从TCP发送HTTP1.1请求的类"""
+
     def __init__(
         self,
         requester: TCPRequester,
@@ -323,5 +328,35 @@ class PathSubmitter(BaseSubmitter):
             return None
         return HTTPResponse(resp.status_code, resp.text)
 
+
+class JsonSubmitter(BaseSubmitter):
+    """将payload放在如{"name": "xiaoming", "age": 18}这样的JSON中提交"""
+
+    def __init__(
+        self,
+        url: str,
+        method: str,
+        json_obj: dict,
+        key: str,
+        requester: HTTPRequester,
+        callback: Union[Callable[[str, Dict], None], None] = None,
+        tamperers: Union[List[Tamperer], None] = None,
+    ):
+        super().__init__(callback)
+        self.url = url
+        self.method = method
+        self.json_obj = json_obj
+        self.key = key
+        self.req = requester
+        if tamperers:
+            for tamperer in tamperers:
+                self.add_tamperer(tamperer)
+
+    def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
+        json_data = {**self.json_obj, self.key: raw_payload}
+        resp = self.req.request(method=self.method, url=self.url, json=json_data)
+        if resp is None:
+            return None
+        return HTTPResponse(resp.status_code, resp.text)
 
 Submitter = BaseSubmitter

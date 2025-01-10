@@ -168,6 +168,18 @@ def crackpath(name):
     return render_template_string("Hello, {}!".format(name))
 
 
+@app.route("/crackjson", methods=["POST"])
+def crackjson():
+    data = request.json
+    if not isinstance(data, dict) or {**data, "msg": ""} != {
+        "name": "admin",
+        "age": 24,
+        "msg": "",
+    }:
+        return "wrong data"
+    return render_template_string(data.get("msg", ""))
+
+
 @app.route("/scan_burstkeywords", methods=["GET", "POST"])
 def scan_burstkeywords():
     name = request.args.get("name")

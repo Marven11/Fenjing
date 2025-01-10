@@ -2,14 +2,16 @@
 
 """
 
+import dataclasses
+import json
 import logging
 import time
-import dataclasses
 from urllib.parse import urlparse
 from typing import List, Dict, Tuple, Union, Any
 from enum import Enum
 from functools import partial
 from pathlib import Path
+
 import click
 
 from .const import (
@@ -41,6 +43,7 @@ from .submitter import (
     PathSubmitter,
     FormSubmitter,
     TCPSubmitter,
+    JsonSubmitter,
     shell_tamperer,
 )
 from .scan_url import yield_form
@@ -288,6 +291,54 @@ def do_crack_form_eval_args_pre(
             return submitter2, evalargs_payload_gen
     return None
 
+
+def do_crack_json_pre(
+    url: str,
+    method: str,
+    json_data: str,
+    key: str,
+    requester: HTTPRequester,
+    options: Options,
+    tamper_cmd: Union[str, None],
+) -> Union[Tuple[FullPayloadGen, Submitter], None]:
+    """攻击一个表单并获得用于生成payload的参数
+
+    Args:
+        url (str): 目标URL
+        form (Form): 目标表单
+        requester (HTTPRequester): 用于发送请求的requester
+        options (Options): 有关攻击的各个选项
+        tamper_cmd (Union[str, None]): 对payload进行修改的修改命令
+
+    Returns:
+        Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
+    """
+    python_version = (
+        guess_python_version(url, requester)
+        if options.python_version == PythonEnvironment.UNKNOWN
+        else options.python_version
+    )
+    json_obj = json.loads(json_data)
+    submitter = JsonSubmitter(
+        url,
+        method,
+        json_obj,
+        key,
+        requester,
+    )
+    if tamper_cmd:
+        tamperer = shell_tamperer(tamper_cmd)
+        submitter.add_tamperer(tamperer)
+    cracker = Cracker(
+        submitter=submitter,
+        options=dataclasses.replace(options, python_version=python_version),
+    )
+    if not cracker.has_respond():
+        return None
+    full_payload_gen = cracker.crack()
+    if full_payload_gen:
+        return full_payload_gen, submitter
+    return None
 
 def do_crack_path_pre(
     url: str,
@@ -609,6 +660,69 @@ def crack_path(
     )
     result = do_crack_path_pre(
         url,
+        requester,
+        Options(
+            detect_mode=detect_mode,
+            replaced_keyword_strategy=replaced_keyword_strategy,
+            environment=environment,
+            detect_waf_keywords=detect_waf_keywords,
+            waf_keywords=waf_keyword,
+        ),
+        tamper_cmd,
+    )
+    if not result:
+        logger.warning("Test form failed...")
+        raise RunFailed()
+    full_payload_gen, submitter = result
+    do_crack(full_payload_gen, submitter, exec_cmd)
+
+
+@main.command()
+@add_options(common_options_http)
+@add_options(common_options_cli)
+@click.option("--method", "-m", default="POST", help="JSON的提交方式，默认为POST")
+@click.option("--json-data", required=True, help="json数据")
+@click.option("--key", required=True, help="攻击的键")
+def crack_json(
+    url: str,
+    method: str,
+    json_data: str,
+    key: str,
+    exec_cmd: str,
+    interval: float,
+    detect_mode: DetectMode,
+    replaced_keyword_strategy: ReplacedKeywordStrategy,
+    environment: TemplateEnvironment,
+    detect_waf_keywords: DetectWafKeywords,
+    waf_keyword: List[str],
+    user_agent: str,
+    header: tuple,
+    cookies: str,
+    extra_params: str,
+    extra_data: str,
+    proxy: str,
+    no_verify_ssl: bool,
+    tamper_cmd: str,
+):
+    """
+    攻击指定的JSON API
+    """
+    print(TITLE)
+    assert url is not None, "Please check your param"
+    requester = HTTPRequester(
+        interval=interval,
+        user_agent=user_agent,
+        headers=parse_headers_cookies(headers_list=list(header), cookies=cookies),
+        extra_params_querystr=extra_params,
+        extra_data_querystr=extra_data,
+        proxy=proxy,
+        no_verify_ssl=no_verify_ssl,
+    )
+    result = do_crack_json_pre(
+        url,
+        method,
+        json_data,
+        key,
         requester,
         Options(
             detect_mode=detect_mode,
