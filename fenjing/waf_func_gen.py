@@ -24,6 +24,7 @@ from .const import (
 from .colorize import colored
 from .submitter import Submitter
 from .options import Options
+from .pbar import pbar_manager
 
 logger = logging.getLogger("waf_func_gen")
 Result = namedtuple("Result", "payload_generate_func input_field")
@@ -257,27 +258,28 @@ class WafFuncGen:
                 ]
             )
         hashes: List[int] = []
-        for keyword in test_keywords:
-            result = self.subm.submit(keyword)
-            if result is None:
+        with pbar_manager.pbar(list(test_keywords), "waf_page_hash") as test_keywords:
+            for keyword in test_keywords:
+                result = self.subm.submit(keyword)
+                if result is None:
+                    logger.info(
+                        "Submit %s for %s",
+                        colored("yellow", "failed"),
+                        colored("yellow", repr(keyword)),
+                    )
+                    continue
+                status_code, text = result
                 logger.info(
-                    "Submit %s for %s",
-                    colored("yellow", "failed"),
+                    "Fuzzing waf page hash %s with response %s",
                     colored("yellow", repr(keyword)),
+                    colored(
+                        "blue",
+                        repr(text) if len(text) < 100 else repr(text[:100]) + "......",
+                    ),
                 )
-                continue
-            status_code, text = result
-            logger.info(
-                "Fuzzing waf page hash %s with response %s",
-                colored("yellow", repr(keyword)),
-                colored(
-                    "blue",
-                    repr(text) if len(text) < 100 else repr(text[:100]) + "......",
-                ),
-            )
-            if status_code == 500 and "Internal Server Error" in text:
-                continue
-            hashes.append(hash(text))
+                if status_code == 500 and "Internal Server Error" in text:
+                    continue
+                hashes.append(hash(text))
 
         return [k for k, v in Counter(hashes).items() if v >= 2]
 
@@ -292,18 +294,19 @@ class WafFuncGen:
             "".join(random.choices(string.ascii_lowercase, k=5)) * 40 for _ in range(20)
         ]
         hashes = []
-        for keyword in keywords:
-            result = self.subm.submit(keyword)
-            if result is None:
-                logger.info(
-                    "Submit %s, continue",
-                    colored("yellow", "failed"),
-                )
-                continue
-            status_code, text = result
-            if status_code == 500:
-                continue
-            hashes.append(hash(text))
+        with pbar_manager.pbar(keywords, "long_param_hash") as keywords:
+            for keyword in keywords:
+                result = self.subm.submit(keyword)
+                if result is None:
+                    logger.info(
+                        "Submit %s, continue",
+                        colored("yellow", "failed"),
+                    )
+                    continue
+                status_code, text = result
+                if status_code == 500:
+                    continue
+                hashes.append(hash(text))
         hashes_uniq = list(set(hashes))
         if len(hashes_uniq) <= 3:
             logger.warning(
@@ -369,14 +372,15 @@ class WafFuncGen:
 
         # we decide to test every keyword by batches
         size = int(len(dangerous_keywords) ** 0.3) + 1
-        for i in range(0, len(dangerous_keywords), size):
-            l = dangerous_keywords[i : i + size]
-            random.shuffle(l)
-            if keyword_passed("".join(l)):
-                continue
-            for word in l:
-                if not keyword_passed(word):
-                    result.append(word)
+        with pbar_manager.pbar(range(0, len(dangerous_keywords), size), "waf_keywords") as it:
+            for i in it:
+                l = dangerous_keywords[i : i + size]
+                random.shuffle(l)
+                if keyword_passed("".join(l)):
+                    continue
+                for word in l:
+                    if not keyword_passed(word):
+                        result.append(word)
         if result:
             logger.info(
                 "These keywords might get %s: %s",
@@ -398,45 +402,46 @@ class WafFuncGen:
             else grouped_payloads(4, sep=extra)
         )
         keywords = []
-        for keyword in test_payloads:
-            # 如果extra的开头或结尾和payload的相同，被替换后可能会因为错误拼合导致检测失效
-            while extra[0] == keyword[0] or extra[-1] == keyword[-1]:
-                extra = "".join(random.choices(string.ascii_lowercase, k=4))
-            payload = extra + keyword + extra
-            logger.info(
-                "Fuzzing keyword replacement: %s",
-                colored("yellow", repr(payload)),
-            )
-            result = self.subm.submit(payload)
-            if result is None:
+        with pbar_manager.pbar(list(test_payloads), "replaced_keyword") as test_payloads:
+            for keyword in test_payloads:
+                # 如果extra的开头或结尾和payload的相同，被替换后可能会因为错误拼合导致检测失效
+                while extra[0] == keyword[0] or extra[-1] == keyword[-1]:
+                    extra = "".join(random.choices(string.ascii_lowercase, k=4))
+                payload = extra + keyword + extra
                 logger.info(
-                    "Submit %s for %s",
-                    colored("yellow", "failed"),
+                    "Fuzzing keyword replacement: %s",
                     colored("yellow", repr(payload)),
                 )
-                continue
-
-            status_code, text = result
-            if status_code == 500:
-                continue
-            if len(text) > 5e4:
-                continue
-            try:
-                payload_replaced_keyword = find_pieces(text, payload)
-            except Exception:
-                traceback.print_exc()
-                continue
-            if payload_replaced_keyword:
-                payload_replaced_keyword = list(set(payload_replaced_keyword))
-                if len(payload_replaced_keyword) > 10:
+                result = self.subm.submit(payload)
+                if result is None:
                     logger.info(
-                        "Replaced keywords found, ignore because it's too long (length=%d)",
-                        len(payload_replaced_keyword),
+                        "Submit %s for %s",
+                        colored("yellow", "failed"),
+                        colored("yellow", repr(payload)),
                     )
-                else:
-                    keywords += payload_replaced_keyword
-            if keyword not in text and extra in text:
-                keywords.append(keyword)
+                    continue
+
+                status_code, text = result
+                if status_code == 500:
+                    continue
+                if len(text) > 5e4:
+                    continue
+                try:
+                    payload_replaced_keyword = find_pieces(text, payload)
+                except Exception:
+                    traceback.print_exc()
+                    continue
+                if payload_replaced_keyword:
+                    payload_replaced_keyword = list(set(payload_replaced_keyword))
+                    if len(payload_replaced_keyword) > 10:
+                        logger.info(
+                            "Replaced keywords found, ignore because it's too long (length=%d)",
+                            len(payload_replaced_keyword),
+                        )
+                    else:
+                        keywords += payload_replaced_keyword
+                if keyword not in text and extra in text:
+                    keywords.append(keyword)
         keywords = list(set(keywords))
         if keywords:
             logger.info(

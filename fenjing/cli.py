@@ -50,6 +50,7 @@ from .scan_url import yield_form
 from .webui import main as webui_main
 from .interact import interact
 from .options import Options
+from .pbar import pbar_manager
 
 set_enable_coloring()
 
@@ -71,7 +72,7 @@ TITLE = colored(
 )
 
 LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
-logging.basicConfig(level=logging.INFO, format=LOGGING_FORMAT)
+logging.basicConfig(level=logging.ERROR, format=LOGGING_FORMAT)
 logger = logging.getLogger("cli")
 
 
@@ -233,13 +234,14 @@ def do_crack_form_pre(
             tamperer = shell_tamperer(tamper_cmd)
             submitter.add_tamperer(tamperer)
 
-        cracker = Cracker(
-            submitter=submitter,
-            options=dataclasses.replace(options, python_version=python_version),
-        )
-        if not cracker.has_respond():
-            return None
-        full_payload_gen = cracker.crack()
+        with pbar_manager.progress:
+            cracker = Cracker(
+                submitter=submitter,
+                options=dataclasses.replace(options, python_version=python_version),
+            )
+            if not cracker.has_respond():
+                return None
+            full_payload_gen = cracker.crack()
         if full_payload_gen:
             return full_payload_gen, submitter
     return None
@@ -279,13 +281,14 @@ def do_crack_form_eval_args_pre(
         if tamper_cmd:
             tamperer = shell_tamperer(tamper_cmd)
             submitter.add_tamperer(tamperer)
-        cracker = Cracker(
-            submitter=submitter,
-            options=dataclasses.replace(options, python_version=python_version),
-        )
-        if not cracker.has_respond():
-            return None
-        result = cracker.crack_eval_args()
+        with pbar_manager.progress:
+            cracker = Cracker(
+                submitter=submitter,
+                options=dataclasses.replace(options, python_version=python_version),
+            )
+            if not cracker.has_respond():
+                return None
+            result = cracker.crack_eval_args()
         if result:
             submitter2, evalargs_payload_gen = result
             return submitter2, evalargs_payload_gen
@@ -329,13 +332,14 @@ def do_crack_json_pre(
     if tamper_cmd:
         tamperer = shell_tamperer(tamper_cmd)
         submitter.add_tamperer(tamperer)
-    cracker = Cracker(
-        submitter=submitter,
-        options=dataclasses.replace(options, python_version=python_version),
-    )
-    if not cracker.has_respond():
-        return None
-    full_payload_gen = cracker.crack()
+    with pbar_manager.progress:
+        cracker = Cracker(
+            submitter=submitter,
+            options=dataclasses.replace(options, python_version=python_version),
+        )
+        if not cracker.has_respond():
+            return None
+        full_payload_gen = cracker.crack()
     if full_payload_gen:
         return full_payload_gen, submitter
     return None
@@ -366,13 +370,14 @@ def do_crack_path_pre(
     if tamper_cmd:
         tamperer = shell_tamperer(tamper_cmd)
         submitter.add_tamperer(tamperer)
-    cracker = Cracker(
-        submitter=submitter,
-        options=dataclasses.replace(options, python_version=python_version),
-    )
-    if not cracker.has_respond():
-        return None
-    full_payload_gen = cracker.crack()
+    with pbar_manager.progress:
+        cracker = Cracker(
+            submitter=submitter,
+            options=dataclasses.replace(options, python_version=python_version),
+        )
+        if not cracker.has_respond():
+            return None
+        full_payload_gen = cracker.crack()
     if full_payload_gen is None:
         return None
     return full_payload_gen, submitter
@@ -391,10 +396,11 @@ def do_crack_request_pre(
     Returns:
         Union[FullPayloadGen, None]: 攻击结果
     """
-    cracker = Cracker(submitter=submitter, options=options)
-    if not cracker.has_respond():
-        return None
-    full_payload_gen = cracker.crack()
+    with pbar_manager.progress:
+        cracker = Cracker(submitter=submitter, options=options)
+        if not cracker.has_respond():
+            return None
+        full_payload_gen = cracker.crack()
     if full_payload_gen is None:
         return None
     return full_payload_gen

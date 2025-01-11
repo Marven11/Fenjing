@@ -36,6 +36,7 @@ from .rules_utils import (
     unwrap_whitespace,
 )
 from .rules_types import *
+from .pbar import pbar_manager
 
 expression_gens: DefaultDict[str, List[ExpressionGenerator]] = defaultdict(list)
 logger = logging.getLogger("payload_gen")
@@ -389,61 +390,61 @@ class PayloadGenerator:
         gens = expression_gens[gen_type].copy()
         if self.options.detect_mode == DetectMode.FAST:
             gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
-        for gen in gens:
-            logger.debug("Trying gen rule: %s", gen.__name__)
-            gen_ret: List[Target] = gen(self.context, *args)
-            # ret = self.generate_by_list(gen_ret)
-            try:
-                ret = self.generate_by_list(gen_ret)
-            except Exception as e:
-                raise RuntimeError(f"Unknown error at {gen.__name__}") from e
-            if ret is None:
-                continue
-            logger.debug("Using gen rule: %s", gen.__name__)
-            result = ret[0]
-            self.callback(
-                CALLBACK_GENERATE_PAYLOAD,
-                {
-                    "gen_type": gen_type,
-                    "args": args,
-                    "gen_ret": gen_ret,
-                    "payload": result,
-                },
-            )
-            # 为了日志的简洁，仅打印一部分日志
-            if gen_type in (INTEGER, STRING) and result != str(args[0]):
-                logger.info(
-                    "{great}, {gen_type}({args_repl}) can be {result}".format(
-                        great=colored("green", "Great"),
-                        gen_type=colored("yellow", gen_type, bold=True),
-                        args_repl=colored(
-                            "yellow", ", ".join(repr(arg) for arg in args)
-                        ),
-                        result=colored("blue", result),
-                    )
+        with pbar_manager.pbar(gens, f"Expression {gen_type}") as gens:
+            for gen in gens:
+                logger.debug("Trying gen rule: %s", gen.__name__)
+                gen_ret: List[Target] = gen(self.context, *args)
+                try:
+                    ret = self.generate_by_list(gen_ret)
+                except Exception as e:
+                    raise RuntimeError(f"Unknown error at {gen.__name__}") from e
+                if ret is None:
+                    continue
+                logger.debug("Using gen rule: %s", gen.__name__)
+                result = ret[0]
+                self.callback(
+                    CALLBACK_GENERATE_PAYLOAD,
+                    {
+                        "gen_type": gen_type,
+                        "args": args,
+                        "gen_ret": gen_ret,
+                        "payload": result,
+                    },
                 )
-
-            elif gen_type in (
-                EVAL_FUNC,
-                EVAL,
-                CONFIG,
-                MODULE_OS,
-                OS_POPEN_OBJ,
-                OS_POPEN_READ,
-            ):
-                logger.info(
-                    "{great}, we generate {gen_type}({args_repl})".format(
-                        great=colored("green", "Great"),
-                        gen_type=colored("yellow", gen_type, bold=True),
-                        args_repl=colored(
-                            "yellow", ", ".join(repr(arg) for arg in args)
-                        ),
+                # 为了日志的简洁，仅打印一部分日志
+                if gen_type in (INTEGER, STRING) and result != str(args[0]):
+                    logger.info(
+                        "{great}, {gen_type}({args_repl}) can be {result}".format(
+                            great=colored("green", "Great"),
+                            gen_type=colored("yellow", gen_type, bold=True),
+                            args_repl=colored(
+                                "yellow", ", ".join(repr(arg) for arg in args)
+                            ),
+                            result=colored("blue", result),
+                        )
                     )
-                )
 
-            self.cache_by_repr[gen_req] = ret
-            self.used_count[gen.__name__] += 1
-            return ret
+                elif gen_type in (
+                    EVAL_FUNC,
+                    EVAL,
+                    CONFIG,
+                    MODULE_OS,
+                    OS_POPEN_OBJ,
+                    OS_POPEN_READ,
+                ):
+                    logger.info(
+                        "{great}, we generate {gen_type}({args_repl})".format(
+                            great=colored("green", "Great"),
+                            gen_type=colored("yellow", gen_type, bold=True),
+                            args_repl=colored(
+                                "yellow", ", ".join(repr(arg) for arg in args)
+                            ),
+                        )
+                    )
+
+                self.cache_by_repr[gen_req] = ret
+                self.used_count[gen.__name__] += 1
+                return ret
         if gen_type not in (
             CHAINED_ATTRIBUTE_ITEM,
             ATTRIBUTE,

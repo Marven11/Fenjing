@@ -9,6 +9,7 @@ import string
 import re
 from .const import WafFunc, PythonEnvironment, SET_STMT_PATTERNS
 from .options import Options
+from .pbar import pbar_manager
 
 logger = logging.getLogger("context_vars")
 
@@ -352,13 +353,14 @@ def get_context_vars_manager(waf: WafFunc, options: Options) -> ContextVariableM
     exprs = context_payloads_exprs.copy()
     if options.python_version == PythonEnvironment.PYTHON3:
         exprs.update(context_payloads_exprs_py3)
-    for expr, value in exprs.items():
-        if not waf(expr):
-            continue
-        name = manager.generate_random_variable_name()
-        if not name:
-            continue
-        stmt = set_stmt_pattern.replace("NAME", name).replace("EXPR", expr)
-        _ = manager.add_payload(stmt, {name: value})
+    with pbar_manager.pbar(list(exprs.items()), "get_context_vars_manager") as exprs_items:
+        for expr, value in exprs.items():
+            if not waf(expr):
+                continue
+            name = manager.generate_random_variable_name()
+            if not name:
+                continue
+            stmt = set_stmt_pattern.replace("NAME", name).replace("EXPR", expr)
+            _ = manager.add_payload(stmt, {name: value})
 
     return manager

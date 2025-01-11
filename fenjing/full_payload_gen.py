@@ -23,6 +23,7 @@ from .const import (
     WafFunc,
 )
 from .options import Options
+from .pbar import pbar_manager
 
 if sys.version_info >= (3, 8):
     from typing import Callable, Tuple, Union, Dict, Any, List, Literal
@@ -71,15 +72,16 @@ def get_outer_pattern(
             "***",
         ]
     ]
-    for test_payload, outer_pattern, will_print in outer_payloads:
-        if waf_func(test_payload):
-            return outer_pattern, will_print
-        else:
-            logger.warning(
-                "Test pattern %s with %s failed",
-                colored("blue", repr(outer_pattern)),
-                colored("blue", repr(test_payload)),
-            )
+    with pbar_manager.pbar(outer_payloads, "get_outer_pattern") as outer_payloads:
+        for test_payload, outer_pattern, will_print in outer_payloads:
+            if waf_func(test_payload):
+                return outer_pattern, will_print
+            else:
+                logger.warning(
+                    "Test pattern %s with %s failed",
+                    colored("blue", repr(outer_pattern)),
+                    colored("blue", repr(test_payload)),
+                )
     logger.warning(
         "Every pattern we know is %s There is %s we can generate anything!",
         colored("red", "BANNED!", bold=True),
@@ -332,16 +334,16 @@ class FullPayloadGen:
         logger.info(
             "Adding some string variables...",
         )
-        for target in targets:
-            if target in self.added_extra_context_vars:
-                continue
-            result = self.try_add_context_var(target, clean_cache=False)
-            if result == "failed":
-                logger.warning("Failed generating %s", colored("yellow", repr(target)))
-                continue
-            if result == "success":
-                self.added_extra_context_vars.add(target)
-            # if result == "skip":
+        with pbar_manager.pbar(targets, "prepare_extra_context_vars") as targets:
+            for target in targets:
+                if target in self.added_extra_context_vars:
+                    continue
+                result = self.try_add_context_var(target, clean_cache=False)
+                if result == "failed":
+                    logger.warning("Failed generating %s", colored("yellow", repr(target)))
+                    continue
+                if result == "success":
+                    self.added_extra_context_vars.add(target)
 
     def add_context_variable(
         self,
