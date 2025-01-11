@@ -354,7 +354,7 @@ def get_context_vars_manager(waf: WafFunc, options: Options) -> ContextVariableM
     if options.python_version == PythonEnvironment.PYTHON3:
         exprs.update(context_payloads_exprs_py3)
     with pbar_manager.pbar(list(exprs.items()), "get_context_vars_manager") as exprs_items:
-        for expr, value in exprs.items():
+        for expr, value in exprs_items:
             if not waf(expr):
                 continue
             name = manager.generate_random_variable_name()
