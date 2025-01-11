@@ -30,7 +30,7 @@
         ];
         postVenvCreation = ''
           unset SOURCE_DATE_EPOCH
-          pip install -r requirements-devel.txt
+          pip install -r requirements-devel.lock
         '';
         postShellHook = ''
           # allow pip to install wheels
@@ -75,13 +75,14 @@
           prompt-toolkit
           pygments
           pysocks
+          rich
         ];
 
         postInstall = ''
           installShellCompletion --cmd fenjing \
-            --bash <(_FOO_BAR_COMPLETE=bash_source fenjing) \
-            --fish <(_FOO_BAR_COMPLETE=fish_source fenjing) \
-            --zsh <(_FOO_BAR_COMPLETE=zsh_source fenjing) \
+            --bash <(_FENJING_COMPLETE=bash_source $out/bin/fenjing) \
+            --fish <(_FENJING_COMPLETE=fish_source $out/bin/fenjing) \
+            --zsh <(_FENJING_COMPLETE=zsh_source $out/bin/fenjing) \
         '';
 
         src = ./.;
