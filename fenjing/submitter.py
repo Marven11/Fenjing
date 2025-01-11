@@ -9,6 +9,9 @@ import re
 from typing import List, Callable, Union, NamedTuple, Dict
 from urllib.parse import quote
 
+from rich import print as rich_print
+from rich.markup import escape as rich_escape
+
 from .form import Form, fill_form
 from .requester import HTTPRequester, TCPRequester
 from .colorize import colored
@@ -48,10 +51,10 @@ def shell_tamperer(shell_cmd: str) -> Tamperer:
             )
         out = proc.stdout.read().decode()
         if out.endswith("\n"):
-            logger.warning(
-                "Tamperer %s output %s ends with '\\n', it may cause some issues.",
-                shell_cmd,
-                out,
+            rich_print(
+                f"Tamperer [blue]{shell_cmd}[/] output [blue]{out}[/]"
+                " ends with '\\n', it may cause some issues.",
+
             )
         return out
 
@@ -220,10 +223,11 @@ class RequestSubmitter(BaseSubmitter):
             data.update({self.target_field: raw_payload})
         else:
             params.update({self.target_field: raw_payload})
-        logger.info(
-            "Submit %s",
-            colored("blue", f"{self.url} {self.method} params={params} data={data}"),
+        rich_print(
+            f"Submit [blue]{rich_escape(self.url)} {self.method} "
+            f"params={rich_escape(repr(params))} data={rich_escape(repr(data))}[/]"
         )
+
         return self.req.request(
             method=self.method, url=self.url, params=params, data=data
         )
@@ -309,9 +313,9 @@ class PathSubmitter(BaseSubmitter):
         # python requests would reencode url, resulting in payload being changed
         # that's why we're avoiding spaces and '%'
         if any(w in raw_payload for w in ["/", "..", " ", "%"]):
-            logger.info(
-                "Don't submit %s because it can't be in the path.",
-                colored("yellow", repr(raw_payload)),
+            rich_print(
+                f"Don't submit [yellow]{repr(raw_payload)}[/] "
+                "because it can't be in the path.",
             )
             return None
         resp = self.req.request(method="GET", url=self.url + quote(raw_payload))
@@ -358,5 +362,6 @@ class JsonSubmitter(BaseSubmitter):
         if resp is None:
             return None
         return HTTPResponse(resp.status_code, resp.text)
+
 
 Submitter = BaseSubmitter

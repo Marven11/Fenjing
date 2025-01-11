@@ -12,6 +12,9 @@ import time
 from collections import namedtuple
 from string import ascii_lowercase
 
+from rich import print as rich_print
+from rich.markup import escape as rich_escape
+
 from .rules_types import TargetAndSubTargets
 from .rules_utils import find_bad_exprs
 from .requester import HTTPRequester
@@ -64,7 +67,7 @@ def guess_python_version(url: str, requester: HTTPRequester) -> PythonEnvironmen
         if version_regexp.group(1) == "3"
         else PythonEnvironment.PYTHON2
     )
-    logger.info("Target is %s", colored("blue", result.value, bold=True))
+    rich_print(f"[blue bold]Target[/] is [blue]{result.value}[/]")
     return result
 
 
@@ -146,7 +149,7 @@ class Cracker:
         Returns:
             str: 测试结果
         """
-        logger.info(
+        rich_print(
             "Testing generated payload.",
         )
         result = self.subm.submit(payload)
@@ -169,7 +172,7 @@ class Cracker:
         Returns:
             bool: 是否产生回显
         """
-        logger.info(
+        rich_print(
             "Testing generated payload as eval args.",
         )
         result = subm.submit(payload)
@@ -222,28 +225,24 @@ class Cracker:
         """
         if will_print:
             if test_result == "SUCCESS":
-                logger.info(
-                    "%s Now we can generate payloads.",
-                    colored("green", "Success!", bold=True),
+                rich_print(
+                    "[green bold]Success![/] Now we can generate payloads.",
                 )
             elif test_result == "FAIL_UNKNOWN":
-                logger.info(
-                    "%s! Generated payloads might be useless.",
-                    colored("yellow", "Test Payload Failed", bold=True),
+                rich_print(
+                    "[yellow bold]Test Payload Failed[/] Generated payloads might be useless.",
                 )
             else:  # test_result == "FAIL_500"
-                logger.info(
-                    "Target return status code %s!",
-                    colored("yellow", "500", bold=True),
+                rich_print(
+                    "Target return status code [yellow bold]500[/]!",
                 )
         else:
             if test_result == "FAIL_500":
-                logger.info(
-                    "Target return status code %s! (although payload won't print anything)",
-                    colored("yellow", "500", bold=True),
+                rich_print(
+                    "Target return status code [yellow bold]500[/]! (although payload won't print anything)",
                 )
             else:
-                logger.info(
+                rich_print(
                     "We WON'T SEE the execution result! "
                     + "You can try generating payloads anyway.",
                 )
@@ -258,10 +257,8 @@ class Cracker:
             result = self.subm.submit(payload)
             assert result is not None
             status_code, _ = result
-            logger.info(
-                "payload %s generate status code %s",
-                colored("blue", payload),
-                colored("yellow", status_code),
+            rich_print(
+                f"payload [blue]{rich_escape(payload)}[/] generate status code [yellow]{status_code}[/]",
             )
             return status_code == 500
 
@@ -293,15 +290,9 @@ class Cracker:
             test_result == "FAIL_500"
             and self.options.autofix_500 == AutoFix500Code.ENABLED
         ):
-            logger.info(colored("yellow", "Start fixing status code 500.", bold=True))
-            logger.info(
-                colored(
-                    "yellow", "IT MIGHT MAKE YOUR COMMAND EXECUTE TWICE!", bold=True
-                )
-            )
-            logger.info(
-                colored("yellow", "Use Ctrl+C to exit if you don't want it!", bold=True)
-            )
+            rich_print("[yellow bold]Start fixing status code 500.[/]")
+            rich_print("[yellow bold]IT MIGHT MAKE YOUR COMMAND EXECUTE TWICE![/]")
+            rich_print("[yellow bold]Use Ctrl+C to exit if you don't want it![/]")
             time.sleep(6)
             waf_expr_func = self.expr_waf_not500(
                 tree, full_payload_gen.outer_pattern, full_payload_gen.context_vars
@@ -310,7 +301,7 @@ class Cracker:
             if result:
                 full_payload_gen, will_print, test_result, tree = result
             if test_result == "FAIL_500":
-                logger.info("It's still 500, sorry...")
+                logger.info("[yellow bold]It's still 500, sorry...[/]")
             self.log_with_result(will_print, test_result)
         return full_payload_gen
 

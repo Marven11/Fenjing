@@ -12,6 +12,8 @@ from enum import Enum
 from functools import partial
 from pathlib import Path
 
+from rich import print as rich_print
+from rich.markup import escape as rich_escape
 import click
 
 from .const import (
@@ -154,20 +156,20 @@ def do_submit_cmdexec(
                 EVAL, (STRING, f"exec({repr(statements)})")
             )
         else:
-            logging.warning("Please check your command")
+            rich_print("Please check your command")
             return ""
     else:
         payload, will_print = full_payload_gen_like.generate(OS_POPEN_READ, cmd)
     # 使用payload
     if payload is None:
-        logger.warning("%s generating payload.", colored("red", "Failed"))
+        rich_print("[red]Failed[/] generating payload.")
         return ""
-    logger.info("Submit payload %s", colored("blue", payload))
+    rich_print(f"Submit payload [blue]{rich_escape(payload)}[/]")
     if not will_print:
-        payload_wont_print = (
-            "Payload generator says that this payload %s command execution result."
+        rich_print(
+            "Payload generator says that this payload "
+            "[red]won't print[/] command execution result."
         )
-        logger.warning(payload_wont_print, colored("red", "won't print"))
     result = submitter.submit(payload)
     assert result is not None
     return result.text

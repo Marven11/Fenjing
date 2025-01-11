@@ -10,3 +10,4 @@ notebook
 ipython
 build
 black
+rich

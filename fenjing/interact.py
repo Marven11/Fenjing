@@ -9,6 +9,7 @@ from prompt_toolkit.styles import style_from_pygments_cls
 from prompt_toolkit.lexers import PygmentsLexer
 from pygments.styles import get_style_by_name
 
+from .pbar import pbar_manager
 
 # completer = WordCompleter(["@eval", "@get-config", "@help", "@ls", "@cat"])
 completer = NestedCompleter.from_nested_dict(
@@ -96,7 +97,8 @@ def interact(cmd_exec_func: Callable):
                 else:
                     print(f"subcommand {repr(subcommand)} not found")
             continue
-        result = cmd_exec_func(text)
+        with pbar_manager.progress:
+            result = cmd_exec_func(text)
         print(result)
 
     print("Bye!")

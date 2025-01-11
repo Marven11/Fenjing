@@ -18,6 +18,7 @@ import re
 import logging
 
 from collections import defaultdict
+from contextlib import contextmanager
 from typing import (
     Callable,
     DefaultDict,
@@ -27,7 +28,9 @@ from typing import (
 )
 from pprint import pformat
 
-from .colorize import colored
+from rich import print as rich_print
+from rich.markup import escape as rich_escape
+
 from .const import *
 from .options import Options
 from .rules_utils import (
@@ -53,6 +56,16 @@ gen_weight_default = {
     "gen_attribute_attrfilter": 1,
     "gen_item_dunderfunc": 1,
 }
+
+
+@contextmanager
+def optional_context(condition, data, mapper):
+    """让一个contextmanager变为可选的"""
+    if condition:
+        with mapper(data) as result:
+            yield result
+    else:
+        yield data
 
 
 def expression_gen(f: ExpressionGenerator):
@@ -349,6 +362,7 @@ class PayloadGenerator:
             _type_: 生成结果
         """
         if self.options.python_version != PythonEnvironment.PYTHON3:
+            rich_print(f"[red]Not python3[/], don't generate {target[1]}")
             return None
         return ("", {}, [])
 
@@ -390,7 +404,14 @@ class PayloadGenerator:
         gens = expression_gens[gen_type].copy()
         if self.options.detect_mode == DetectMode.FAST:
             gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
-        with pbar_manager.pbar(gens, f"Expression {gen_type}") as gens:
+        with optional_context(
+            gen_type in [
+                STRING,
+                INTEGER,
+                OS_POPEN_READ,
+                EVAL,
+            ], gens, lambda gens: pbar_manager.pbar(gens, f"Expression {gen_type}")
+        ) as gens:
             for gen in gens:
                 logger.debug("Trying gen rule: %s", gen.__name__)
                 gen_ret: List[Target] = gen(self.context, *args)
@@ -413,14 +434,12 @@ class PayloadGenerator:
                 )
                 # 为了日志的简洁，仅打印一部分日志
                 if gen_type in (INTEGER, STRING) and result != str(args[0]):
-                    logger.info(
-                        "{great}, {gen_type}({args_repl}) can be {result}".format(
-                            great=colored("green", "Great"),
-                            gen_type=colored("yellow", gen_type, bold=True),
-                            args_repl=colored(
-                                "yellow", ", ".join(repr(arg) for arg in args)
-                            ),
-                            result=colored("blue", result),
+                    rich_print(
+                        "[green bold]Great![/green bold] [yellow bold]{gen_type}[/yellow bold]"
+                        "[yellow]({args_repl})[/yellow] can be [blue]{result}[/blue]".format(
+                            gen_type=gen_type,
+                            args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
+                            result=rich_escape(result),
                         )
                     )
 
@@ -432,13 +451,12 @@ class PayloadGenerator:
                     OS_POPEN_OBJ,
                     OS_POPEN_READ,
                 ):
-                    logger.info(
-                        "{great}, we generate {gen_type}({args_repl})".format(
-                            great=colored("green", "Great"),
-                            gen_type=colored("yellow", gen_type, bold=True),
-                            args_repl=colored(
-                                "yellow", ", ".join(repr(arg) for arg in args)
-                            ),
+                    rich_print(
+                        "[green bold]Great![/green bold] we generate "
+                        "[yellow bold]{gen_type}[/yellow bold]"
+                        "[yellow]({args_repl})[/yellow]".format(
+                            gen_type=gen_type,
+                            args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
                         )
                     )
 
@@ -454,17 +472,20 @@ class PayloadGenerator:
             STRING_CONCAT,
             MOD,
             STRING_CONCATMANY,
-            VARIABLE_OF,
             ENCLOSE,
             ENCLOSE_UNDER,
+            STRING_CONCAT,
+            WRAP,
+            FUNCTION_CALL,
         ):
-            logger.info(
-                "{failed} generating {gen_type}({args_repl}), it might not be an issue.".format(
-                    failed=colored("red", "failed"),
+            rich_print(
+                "[red]Failed[/red] generating [yellow bold]{gen_type}[/yellow bold][yellow]({args_repl})[/yellow]. "
+                "Hopefully it might not be an issue.".format(
                     gen_type=gen_type,
-                    args_repl=", ".join(repr(arg) for arg in args),
+                    args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
                 )
             )
+
         self.cache_by_repr[gen_req] = None
         return None
 
