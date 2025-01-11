@@ -362,7 +362,6 @@ class PayloadGenerator:
             _type_: 生成结果
         """
         if self.options.python_version != PythonEnvironment.PYTHON3:
-            rich_print(f"[red]Not python3[/], don't generate {target[1]}")
             return None
         return ("", {}, [])
 
