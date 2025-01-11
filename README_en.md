@@ -14,7 +14,7 @@ Fenjing is a script for bypassing Jinja SSTI WAF in CTF competitions. It support
 
 ## Demo
 
-[![asciicast](assets/demo.svg)](https://asciinema.org/a/rewsTVvAPqH59GWNtn7QmZ6RU)
+[![asciicast](assets/demo.gif)](https://asciinema.org/a/dMEIPe5NS9eZpQU9T06xZutHh)
 
 ## Features
 
