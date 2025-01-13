@@ -3,9 +3,7 @@ import re
 # pylint: disable=wildcard-import,unused-wildcard-import,missing-function-docstring,unused-argument
 
 from ..payload_gen import expression_gen
-from ..rules_utils import (
-    join_target, precedence, targets_from_pattern
-)
+from ..rules_utils import join_target, precedence, targets_from_pattern
 from ..rules_types import *
 from ..const import *
 from ..wordlist import CHAR_PATTERNS
@@ -947,6 +945,65 @@ def gen_char_selectpy2(context, c):
 
 
 @expression_gen
+def gen_char_select(context, c):
+    d = {
+        2: "l",
+        3: "t",
+        4: ";",
+        5: "g",
+        6: "e",
+        7: "n",
+        8: "e",
+        9: "r",
+        10: "a",
+        11: "t",
+        12: "o",
+        13: "r",
+        14: " ",
+        15: "o",
+        16: "b",
+        17: "j",
+        18: "e",
+        19: "c",
+        20: "t",
+        21: " ",
+        22: "s",
+        23: "y",
+        24: "n",
+        25: "c",
+        26: "_",
+        27: "d",
+        28: "o",
+        29: "_",
+        30: "s",
+        31: "l",
+        32: "i",
+        33: "c",
+        34: "e",
+        35: " ",
+        36: "a",
+        37: "t",
+        38: " ",
+        39: "0",
+        40: "x",
+    }
+
+    if c not in d.values():
+        return [(UNSATISFIED,)]
+    matches = []
+    for index, value in d.items():
+        if value == c:
+            matches.append(
+                targets_from_pattern(
+                    "x|slice(0)|e|list|batch(INDEX)|first|last",
+                    {"0": (INTEGER, 0), "INDEX": (INTEGER, index)},
+                )
+            )
+    target_list = [(ONEOF, matches)]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
 def gen_char_flaskg(context, c):
     d = {
         1: "&",
@@ -974,10 +1031,6 @@ def gen_char_flaskg(context, c):
                     "{G}|e|batch({INDEX})|first|last",
                     {"{G}": (FLASK_CONTEXT_VAR, "g"), "{INDEX}": (INTEGER, index)},
                 )
-                # [
-                #     (FLASK_CONTEXT_VAR, "g"),
-                #     (LITERAL, pattern.replace("INDEX", str(index))),
-                # ]
             )
     target_list = [(ONEOF, matches)]
     return [(EXPRESSION, precedence["filter"], target_list)]

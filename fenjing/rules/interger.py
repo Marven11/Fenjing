@@ -17,6 +17,26 @@ const_exprs_all = {
 }
 
 
+def literal_to_target(literal: str) -> Target:
+    """将literal转成expression target
+    如果literal是`aaa|bbb`的格式，那它就是一个带有filter的expression
+    运算优先级和filter相同。
+
+    Args:
+        literal (str): literal
+
+    Returns:
+        Target: Target
+    """
+    # TODO: 我知道这里写得很烂但是暂时就用这种方式判断就好了，好好计算优先级
+    # 从而省掉一些括号这种事情之后再说
+    return (
+        (EXPRESSION, precedence["filter"], [(LITERAL, literal)])
+        if re.match(r"^[a-z0-9]+$", literal)
+        else (EXPRESSION, precedence["literal"], [(ENCLOSE, (LITERAL, literal))])
+    )
+
+
 # ---
 
 
@@ -598,15 +618,16 @@ def gen_positive_integer_indexofglobal(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_constexpr(context: dict, value: int):
+
     alternatives = (
-        [[(ENCLOSE, (LITERAL, k))] for k, v in const_exprs.items() if v == value]
+        [[literal_to_target(k)] for k, v in const_exprs.items() if v == value]
         + [
-            [(ENCLOSE, (LITERAL, k)), (REQUIRE_PYTHON3,)]
+            [literal_to_target(k), (REQUIRE_PYTHON3,)]
             for k, v in const_exprs_py3.items()
             if v == value
         ]
         + [
-            [(ENCLOSE, (LITERAL, k)), (REQUIRE_FLASK,)]
+            [literal_to_target(k), (REQUIRE_FLASK,)]
             for k, v in const_exprs_flask.items()
             if v == value
         ]
@@ -635,42 +656,20 @@ def gen_positive_integer_constexprsplit(context: dict, value: int):
 def gen_positive_integer_constexprsumoflength1(context: dict, value: int):
     if value > 16 or value == 1:
         return [(UNSATISFIED,)]
-
-    def repeat(literal, num):
-        target_expr = (
-            (EXPRESSION, precedence["filter"], [(LITERAL, literal)])
-            if re.match(r"^[a-z0-9]+$", literal)
-            else (EXPRESSION, precedence["literal"], [(ENCLOSE, (LITERAL, literal))])
-        )
-        return [
-            (ENCLOSE, (STRING_CONCATMANY, [target_expr for _ in range(num)])),
-            (
-                ONEOF,
-                [
-                    [(LITERAL, "|count")],
-                    [(LITERAL, "|length")],
-                ],
-            ),
-        ]
-
-    alternatives = (
-        [
-            repeat(k, value)
-            for k, v in const_exprs.items()
-            if len(str(v)) == 1
-        ]
-        + [
-            repeat(k, value) + [(REQUIRE_PYTHON3,)]
-            for k, v in const_exprs_py3.items()
-            if len(str(v)) == 1
-        ]
-        + [
-            repeat(k, value) + [(REQUIRE_FLASK,)]
-            for k, v in const_exprs_flask.items()
-            if len(str(v)) == 1
-        ]
-    )
-    return [(ONEOF, alternatives)]
+    target_length1 = (ONEOF, [[(INTEGER, x)] for x in range(9)])
+    return [
+        (
+            ENCLOSE,
+            (STRING_CONCATMANY, [target_length1 for _ in range(value)]),
+        ),
+        (
+            ONEOF,
+            [
+                [(LITERAL, "|count")],
+                [(LITERAL, "|length")],
+            ],
+        ),
+    ]
 
 
 # ---
