@@ -602,7 +602,7 @@ def gen_positive_integer_constexpr(context: dict, value: int):
 @expression_gen
 def gen_positive_integer_constexprsplit(context: dict, value: int):
     ints = set(const_exprs_all.values())
-    if value <= 16 or all(value < x for x in ints):
+    if value < 10 or all(value < x for x in ints):
         return [(UNSATISFIED,)]
     alternatives_mul = []
     alternatives_mulplus = []
@@ -611,35 +611,46 @@ def gen_positive_integer_constexprsplit(context: dict, value: int):
             continue
         if value % x == 0:
             alternatives_mul.append([(MULTIPLY, (INTEGER, x), (INTEGER, value // x))])
-        else:
-            alternatives_mulplus.append(
-                (PLUS, (MULTIPLY, x, (INTEGER, value // x)), (INTEGER, value % x))
-            )
     return [(ONEOF, alternatives_mul + alternatives_mulplus)]
 
 
 @expression_gen
-def gen_positive_integer_constexprsum(context: dict, value: int):
+def gen_positive_integer_constexprsumoflength1(context: dict, value: int):
     if value > 16:
         return [(UNSATISFIED,)]
-    alternatives = []
-    for k, v in const_exprs.items():
-        if not isinstance(v, int) or v >= value:
-            continue
-        alternatives.append([(PLUS, (ENCLOSE, (LITERAL, k)), (INTEGER, value - v))])
-    for k, v in const_exprs_py3.items():
-        if not isinstance(v, int) or v >= value:
-            continue
-        alternatives.append(
-            [(PLUS, (ENCLOSE, (LITERAL, k)), (INTEGER, value - v)), (REQUIRE_PYTHON3,)]
-        )
-    for k, v in const_exprs_flask.items():
-        if not isinstance(v, int) or v >= value:
-            continue
-        alternatives.append(
-            [(PLUS, (ENCLOSE, (LITERAL, k)), (INTEGER, value - v)), (REQUIRE_FLASK,)]
-        )
+
+    def repeat(target, num):
+        target_expr = (EXPRESSION, precedence["literal"], [(ENCLOSE, target)])
+        return [
+            (ENCLOSE, (STRING_CONCATMANY, [target_expr for _ in range(num)])),
+            (
+                ONEOF,
+                [
+                    [(LITERAL, "|count")],
+                    [(LITERAL, "|length")],
+                ],
+            ),
+        ]
+
+    alternatives = (
+        [
+            repeat((LITERAL, k), value)
+            for k, v in const_exprs.items()
+            if len(str(v)) == 1
+        ]
+        + [
+            repeat((LITERAL, k), value) + [(REQUIRE_PYTHON3,)]
+            for k, v in const_exprs_py3.items()
+            if len(str(v)) == 1
+        ]
+        + [
+            repeat((LITERAL, k), value) + [(REQUIRE_FLASK,)]
+            for k, v in const_exprs_flask.items()
+            if len(str(v)) == 1
+        ]
+    )
     return [(ONEOF, alternatives)]
+
 
 
 # ---
