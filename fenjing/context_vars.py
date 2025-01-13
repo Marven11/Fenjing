@@ -7,7 +7,7 @@ import logging
 import random
 import string
 import re
-from .const import WafFunc, PythonEnvironment, SET_STMT_PATTERNS
+from .const import WafFunc, TemplateEnvironment, PythonEnvironment, SET_STMT_PATTERNS
 from .options import Options
 from .pbar import pbar_manager
 
@@ -59,15 +59,18 @@ context_payloads_stmts_py3 = {
     },
 }
 
-context_payloads_exprs = {
+const_exprs = {
     "lipsum()|urlencode|first": "%",
     "lipsum|escape|batch(22)|first|last": "_",
     "dict(x=x)|length": 1,
     "dict(x=x)|count": 1,
+    "x|pprint|first|count": 9,
     "dict(a=x,b=x,c=x)|length": 3,
     "dict(a=x,b=x,c=x)|count": 3,
     "dict(aaaaa=x)|first|length": 5,
     "dict(aaaaa=x)|first|count": 5,
+    "x|pprint|count": 9,
+    "x|pprint|e|pprint|count": 19,
     "lipsum.__doc__|length": 43,
     "namespace.__doc__|length": 126,
     "joiner|urlencode|wordcount": 7,
@@ -81,7 +84,7 @@ context_payloads_exprs = {
     "lipsum|escape|urlencode|list|escape|urlencode|count": 2015,
 }
 
-context_payloads_exprs_py3 = {
+const_exprs_py3 = {
     "1.__mod__.__doc__.__getitem__(11)": "%",
     (
         "({0:1}|safe).replace((1|safe).rjust(2),"
@@ -100,6 +103,13 @@ context_payloads_exprs_py3 = {
     "{}|escape|urlencode|count": 6,
     "{}|escape|list|escape|count": 26,
     "{}|escape|urlencode|list|escape|urlencode|count": 178,
+}
+
+const_exprs_flask = {
+    "g|e|first|count": 1,
+    "g|e|first|length": 1,
+    "g|e|count": 32,
+    "g|e|length": 32,
 }
 
 digit_looks_similiar = {
@@ -350,9 +360,11 @@ def get_context_vars_manager(waf: WafFunc, options: Options) -> ContextVariableM
     if not set_stmt_pattern:
         return manager
 
-    exprs = context_payloads_exprs.copy()
+    exprs = const_exprs.copy()
     if options.python_version == PythonEnvironment.PYTHON3:
-        exprs.update(context_payloads_exprs_py3)
+        exprs.update(const_exprs_py3)
+    if options.environment == TemplateEnvironment.FLASK:
+        exprs.update(const_exprs_flask)
     with pbar_manager.pbar(list(exprs.items()), "get_context_vars_manager") as exprs_items:
         for expr, value in exprs_items:
             if not waf(expr):
