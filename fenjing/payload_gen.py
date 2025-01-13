@@ -198,6 +198,11 @@ class PayloadGenerator:
         Returns:
             Union[PayloadGeneratorResult, None]: 生成结果
         """
+        # 事先测试literal中的某些片段，从而提速
+        # 因为这些片段的种类比Literal少得多，利于缓存
+        words = re.findall("[a-z0-9]{4,}", target[1])
+        if not all(self.waf_func(word) for word in words):
+            return None
         return (target[1], {}, [])
 
     @register_generate_func(lambda self, target: target in self.cache_by_repr)
