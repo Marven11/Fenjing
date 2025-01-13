@@ -24,6 +24,7 @@ if sys.version_info >= (3, 8):
     JinjaContextVarTarget = Tuple[Literal["jinja_context_var"], str]
     FlaskContextVarTarget = Tuple[Literal["flask_context_var"], str]
     RequirePython3Target = Tuple[Literal["require_python3"], str]
+    RequireFlaskTarget = Tuple[Literal["require_flask"], str]
     VariableOfTarget = Tuple[Literal["variable_of"], str]
 
     ZeroTarget = Tuple[Literal["zero"],]
@@ -68,6 +69,7 @@ if sys.version_info >= (3, 8):
         JinjaContextVarTarget,
         FlaskContextVarTarget,
         RequirePython3Target,
+        RequireFlaskTarget,
         VariableOfTarget,
         ZeroTarget,
         PositiveIntegerTarget,
