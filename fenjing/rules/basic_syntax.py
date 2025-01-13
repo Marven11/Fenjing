@@ -81,6 +81,11 @@ def gen_string_concat_format(context: dict, a, b):
 
 # ---
 
+@expression_gen
+def gen_string_concatmany_noconcat(context: dict, parts):
+    if len(parts) == 1:
+        return parts
+    return [(UNSATISFIED, )]
 
 @expression_gen
 def gen_string_concatmany_onebyone(context: dict, parts):

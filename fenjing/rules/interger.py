@@ -1,4 +1,5 @@
 import math
+import re
 
 # pylint: disable=wildcard-import,unused-wildcard-import,missing-function-docstring,unused-argument
 
@@ -505,6 +506,22 @@ def gen_positive_integer_numbersum2(context: dict, value: int):
 
 
 @expression_gen
+def gen_positive_integer_charint(context: dict, value: int):
+    if value < 10:
+        return [(UNSATISFIED,)]
+    return [
+        (
+            EXPRESSION,
+            precedence["filter"],
+            [
+                (ENCLOSE, (STRING_CONCATMANY, [(INTEGER, int(x)) for x in str(value)])),
+                (LITERAL, "|int"),
+            ],
+        )
+    ]
+
+
+@expression_gen
 def gen_positive_integer_count(context: dict, value: int):
     s = ",".join("x" * value)
     if value == 1:
@@ -616,11 +633,15 @@ def gen_positive_integer_constexprsplit(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_constexprsumoflength1(context: dict, value: int):
-    if value > 16:
+    if value > 16 or value == 1:
         return [(UNSATISFIED,)]
 
-    def repeat(target, num):
-        target_expr = (EXPRESSION, precedence["literal"], [(ENCLOSE, target)])
+    def repeat(literal, num):
+        target_expr = (
+            (EXPRESSION, precedence["filter"], [(LITERAL, literal)])
+            if re.match(r"^[a-z0-9]+$", literal)
+            else (EXPRESSION, precedence["literal"], [(ENCLOSE, (LITERAL, literal))])
+        )
         return [
             (ENCLOSE, (STRING_CONCATMANY, [target_expr for _ in range(num)])),
             (
@@ -634,23 +655,22 @@ def gen_positive_integer_constexprsumoflength1(context: dict, value: int):
 
     alternatives = (
         [
-            repeat((LITERAL, k), value)
+            repeat(k, value)
             for k, v in const_exprs.items()
             if len(str(v)) == 1
         ]
         + [
-            repeat((LITERAL, k), value) + [(REQUIRE_PYTHON3,)]
+            repeat(k, value) + [(REQUIRE_PYTHON3,)]
             for k, v in const_exprs_py3.items()
             if len(str(v)) == 1
         ]
         + [
-            repeat((LITERAL, k), value) + [(REQUIRE_FLASK,)]
+            repeat(k, value) + [(REQUIRE_FLASK,)]
             for k, v in const_exprs_flask.items()
             if len(str(v)) == 1
         ]
     )
     return [(ONEOF, alternatives)]
-
 
 
 # ---
