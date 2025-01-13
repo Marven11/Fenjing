@@ -922,7 +922,9 @@ def gen_char_selectpy3(context, c):
     for pattern, d in CHAR_PATTERNS.items():
         for index_str, value in d.items():
             if value == c:
-                matches.append([(LITERAL, pattern.replace("INDEX", index_str))])
+                matches.append(targets_from_pattern(pattern, {
+                    "INDEX": (INTEGER, int(index_str))
+                }))
     if not matches:
         return [(UNSATISFIED,)]
     target_list = [(ONEOF, matches)]
@@ -937,7 +939,9 @@ def gen_char_selectpy2(context, c):
             continue
         for index_str, value in d.items():
             if value == c:
-                matches.append([(LITERAL, pattern.replace("INDEX", index_str))])
+                matches.append(targets_from_pattern(pattern, {
+                    "INDEX": (INTEGER, int(index_str))
+                }))
     if not matches:
         return [(UNSATISFIED,)]
     target_list = [(ONEOF, matches)]
