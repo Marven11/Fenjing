@@ -61,6 +61,7 @@ context_payloads_stmts_py3 = {
 
 const_exprs = {
     "lipsum()|urlencode|first": "%",
+    "{}|e|urlencode|first": "%",
     "lipsum|escape|batch(22)|first|last": "_",
     "dict(x=x)|length": 1,
     "dict(x=x)|count": 1,

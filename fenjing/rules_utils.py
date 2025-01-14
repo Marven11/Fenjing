@@ -3,6 +3,7 @@ from typing import (
     Dict,
     Union,
 )
+import re
 
 from .const import *
 from .rules_types import Target
@@ -233,3 +234,22 @@ def targets_from_pattern(
     if toparse:
         result.append((LITERAL, toparse))
     return result
+
+def literal_to_target(literal: str) -> Target:
+    """将literal转成expression target
+    如果literal是`aaa|bbb`的格式，那它就是一个带有filter的expression
+    运算优先级和filter相同。
+
+    Args:
+        literal (str): literal
+
+    Returns:
+        Target: Target
+    """
+    # TODO: 我知道这里写得很烂但是暂时就用这种方式判断就好了，好好计算优先级
+    # 从而省掉一些括号这种事情之后再说
+    return (
+        (EXPRESSION, precedence["filter"], [(LITERAL, literal)])
+        if re.match(r"^[a-z0-9]+$", literal)
+        else (EXPRESSION, precedence["literal"], [(ENCLOSE, (LITERAL, literal))])
+    )

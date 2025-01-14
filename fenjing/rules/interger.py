@@ -1,10 +1,14 @@
 import math
-import re
 
 # pylint: disable=wildcard-import,unused-wildcard-import,missing-function-docstring,unused-argument
 
 from ..payload_gen import expression_gen, precedence
-from ..rules_utils import transform_int_chars_unicode, join_target, targets_from_pattern
+from ..rules_utils import (
+    transform_int_chars_unicode,
+    join_target,
+    targets_from_pattern,
+    literal_to_target,
+)
 from ..rules_types import *
 from ..const import *
 from ..context_vars import const_exprs, const_exprs_py3, const_exprs_flask
@@ -15,26 +19,6 @@ const_exprs_all = {
     for k, v in d.items()
     if isinstance(v, int)
 }
-
-
-def literal_to_target(literal: str) -> Target:
-    """将literal转成expression target
-    如果literal是`aaa|bbb`的格式，那它就是一个带有filter的expression
-    运算优先级和filter相同。
-
-    Args:
-        literal (str): literal
-
-    Returns:
-        Target: Target
-    """
-    # TODO: 我知道这里写得很烂但是暂时就用这种方式判断就好了，好好计算优先级
-    # 从而省掉一些括号这种事情之后再说
-    return (
-        (EXPRESSION, precedence["filter"], [(LITERAL, literal)])
-        if re.match(r"^[a-z0-9]+$", literal)
-        else (EXPRESSION, precedence["literal"], [(ENCLOSE, (LITERAL, literal))])
-    )
 
 
 # ---

@@ -45,3 +45,38 @@ def gen_os_popen_read_eval(context, cmd):
     return [
         (EVAL, (EXPRESSION, precedence["function_call"], targets)),
     ]
+
+# TODO: fix this
+# @expression_gen
+# def gen_os_popen_read_mapstring(context, cmd):
+#     def getattr_args(name):
+#         return targets_from_pattern(
+#             "*(NAMEATTR|batch(LENGTH)|map(JOIN)|listMIGHTREVERSE)",
+#             {
+#                 "NAMEATTR": (ENCLOSE_UNDER, precedence["filter"], (STRING, name + "attr")),
+#                 "LENGTH": (INTEGER, len(name)),
+#                 "JOIN": (STRING, "join"),
+#                 "MIGHTREVERSE": (LITERAL, "|reverse") if len(name) >= 4 else (LITERAL, ""),
+#             }
+#         )
+#     
+#     return targets_from_pattern(
+#         "THESTRING|map(ATTRINIT)|map(ATTRGLOBALS)|map(ATTRGET)(BUILTINS)|map(ATTRGET)(OS)|map(ATTRPOPEN)(CMD)|map(ATTRREAD)()",
+#         {
+#             "THESTRING": (ONEOF, [
+#                 [(INTEGER, 0), (LITERAL, "|e")],
+#                 [(INTEGER, 1), (LITERAL, "|e")],
+#                 [(STRING, "a")],
+#             ]),
+#             "ATTRINIT": getattr_args("__init__"),
+#             "ATTRGLOBALS": getattr_args("__globals__"),
+#             "ATTRGET": getattr_args("get"),
+#             "BUILTINS": (STRING, "__builtins__"),
+#             "OS": (STRING, "os"),
+#             "ATTRPOPEN": getattr_args("popen"),
+#             "CMD": (STRING, cmd),
+#             "ATTRREAD": getattr_args("read")
+#         }
+#     )
+#     # "a"|map(*("__init__attr"|batch(8)|map("join")|list|reverse))|list
+

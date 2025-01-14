@@ -3,10 +3,17 @@ import re
 # pylint: disable=wildcard-import,unused-wildcard-import,missing-function-docstring,unused-argument
 
 from ..payload_gen import expression_gen
-from ..rules_utils import join_target, precedence, targets_from_pattern
+from ..rules_utils import (
+    join_target,
+    precedence,
+    targets_from_pattern,
+    literal_to_target,
+)
 from ..rules_types import *
 from ..const import *
 from ..wordlist import CHAR_PATTERNS
+
+from ..context_vars import const_exprs, const_exprs_flask, const_exprs_py3
 
 
 # ---
@@ -917,14 +924,32 @@ def gen_char_percent(context, c):
 
 
 @expression_gen
+def gen_char_contextvars(context, c):
+    alternatives = (
+        [[literal_to_target(expr)] for expr, value in const_exprs.items() if value == c]
+        + [
+            [literal_to_target(expr), (REQUIRE_PYTHON3,)]
+            for expr, value in const_exprs_py3.items()
+            if value == c
+        ]
+        + [
+            [literal_to_target(expr), (REQUIRE_FLASK,)]
+            for expr, value in const_exprs_flask.items()
+            if value == c
+        ]
+    )
+    return [(ONEOF, alternatives)]
+
+
+@expression_gen
 def gen_char_selectpy3(context, c):
     matches = []
     for pattern, d in CHAR_PATTERNS.items():
         for index_str, value in d.items():
             if value == c:
-                matches.append(targets_from_pattern(pattern, {
-                    "INDEX": (INTEGER, int(index_str))
-                }))
+                matches.append(
+                    targets_from_pattern(pattern, {"INDEX": (INTEGER, int(index_str))})
+                )
     if not matches:
         return [(UNSATISFIED,)]
     target_list = [(ONEOF, matches)]
@@ -939,9 +964,9 @@ def gen_char_selectpy2(context, c):
             continue
         for index_str, value in d.items():
             if value == c:
-                matches.append(targets_from_pattern(pattern, {
-                    "INDEX": (INTEGER, int(index_str))
-                }))
+                matches.append(
+                    targets_from_pattern(pattern, {"INDEX": (INTEGER, int(index_str))})
+                )
     if not matches:
         return [(UNSATISFIED,)]
     target_list = [(ONEOF, matches)]
