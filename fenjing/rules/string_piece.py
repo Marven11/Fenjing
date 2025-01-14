@@ -20,6 +20,329 @@ from ..context_vars import const_exprs, const_exprs_flask, const_exprs_py3
 
 
 @expression_gen
+def gen_char_literal1(context, c):
+    target_list = [(LITERAL, f"'{c}'" if c != "'" and c != "\\" else "'\\" + c + "'")]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
+def gen_char_literal2(context, c):
+    target_list = [(LITERAL, f'"{c}"' if c != '"' and c != "\\" else '"\\' + c + '"')]
+    return [(EXPRESSION, precedence["literal"], target_list)]
+
+
+@expression_gen
+def gen_char_contextvars(context, c):
+    alternatives = (
+        [[literal_to_target(expr)] for expr, value in const_exprs.items() if value == c]
+        + [
+            [literal_to_target(expr), (REQUIRE_PYTHON3,)]
+            for expr, value in const_exprs_py3.items()
+            if value == c
+        ]
+        + [
+            [literal_to_target(expr), (REQUIRE_FLASK,)]
+            for expr, value in const_exprs_flask.items()
+            if value == c
+        ]
+    )
+    return [(ONEOF, alternatives)]
+
+
+@expression_gen
+def gen_char_selectpy3(context, c):
+    matches = []
+    for pattern, d in CHAR_PATTERNS.items():
+        for index_str, value in d.items():
+            if value == c:
+                matches.append(
+                    targets_from_pattern(pattern, {"INDEX": (INTEGER, int(index_str))})
+                )
+    if not matches:
+        return [(UNSATISFIED,)]
+    target_list = [(ONEOF, matches)]
+    return [(REQUIRE_PYTHON3,), (EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_char_selectpy2(context, c):
+    matches = []
+    for pattern, d in CHAR_PATTERNS.items():
+        if "dict" in pattern:
+            continue
+        for index_str, value in d.items():
+            if value == c:
+                matches.append(
+                    targets_from_pattern(pattern, {"INDEX": (INTEGER, int(index_str))})
+                )
+    if not matches:
+        return [(UNSATISFIED,)]
+    target_list = [(ONEOF, matches)]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_char_select(context, c):
+    d = {
+        2: "l",
+        3: "t",
+        4: ";",
+        5: "g",
+        6: "e",
+        7: "n",
+        8: "e",
+        9: "r",
+        10: "a",
+        11: "t",
+        12: "o",
+        13: "r",
+        14: " ",
+        15: "o",
+        16: "b",
+        17: "j",
+        18: "e",
+        19: "c",
+        20: "t",
+        21: " ",
+        22: "s",
+        23: "y",
+        24: "n",
+        25: "c",
+        26: "_",
+        27: "d",
+        28: "o",
+        29: "_",
+        30: "s",
+        31: "l",
+        32: "i",
+        33: "c",
+        34: "e",
+        35: " ",
+        36: "a",
+        37: "t",
+        38: " ",
+        39: "0",
+        40: "x",
+    }
+
+    if c not in d.values():
+        return [(UNSATISFIED,)]
+    matches = []
+    for index, value in d.items():
+        if value == c:
+            matches.append(
+                targets_from_pattern(
+                    "x|slice(0)|e|list|batch(INDEX)|first|last",
+                    {"0": (INTEGER, 0), "INDEX": (INTEGER, index)},
+                )
+            )
+    target_list = [(ONEOF, matches)]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_char_flaskg(context, c):
+    d = {
+        1: "&",
+        2: "l",
+        3: "t",
+        4: ";",
+        5: "f",
+        6: "l",
+        7: "a",
+        8: "s",
+        9: "k",
+        10: ".",
+        11: "g",
+        12: " ",
+        13: "o",
+        14: "f",
+    }
+    if c not in d.values():
+        return [(UNSATISFIED,)]
+    matches = []
+    for index, value in d.items():
+        if value == c:
+            matches.append(
+                targets_from_pattern(
+                    "{G}|e|batch({INDEX})|first|last",
+                    {"{G}": (FLASK_CONTEXT_VAR, "g"), "{INDEX}": (INTEGER, index)},
+                )
+            )
+    target_list = [(ONEOF, matches)]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_char_dict(context, c):
+    if not re.match("[A-Za-z]", c):
+        return [(UNSATISFIED,)]
+    target_list = [(LITERAL, f"dict({c}=x)|join")]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_char_namespacedict(context, c):
+    if not re.match("[A-Za-z]", c):
+        return [(UNSATISFIED,)]
+    target_list = [(LITERAL, f"namespace({c}=x)._Namespace__attrs|join")]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_char_num(context, c):
+    if not re.match("[0-9]", c):
+        return [(UNSATISFIED,)]
+    target_list = targets_from_pattern(
+        "INT.__str__( )",
+        {
+            "INT": (ENCLOSE_UNDER, precedence["attribute"], (INTEGER, int(c))),
+            " ": (WHITESPACE,),
+        },
+    )
+    return [(EXPRESSION, precedence["function_call"], target_list)]
+
+
+@expression_gen
+def gen_char_num2(context, c):
+    if not re.match("[0-9]", c):
+        return [(UNSATISFIED,)]
+    target_list = [
+        (
+            LITERAL,
+            "(",
+        ),
+        (INTEGER, int(c)),
+        (LITERAL, ")|string"),
+    ]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_char_lipsumdoc(context, c):
+    lipsum_doc = """Generate some lorem ipsum for the template."""
+    if c not in lipsum_doc:
+        return [(UNSATISFIED,)]
+    return [
+        (
+            EXPRESSION,
+            precedence["item"],
+            [
+                (JINJA_CONTEXT_VAR, "lipsum"),
+                (LITERAL, "["),
+                (VARIABLE_OF, "__doc__"),
+                (LITERAL, "]["),
+                (INTEGER, lipsum_doc.index(c)),
+                (LITERAL, "]"),
+            ],
+        )
+    ]
+
+
+@expression_gen
+def gen_char_cyclerdoc(cotext, c):
+    doc = """Cycle through values by yield them one at a time, then restarting
+    once the end is reached. Available as ``cycler`` in templates.
+
+    Similar to ``loop.cycle``, but can be used outside loops or across
+    multiple loops. For example, render a list of folders and files in a
+    list, alternating giving them "odd" and "even" classes.
+
+    .. code-block:: html+jinja
+
+        {% set row_class = cycler("odd", "even") %}
+        <ul class="browser">
+        {% for folder in folders %}
+          <li class="folder {{ row_class.next() }}">{{ folder }}
+        {% endfor %}
+        {% for file in files %}
+          <li class="file {{ row_class.next() }}">{{ file }}
+        {% endfor %}
+        </ul>
+
+    :param items: Each positional argument will be yielded in the order
+        given for each cycle.
+
+    .. versionadded:: 2.1
+    """
+    alternatives = []
+    for i, ch in enumerate(doc):
+        if ch == c:
+            alternatives += [
+                [(LITERAL, f"cycler.__doc__[{i}]")],
+                [(LITERAL, f"cycler.__doc__|batch({i+1})|first|last")],
+            ]
+        if len(alternatives) > 100:  # for perfomance
+            break
+    target_list = [(ONEOF, alternatives)]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_char_cycledoc2(context, c):
+    doc = """Cycle through values by yield them one at a time, then restarting
+    once the end is reached. Available as ``cycler`` in templates.
+
+    Similar to ``loop.cycle``, but can be used outside loops or across
+    multiple loops. For example, render a list of folders and files in a
+    list, alternating giving them "odd" and "even" classes.
+
+    .. code-block:: html+jinja
+
+        {% set row_class = cycler("odd", "even") %}
+        <ul class="browser">
+        {% for folder in folders %}
+          <li class="folder {{ row_class.next() }}">{{ folder }}
+        {% endfor %}
+        {% for file in files %}
+          <li class="file {{ row_class.next() }}">{{ file }}
+        {% endfor %}
+        </ul>
+
+    :param items: Each positional argument will be yielded in the order
+        given for each cycle.
+
+    .. versionadded:: 2.1
+    """
+    if c not in doc:
+        return [(UNSATISFIED,)]
+    return [
+        (
+            EXPRESSION,
+            precedence["item"],
+            [
+                (JINJA_CONTEXT_VAR, "cycler"),
+                (LITERAL, "["),
+                (VARIABLE_OF, "__doc__"),
+                (LITERAL, "]["),
+                (INTEGER, doc.index(c)),
+                (LITERAL, "]"),
+            ],
+        )
+    ]
+
+
+@expression_gen
+def gen_char_format(cotext, c):
+    if ord(c) > 256:
+        return [(UNSATISFIED,)]
+    return [
+        (
+            EXPRESSION,
+            precedence["mod"],
+            [
+                (ENCLOSE_UNDER, precedence["mod"], (STRING_PERCENT_LOWER_C,)),
+                (LITERAL, "%"),
+                (ENCLOSE_UNDER, precedence["mod"], (INTEGER, ord(c))),
+            ],
+        )
+    ]
+
+
+# ---
+
+
+@expression_gen
 def gen_string_lower_c_literal1(context):
     return [(EXPRESSION, precedence["literal"], [(LITERAL, "'c'")])]
 
@@ -150,6 +473,9 @@ def gen_string_lower_c_classbatch2(context):
     )
     return [(EXPRESSION, precedence["filter"], targets)]
 
+@expression_gen
+def gen_string_lower_c_char(context):
+    return [(CHAR, "c")]
 
 # ---
 
@@ -532,6 +858,10 @@ def gen_string_percent_replaceformat3(context):
     return [(EXPRESSION, precedence["function_call"], target_list), (REQUIRE_PYTHON3,)]
 
 
+
+@expression_gen
+def gen_string_percent_char(context):
+    return [(CHAR, "%")]
 # ---
 
 
@@ -807,6 +1137,10 @@ def gen_string_underline_gget(context):
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
+@expression_gen
+def gen_string_underline_char(context):
+    return [(CHAR, "_")]
+
 # ---
 
 
@@ -892,340 +1226,5 @@ def gen_string_many_format_c_complex(context, num):
             MULTIPLY,
             (EXPRESSION, precedence["filter"], fomat_c_target_list),
             (INTEGER, num),
-        )
-    ]
-
-
-# ---
-
-
-@expression_gen
-def gen_char_literal1(context, c):
-    target_list = [(LITERAL, f"'{c}'" if c != "'" and c != "\\" else "'\\" + c + "'")]
-    return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-@expression_gen
-def gen_char_literal2(context, c):
-    target_list = [(LITERAL, f'"{c}"' if c != '"' and c != "\\" else '"\\' + c + '"')]
-    return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-@expression_gen
-def gen_char_underline(context, c):
-    target_list = [(UNSATISFIED,)] if c != "_" else [(STRING_UNDERLINE,)]
-    return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-@expression_gen
-def gen_char_percent(context, c):
-    target_list = [(UNSATISFIED,)] if c != "%" else [(STRING_PERCENT,)]
-    return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-@expression_gen
-def gen_char_contextvars(context, c):
-    alternatives = (
-        [[literal_to_target(expr)] for expr, value in const_exprs.items() if value == c]
-        + [
-            [literal_to_target(expr), (REQUIRE_PYTHON3,)]
-            for expr, value in const_exprs_py3.items()
-            if value == c
-        ]
-        + [
-            [literal_to_target(expr), (REQUIRE_FLASK,)]
-            for expr, value in const_exprs_flask.items()
-            if value == c
-        ]
-    )
-    return [(ONEOF, alternatives)]
-
-
-@expression_gen
-def gen_char_selectpy3(context, c):
-    matches = []
-    for pattern, d in CHAR_PATTERNS.items():
-        for index_str, value in d.items():
-            if value == c:
-                matches.append(
-                    targets_from_pattern(pattern, {"INDEX": (INTEGER, int(index_str))})
-                )
-    if not matches:
-        return [(UNSATISFIED,)]
-    target_list = [(ONEOF, matches)]
-    return [(REQUIRE_PYTHON3,), (EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
-def gen_char_selectpy2(context, c):
-    matches = []
-    for pattern, d in CHAR_PATTERNS.items():
-        if "dict" in pattern:
-            continue
-        for index_str, value in d.items():
-            if value == c:
-                matches.append(
-                    targets_from_pattern(pattern, {"INDEX": (INTEGER, int(index_str))})
-                )
-    if not matches:
-        return [(UNSATISFIED,)]
-    target_list = [(ONEOF, matches)]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
-def gen_char_select(context, c):
-    d = {
-        2: "l",
-        3: "t",
-        4: ";",
-        5: "g",
-        6: "e",
-        7: "n",
-        8: "e",
-        9: "r",
-        10: "a",
-        11: "t",
-        12: "o",
-        13: "r",
-        14: " ",
-        15: "o",
-        16: "b",
-        17: "j",
-        18: "e",
-        19: "c",
-        20: "t",
-        21: " ",
-        22: "s",
-        23: "y",
-        24: "n",
-        25: "c",
-        26: "_",
-        27: "d",
-        28: "o",
-        29: "_",
-        30: "s",
-        31: "l",
-        32: "i",
-        33: "c",
-        34: "e",
-        35: " ",
-        36: "a",
-        37: "t",
-        38: " ",
-        39: "0",
-        40: "x",
-    }
-
-    if c not in d.values():
-        return [(UNSATISFIED,)]
-    matches = []
-    for index, value in d.items():
-        if value == c:
-            matches.append(
-                targets_from_pattern(
-                    "x|slice(0)|e|list|batch(INDEX)|first|last",
-                    {"0": (INTEGER, 0), "INDEX": (INTEGER, index)},
-                )
-            )
-    target_list = [(ONEOF, matches)]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
-def gen_char_flaskg(context, c):
-    d = {
-        1: "&",
-        2: "l",
-        3: "t",
-        4: ";",
-        5: "f",
-        6: "l",
-        7: "a",
-        8: "s",
-        9: "k",
-        10: ".",
-        11: "g",
-        12: " ",
-        13: "o",
-        14: "f",
-    }
-    if c not in d.values():
-        return [(UNSATISFIED,)]
-    matches = []
-    for index, value in d.items():
-        if value == c:
-            matches.append(
-                targets_from_pattern(
-                    "{G}|e|batch({INDEX})|first|last",
-                    {"{G}": (FLASK_CONTEXT_VAR, "g"), "{INDEX}": (INTEGER, index)},
-                )
-            )
-    target_list = [(ONEOF, matches)]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
-def gen_char_dict(context, c):
-    if not re.match("[A-Za-z]", c):
-        return [(UNSATISFIED,)]
-    target_list = [(LITERAL, f"dict({c}=x)|join")]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
-def gen_char_namespacedict(context, c):
-    if not re.match("[A-Za-z]", c):
-        return [(UNSATISFIED,)]
-    target_list = [(LITERAL, f"namespace({c}=x)._Namespace__attrs|join")]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
-def gen_char_num(context, c):
-    if not re.match("[0-9]", c):
-        return [(UNSATISFIED,)]
-    target_list = targets_from_pattern(
-        "INT.__str__( )",
-        {
-            "INT": (ENCLOSE_UNDER, precedence["attribute"], (INTEGER, int(c))),
-            " ": (WHITESPACE,),
-        },
-    )
-    return [(EXPRESSION, precedence["function_call"], target_list)]
-
-
-@expression_gen
-def gen_char_num2(context, c):
-    if not re.match("[0-9]", c):
-        return [(UNSATISFIED,)]
-    target_list = [
-        (
-            LITERAL,
-            "(",
-        ),
-        (INTEGER, int(c)),
-        (LITERAL, ")|string"),
-    ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
-def gen_char_lipsumdoc(context, c):
-    lipsum_doc = """Generate some lorem ipsum for the template."""
-    if c not in lipsum_doc:
-        return [(UNSATISFIED,)]
-    return [
-        (
-            EXPRESSION,
-            precedence["item"],
-            [
-                (JINJA_CONTEXT_VAR, "lipsum"),
-                (LITERAL, "["),
-                (VARIABLE_OF, "__doc__"),
-                (LITERAL, "]["),
-                (INTEGER, lipsum_doc.index(c)),
-                (LITERAL, "]"),
-            ],
-        )
-    ]
-
-
-@expression_gen
-def gen_char_cyclerdoc(cotext, c):
-    doc = """Cycle through values by yield them one at a time, then restarting
-    once the end is reached. Available as ``cycler`` in templates.
-
-    Similar to ``loop.cycle``, but can be used outside loops or across
-    multiple loops. For example, render a list of folders and files in a
-    list, alternating giving them "odd" and "even" classes.
-
-    .. code-block:: html+jinja
-
-        {% set row_class = cycler("odd", "even") %}
-        <ul class="browser">
-        {% for folder in folders %}
-          <li class="folder {{ row_class.next() }}">{{ folder }}
-        {% endfor %}
-        {% for file in files %}
-          <li class="file {{ row_class.next() }}">{{ file }}
-        {% endfor %}
-        </ul>
-
-    :param items: Each positional argument will be yielded in the order
-        given for each cycle.
-
-    .. versionadded:: 2.1
-    """
-    alternatives = []
-    for i, ch in enumerate(doc):
-        if ch == c:
-            alternatives += [
-                [(LITERAL, f"cycler.__doc__[{i}]")],
-                [(LITERAL, f"cycler.__doc__|batch({i+1})|first|last")],
-            ]
-        if len(alternatives) > 100:  # for perfomance
-            break
-    target_list = [(ONEOF, alternatives)]
-    return [(EXPRESSION, precedence["filter"], target_list)]
-
-
-@expression_gen
-def gen_char_cycledoc2(context, c):
-    doc = """Cycle through values by yield them one at a time, then restarting
-    once the end is reached. Available as ``cycler`` in templates.
-
-    Similar to ``loop.cycle``, but can be used outside loops or across
-    multiple loops. For example, render a list of folders and files in a
-    list, alternating giving them "odd" and "even" classes.
-
-    .. code-block:: html+jinja
-
-        {% set row_class = cycler("odd", "even") %}
-        <ul class="browser">
-        {% for folder in folders %}
-          <li class="folder {{ row_class.next() }}">{{ folder }}
-        {% endfor %}
-        {% for file in files %}
-          <li class="file {{ row_class.next() }}">{{ file }}
-        {% endfor %}
-        </ul>
-
-    :param items: Each positional argument will be yielded in the order
-        given for each cycle.
-
-    .. versionadded:: 2.1
-    """
-    if c not in doc:
-        return [(UNSATISFIED,)]
-    return [
-        (
-            EXPRESSION,
-            precedence["item"],
-            [
-                (JINJA_CONTEXT_VAR, "cycler"),
-                (LITERAL, "["),
-                (VARIABLE_OF, "__doc__"),
-                (LITERAL, "]["),
-                (INTEGER, doc.index(c)),
-                (LITERAL, "]"),
-            ],
-        )
-    ]
-
-
-@expression_gen
-def gen_char_format(cotext, c):
-    if ord(c) > 256:
-        return [(UNSATISFIED,)]
-    return [
-        (
-            EXPRESSION,
-            precedence["mod"],
-            [
-                (ENCLOSE_UNDER, precedence["mod"], (STRING_PERCENT_LOWER_C,)),
-                (LITERAL, "%"),
-                (ENCLOSE_UNDER, precedence["mod"], (INTEGER, ord(c))),
-            ],
         )
     ]
