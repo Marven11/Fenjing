@@ -622,25 +622,10 @@ def gen_positive_integer_constexpr(context: dict, value: int):
 
 
 @expression_gen
-def gen_positive_integer_constexprsplit(context: dict, value: int):
-    ints = set(const_exprs_all.values())
-    if value < 10 or all(value < x for x in ints):
-        return [(UNSATISFIED,)]
-    alternatives_mul = []
-    alternatives_mulplus = []
-    for x in ints:
-        if x == 1 or value < x:
-            continue
-        if value % x == 0:
-            alternatives_mul.append([(MULTIPLY, (INTEGER, x), (INTEGER, value // x))])
-    return [(ONEOF, alternatives_mul + alternatives_mulplus)]
-
-
-@expression_gen
 def gen_positive_integer_constexprsumoflength1(context: dict, value: int):
     if value > 16 or value == 1:
         return [(UNSATISFIED,)]
-    target_length1 = (ONEOF, [[(INTEGER, x)] for x in range(9)])
+    target_length1 = (ONEOF, [[(INTEGER, x)] for x in range(10)])
     return [
         (
             ENCLOSE,
