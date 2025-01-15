@@ -34,6 +34,7 @@ if sys.version_info >= (3, 8):
     WhiteSpaceTarget = Tuple[Literal["whitespace"]]
 
     StringConcatTarget = Tuple[Literal["string_string_concat"],]
+    StringConcatManyTarget = Tuple[Literal["string_concatmany"], List["Target"]]
     StringPercentTarget = Tuple[Literal["string_percent"],]
     StringPercentLowerCTarget = Tuple[Literal["string_percent_lower_c"],]
     StringUnderlineTarget = Tuple[Literal["string_underline"],]
@@ -76,6 +77,7 @@ if sys.version_info >= (3, 8):
         IntegerTarget,
         WhiteSpaceTarget,
         StringConcatTarget,
+        StringConcatManyTarget,
         StringPercentTarget,
         StringPercentLowerCTarget,
         StringUnderlineTarget,
