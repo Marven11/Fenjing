@@ -26,3 +26,38 @@ def gen_listify_filter(context, target):
         "{1:OBJ}|items|list|map('last')|list",
         {"1": (INTEGER, 1), "OBJ": target, "'last'": (STRING, "last")},
     )
+
+@expression_gen
+def gen_map_attr_normal(context, obj, name):
+    targets =  targets_from_pattern(
+        "OBJ|map('attr','name')",
+        {
+            "OBJ": (ENCLOSE_UNDER, precedence["filter"], obj),
+            "'attr'": (STRING, "attr"),
+            "'name'": (STRING, name)
+        }
+    )
+    return [(EXPRESSION, precedence["filter"], targets)]
+
+@expression_gen
+def gen_map_attr_normal2(context, obj, name):
+    targets =  targets_from_pattern(
+        "OBJ|map(attribute='name')",
+        {
+            "OBJ": (ENCLOSE_UNDER, precedence["filter"], obj),
+            "'name'": (STRING, name)
+        }
+    )
+    return [(EXPRESSION, precedence["filter"], targets)]
+
+@expression_gen
+def gen_map_attr_dict(context, obj, name):
+    targets =  targets_from_pattern(
+        "OBJ|map(**{'attribute':'name'})",
+        {
+            "OBJ": (ENCLOSE_UNDER, precedence["filter"], obj),
+            "'attribute'": (STRING, "attribute"),
+            "'name'": (STRING, name)
+        }
+    )
+    return [(EXPRESSION, precedence["filter"], targets)]
