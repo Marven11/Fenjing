@@ -473,11 +473,9 @@ def gen_string_lower_c_classbatch2(context):
     )
     return [(EXPRESSION, precedence["filter"], targets)]
 
-
 @expression_gen
 def gen_string_lower_c_char(context):
     return [(CHAR, "c")]
-
 
 # ---
 
@@ -860,11 +858,10 @@ def gen_string_percent_replaceformat3(context):
     return [(EXPRESSION, precedence["function_call"], target_list), (REQUIRE_PYTHON3,)]
 
 
+
 @expression_gen
 def gen_string_percent_char(context):
     return [(CHAR, "%")]
-
-
 # ---
 
 
@@ -1144,7 +1141,6 @@ def gen_string_underline_gget(context):
 def gen_string_underline_char(context):
     return [(CHAR, "_")]
 
-
 # ---
 
 
@@ -1232,29 +1228,3 @@ def gen_string_many_format_c_complex(context, num):
             (INTEGER, num),
         )
     ]
-
-
-@expression_gen
-def gen_string_many_format_c_dict(context, num):
-    args = targets_from_pattern(
-        "(' '~(e|pprint)~'c')|batch(LEN)|map('join')",
-        {
-            "'c'": (CHAR, "c"),
-            "' '": (ENCLOSE_UNDER, precedence["tilde"], (CHAR, " ")),
-            "LEN": (INTEGER, len(" Undefined")),
-            "'join'": (STRING_CONCATMANY, [
-                (CHAR, "j"),
-                (CHAR, "o"),
-                (CHAR, "i"),
-                (CHAR, "n"),
-            ])
-        }
-    )
-    return targets_from_pattern(
-        "({0:x}|e|replace(*(ARGS)))*NUM",
-        {
-            "NUM": (ENCLOSE_UNDER, precedence["multiply"], (INTEGER, num)),
-            "0": (INTEGER, 0),
-            "ARGS": args
-        },
-    )
