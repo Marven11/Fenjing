@@ -2,7 +2,7 @@ import random
 import string
 
 # pylint: disable=wildcard-import,unused-wildcard-import,missing-function-docstring,unused-argument
-
+from ..rules_utils import targets_from_pattern
 from ..payload_gen import expression_gen, precedence
 
 from ..const import *
@@ -156,6 +156,30 @@ def gen_import_func_general(context):
 @expression_gen
 def gen_eval_func_general(context):
     return [(ITEM, (BUILTINS_DICT,), "eval")]
+
+
+@expression_gen
+def gen_eval_func_mapfilter(context):
+    pattern = (
+        "{e|e:e}|map(**{'attribute':'__add__'})|map(**{'attribute':'__globals__'})"
+        "|map(**{'attribute':'__builtins__'})|map(**{'attribute':'eval'})|first"
+    )
+    return [
+        (
+            EXPRESSION,
+            precedence["filter"],
+            targets_from_pattern(
+                pattern,
+                {
+                    "'attribute'": (GENERATED_EXPR, (STRING, "attribute")),
+                    "'__add__'": (GENERATED_EXPR, (STRING, "__add__")),
+                    "'__globals__'": (GENERATED_EXPR, (STRING, "__globals__")),
+                    "'__builtins__'": (GENERATED_EXPR, (STRING, "__builtins__")),
+                    "'eval'": (GENERATED_EXPR, (STRING, "eval")),
+                },
+            ),
+        )
+    ]
 
 
 # ---

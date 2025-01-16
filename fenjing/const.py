@@ -262,6 +262,10 @@ EXTRA_TARGETS = [
     (STRING, "to_bytes"),
     (STRING, "decode"),
     (STRING, "attribute"),
+    (STRING, "__add__"),
+    (STRING, "__globals__"),
+    (STRING, "__builtins__"),
+    (STRING, "eval"),
 ]
 
 # charcodes that not supported by python3.2 are removed.
