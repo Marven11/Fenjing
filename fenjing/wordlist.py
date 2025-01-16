@@ -837,8 +837,42 @@ HTTP_PARAMS_LIST = [
 ]
 
 # e|unique|e differ through versions
+# TODO: add more patterns base on these
 
 CHAR_PATTERNS = {
+    "a|batch(INDEX)|string|batch(INDEX)|first|last": {
+        "2": "g",
+        "3": "e",
+        "4": "n",
+        "5": "e",
+        "6": "r",
+        "7": "a",
+        "8": "t",
+        "9": "o",
+        "10": "r",
+        "11": " ",
+        "12": "o",
+        "13": "b",
+        "14": "j",
+        "15": "e",
+        "16": "c",
+        "17": "t",
+        "18": " ",
+        "19": "d",
+        "20": "o",
+        "21": "_",
+        "22": "b",
+        "23": "a",
+        "24": "t",
+        "25": "c",
+        "26": "h",
+        "27": " ",
+        "28": "a",
+        "29": "t",
+        "30": " ",
+        "31": "0",
+        "32": "x",
+    },
     "x|map|string|batch(INDEX)|first|last": {
         "2": "g",
         "3": "e",
