@@ -11,11 +11,11 @@ from ..rules_utils import (
 )
 from ..rules_types import *
 from ..const import *
-from ..context_vars import const_exprs, const_exprs_py3, const_exprs_flask
+from ..context_vars import const_exprs, const_exprs_py3
 
 const_exprs_all = {
     k: v
-    for d in [const_exprs, const_exprs_py3, const_exprs_flask]
+    for d in [const_exprs, const_exprs_py3]
     for k, v in d.items()
     if isinstance(v, int)
 }
@@ -615,11 +615,6 @@ def gen_positive_integer_constexpr(context: dict, value: int):
         + [
             [literal_to_target(k), (REQUIRE_PYTHON3,)]
             for k, v in const_exprs_py3.items()
-            if v == value
-        ]
-        + [
-            [literal_to_target(k), (REQUIRE_FLASK,)]
-            for k, v in const_exprs_flask.items()
             if v == value
         ]
     )

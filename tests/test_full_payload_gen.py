@@ -64,7 +64,7 @@ class FullPayloadGenTestCaseSimple(unittest.TestCase):
             # cause the stupid type checker thinks the 'payload' below would still be None
             resp = self.subm.submit(payload)
             assert resp is not None
-            self.assertIn(string, resp.text)
+            self.assertIn(string, resp.text, f"Test {string!r} failed with payload {payload!r}")
             for word in self.blacklist:
                 self.assertNotIn(word, payload)
 

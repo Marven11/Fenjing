@@ -9,7 +9,7 @@ import os
 import requests
 
 import fenjing
-from fenjing.context_vars import const_exprs, const_exprs_py3, const_exprs_flask
+from fenjing.context_vars import const_exprs, const_exprs_py3
 
 from jinja2 import Template
 
@@ -27,11 +27,3 @@ class ContextVarsTests(unittest.TestCase):
             )
             result = Template(payload).render()
             assert "yes" in result, f"Test Failed for {k!r}"
-
-    def test_const_exprs_flask(self):
-        for k, v in const_exprs_flask.items():
-            payload = "{%if (EXPR)==(VALUE)%}yes{%endif%}".replace("EXPR", k).replace(
-                "VALUE", repr(v)
-            )
-            r = requests.get(VULUNSERVER_ADDR, params={"name": payload}, timeout=1)
-            assert "yes" in r.text, f"Test Failed for {k!r}"

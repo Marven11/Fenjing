@@ -13,7 +13,7 @@ from ..rules_types import *
 from ..const import *
 from ..wordlist import CHAR_PATTERNS
 
-from ..context_vars import const_exprs, const_exprs_flask, const_exprs_py3
+from ..context_vars import const_exprs, const_exprs_py3
 
 
 # ---
@@ -38,11 +38,6 @@ def gen_char_contextvars(context, c):
         + [
             [literal_to_target(expr), (REQUIRE_PYTHON3,)]
             for expr, value in const_exprs_py3.items()
-            if value == c
-        ]
-        + [
-            [literal_to_target(expr), (REQUIRE_FLASK,)]
-            for expr, value in const_exprs_flask.items()
             if value == c
         ]
     )

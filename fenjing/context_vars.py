@@ -150,15 +150,6 @@ const_exprs_py3 = {
     "{}|escape|urlencode|list|escape|urlencode|count": 178,
 }
 
-const_exprs_flask = {
-    "g|e|first|count": 1,
-    "g|e|first|length": 1,
-    "g|pprint|count": 18,
-    "g|pprint|pprint|pprint|pprint|count": 32,
-    "g|pprint|pprint|pprint|pprint|pprint|pprint|count": 80,
-    "g|pprint|pprint|pprint|pprint|pprint|pprint|pprint|count": 150,
-}
-
 digit_looks_similiar = {
     "0": "o",
     "1": "i",
@@ -410,8 +401,6 @@ def get_context_vars_manager(waf: WafFunc, options: Options) -> ContextVariableM
     exprs = const_exprs.copy()
     if options.python_version == PythonEnvironment.PYTHON3:
         exprs.update(const_exprs_py3)
-    if options.environment == TemplateEnvironment.FLASK:
-        exprs.update(const_exprs_flask)
     with pbar_manager.pbar(
         list(exprs.items()), "get_context_vars_manager"
     ) as exprs_items:
