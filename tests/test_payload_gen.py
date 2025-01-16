@@ -328,4 +328,5 @@ class WordlistTest(unittest.TestCase):
                     "EXPR", expr
                 ).replace("VALUE", repr(c))
                 result = Template(payload).render()
-                assert "yes" in result, f"Test {pattern!r} at {i} failed, {result=}"
+                result_test = Template("{{e|unique|e}}").render()
+                assert "yes" in result, f"Test {pattern!r} at {i} failed, {result=} {result_test=}"
