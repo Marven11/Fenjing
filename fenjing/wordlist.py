@@ -836,6 +836,8 @@ HTTP_PARAMS_LIST = [
     "zoom",
 ]
 
+# e|unique|e differ through versions
+
 CHAR_PATTERNS = {
     "x|map|string|batch(INDEX)|first|last": {
         "2": "g",
@@ -872,41 +874,6 @@ CHAR_PATTERNS = {
         "33": " ",
         "34": "0",
         "35": "x",
-    },
-    "e|unique|e|list|batch(INDEX)|first|last": {
-        "2": "l",
-        "3": "t",
-        "4": ";",
-        "5": "g",
-        "6": "e",
-        "7": "n",
-        "8": "e",
-        "9": "r",
-        "10": "a",
-        "11": "t",
-        "12": "o",
-        "13": "r",
-        "14": " ",
-        "15": "o",
-        "16": "b",
-        "17": "j",
-        "18": "e",
-        "19": "c",
-        "20": "t",
-        "21": " ",
-        "22": "d",
-        "23": "o",
-        "24": "_",
-        "25": "u",
-        "26": "n",
-        "27": "i",
-        "28": "q",
-        "29": "u",
-        "30": "e",
-        "31": " ",
-        "32": "a",
-        "33": "t",
-        "34": " ",
     },
     "e|map(e)|e|list|batch(INDEX)|first|last": {
         "2": "l",
