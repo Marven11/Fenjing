@@ -73,6 +73,7 @@ def expression_gen(f: ExpressionGenerator):
     if not gen_type:
         raise RuntimeError(f"Error found when register payload generator {f.__name__}")
     expression_gens[gen_type.group(1)].append(f)
+    return f
 
 
 class CacheByRepr:
