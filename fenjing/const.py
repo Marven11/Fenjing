@@ -44,7 +44,7 @@ MOD = "mod"
 FUNCTION_CALL = "function_call"
 STRING_CONCAT = "string_concat"
 STRING_CONCATMANY = "string_concatmany"
-LISTIFY = "listify" # 将对象放入list中
+LISTIFY = "listify"  # 将对象放入list中
 MAP_ATTR = "map_attr"
 
 VARIABLE_OF = "variable_of"
@@ -132,6 +132,7 @@ class DetectWafKeywords(Enum):
     FULL = "full"
     FAST = "fast"
     NONE = "none"
+
 
 WafFunc = Callable[[str], bool]
 
@@ -253,6 +254,14 @@ DANGEROUS_KEYWORDS = [
     "|",
     "}}",
     "~",
+]
+
+# all targets needed by rules using GENERATED_EXPR
+EXTRA_TARGETS = [
+    (STRING, "attr"),
+    (STRING, "to_bytes"),
+    (STRING, "decode"),
+    (STRING, "attribute"),
 ]
 
 # charcodes that not supported by python3.2 are removed.

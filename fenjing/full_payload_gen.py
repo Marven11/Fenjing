@@ -20,6 +20,7 @@ from .const import (
     INTEGER,
     OS_POPEN_READ,
     EVAL,
+    EXTRA_TARGETS,
     WafFunc,
 )
 from .options import Options
@@ -162,6 +163,7 @@ class FullPayloadGen:
         - 过滤所有可用的payload，在所有形如`{%set xxx%}`的payload中找出可以通过WAF的payload
         - 事先生成一系列字符串的表达式并使用set设置
         - 基于上面的内容产生payload_gen实例
+        - 事先生成一系列表达式以供其他规则使用
 
         Returns:
             bool: 是否生成成功，失败则无法生成payload。
@@ -190,6 +192,7 @@ class FullPayloadGen:
             options=self.options,
             waf_expr_func=self.waf_expr_func,
         )
+        self.prepare_exprs()
         self.prepared = True
         self.callback(
             CALLBACK_PREPARE_FULLPAYLOADGEN,
@@ -229,7 +232,7 @@ class FullPayloadGen:
             return "failed"
         expression, used_context, _ = ret
 
-        if len(expression) - len(repr(value)) < 3 or '(' not in expression:
+        if len(expression) - len(repr(value)) < 3 or "(" not in expression:
             logger.info(
                 "Generated expression %s is too simple, skip it.",
                 colored("blue", expression),
@@ -340,7 +343,9 @@ class FullPayloadGen:
                     continue
                 result = self.try_add_context_var(target, clean_cache=False)
                 if result == "failed":
-                    logger.warning("Failed generating %s", colored("yellow", repr(target)))
+                    logger.warning(
+                        "Failed generating %s", colored("yellow", repr(target))
+                    )
                     continue
                 if result == "success":
                     self.added_extra_context_vars.add(target)
@@ -379,6 +384,16 @@ class FullPayloadGen:
             return False
         self.payload_gen.context = self.context_vars.get_context()
         return True
+
+    def prepare_exprs(self):
+        if not self.payload_gen:
+            raise RuntimeError("Please run .do_prepare() first")
+
+        with pbar_manager.pbar(EXTRA_TARGETS, "prepare_exprs") as targets:
+            for target in targets:
+                self.payload_gen.add_generated_expr(
+                    target, self.payload_gen.generate_detailed(*target)
+                )
 
     def generate_with_tree(
         self, gen_type, *args
