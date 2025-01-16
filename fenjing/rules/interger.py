@@ -277,7 +277,7 @@ def gen_positive_integer_octunderline(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_sum(context: dict, value: int):
-    if value < 0:
+    if value < 0 or value > 1000:
         return [(UNSATISFIED,)]
 
     ints = [
@@ -305,6 +305,8 @@ def gen_positive_integer_sum(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_recurmulitiply(context: dict, value: int):
+    if value > 1000:
+        return [(UNSATISFIED, )]
     xs = [x for x in range(3, value // 2) if value % x == 0]
     xs.sort(key=lambda x: max(x, value // x))
     if xs == [] or value < 20:
@@ -329,7 +331,7 @@ def gen_positive_integer_recurmulitiply(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_recurmultiply2(context: dict, value: int):
-    if value <= 20:
+    if value <= 20 or value > 1000:
         return [(UNSATISFIED,)]
     alternatives = []
     for i in range(9, 3, -1):
@@ -355,7 +357,7 @@ def gen_positive_integer_recurmultiply2(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_recurmulnoastral(context: dict, value: int):
-    if value <= 20:
+    if value <= 20 or value > 1000:
         return [(UNSATISFIED,)]
     alternatives = []
     pieces_max = int(math.sqrt(value)) + 2
@@ -483,7 +485,7 @@ def gen_positive_integer_length(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_numbersum1(context: dict, value: int):
-    if value < 5:
+    if value < 5 or value > 1000:
         return [(UNSATISFIED,)]
     alternative = []
     for i in range(min(40, value - 1), 3, -1):
@@ -499,7 +501,7 @@ def gen_positive_integer_numbersum1(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_numbersum2(context: dict, value: int):
-    if value < 5:
+    if value < 5 or value > 1000:
         return [(UNSATISFIED,)]
     alternatives = []
     for i in range(min(40, value - 1), 3, -1):
@@ -694,6 +696,8 @@ def gen_integer_negative(context: dict, value: int):
 
 @expression_gen
 def gen_integer_subtract(context: dict, value: int):
+    if value > 1000:
+        return [(UNSATISFIED, )]
     ints = [
         (var_name, var_value)
         for var_name, var_value in context.items()
