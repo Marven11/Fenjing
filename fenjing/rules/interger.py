@@ -126,7 +126,13 @@ def gen_zero_2(context: dict):
 
 @expression_gen
 def gen_zero_3(context: dict):
-    return [(EXPRESSION, precedence["filter"], [(LITERAL, "g|urlencode|length")])]
+    return [
+        (
+            EXPRESSION,
+            precedence["filter"],
+            [(LITERAL, "g|urlencode|length"), (REQUIRE_FLASK,)],
+        )
+    ]
 
 
 @expression_gen
@@ -389,6 +395,7 @@ def gen_positive_integer_lengthything(context: dict, value: int):
         ONEOF,
         [
             [(LITERAL, "dict({}=x)|join".format("x" * value))],
+            [(LITERAL, "({})".format(",".join("x" * value)))],
             [(LITERAL, "cycler({}).items".format(",".join("x" * value)))],
         ],
     )
