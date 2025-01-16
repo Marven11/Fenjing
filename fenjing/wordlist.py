@@ -840,6 +840,28 @@ HTTP_PARAMS_LIST = [
 # TODO: add more patterns base on these
 
 CHAR_PATTERNS = {
+    "e|pprint|reverse|title|batch(INDEX)|first|last": {
+        "1": "D",
+        "2": "e",
+        "3": "n",
+        "4": "i",
+        "5": "f",
+        "6": "e",
+        "7": "d",
+        "8": "n",
+        "9": "u",
+    },
+    "e|pprint|lower|batch(INDEX)|first|last": {
+        "1": "u",
+        "2": "n",
+        "3": "d",
+        "4": "e",
+        "5": "f",
+        "6": "i",
+        "7": "n",
+        "8": "e",
+        "9": "d",
+    },
     "e|slice(INDEX)|string|batch(INDEX)|first|last": {
         "2": "g",
         "3": "e",

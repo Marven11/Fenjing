@@ -33,14 +33,13 @@ def gen_char_literal2(context, c):
 
 @expression_gen
 def gen_char_contextvars(context, c):
-    alternatives = (
-        [[literal_to_target(expr)] for expr, value in const_exprs.items() if value == c]
-        + [
-            [literal_to_target(expr), (REQUIRE_PYTHON3,)]
-            for expr, value in const_exprs_py3.items()
-            if value == c
-        ]
-    )
+    alternatives = [
+        [literal_to_target(expr)] for expr, value in const_exprs.items() if value == c
+    ] + [
+        [literal_to_target(expr), (REQUIRE_PYTHON3,)]
+        for expr, value in const_exprs_py3.items()
+        if value == c
+    ]
     return [(ONEOF, alternatives)]
 
 
@@ -451,9 +450,11 @@ def gen_string_lower_c_classbatch2(context):
     )
     return [(EXPRESSION, precedence["filter"], targets)]
 
+
 @expression_gen
 def gen_string_lower_c_char(context):
     return [(CHAR, "c")]
+
 
 # ---
 
@@ -836,10 +837,11 @@ def gen_string_percent_replaceformat3(context):
     return [(EXPRESSION, precedence["function_call"], target_list), (REQUIRE_PYTHON3,)]
 
 
-
 @expression_gen
 def gen_string_percent_char(context):
     return [(CHAR, "%")]
+
+
 # ---
 
 
@@ -1118,6 +1120,7 @@ def gen_string_underline_gget(context):
 @expression_gen
 def gen_string_underline_char(context):
     return [(CHAR, "_")]
+
 
 # ---
 
