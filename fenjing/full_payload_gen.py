@@ -192,7 +192,8 @@ class FullPayloadGen:
             options=self.options,
             waf_expr_func=self.waf_expr_func,
         )
-        self.prepare_exprs()
+        if self.options.detect_mode == DetectMode.ACCURATE:
+            self.prepare_exprs()
         self.prepared = True
         self.callback(
             CALLBACK_PREPARE_FULLPAYLOADGEN,
