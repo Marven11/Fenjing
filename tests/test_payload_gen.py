@@ -4,6 +4,7 @@ sys.path.append("..")  # noqa
 
 import unittest
 import fenjing
+import string
 
 
 from fenjing.payload_gen import PayloadGenerator, expression_gens
@@ -191,8 +192,8 @@ class PayloadGenTestCaseSimple(unittest.TestCase):
             "__dunder__",
             "__import__('os').popen('echo test_command/$(ls / | base64 -w)').read()",
         ]
-        for string in strings:
-            self.assertIsNotNone(self.payload_gen.generate(const.STRING, string))
+        for target_string in strings:
+            self.assertIsNotNone(self.payload_gen.generate(const.STRING, target_string))
 
     def test_os_popen_read(self):
         self.assertIsNotNone(
@@ -225,8 +226,8 @@ class PayloadGenTestCaseNoNumber(unittest.TestCase):
             "__dunder__",
             "__import__('os').popen('echo test_command/$(ls / | base64 -w)').read()",
         ]
-        for string in strings:
-            self.assertIsNotNone(self.payload_gen.generate(const.STRING, string))
+        for target_string in strings:
+            self.assertIsNotNone(self.payload_gen.generate(const.STRING, target_string))
 
     def test_os_popen_read(self):
         self.assertIsNotNone(
@@ -301,15 +302,15 @@ class PayloadGenTestCaseHard(unittest.TestCase):
             self.assertIsNotNone(result, repr(target))
 
     def test_string(self):
-        strings = [
-            "123",
-            "asdf",
+        test_strings = [
+            string.digits,
+            string.ascii_lowercase,
             "__dunder__",
             "__import__('os').popen('echo test_command/$(ls / | base64 -w)').read()",
         ]
-        for string in strings:
+        for target_string in test_strings:
             self.assertIsNotNone(
-                self.payload_gen.generate(const.STRING, string), string
+                self.payload_gen.generate(const.STRING, target_string), target_string
             )
 
     def test_os_popen_read(self):
@@ -327,4 +328,4 @@ class WordlistTest(unittest.TestCase):
                     "EXPR", expr
                 ).replace("VALUE", repr(c))
                 result = Template(payload).render()
-                assert "yes" in result, f"Test {pattern!r} at {i} failed"
+                assert "yes" in result, f"Test {pattern!r} at {i} failed, {result=}"
