@@ -552,7 +552,7 @@ def gen_positive_integer_strcount(context: dict, value: int):
     length_str = "~".join("{}" for _ in range(value // 2))
     if value % 2 == 1:
         length_str += "~{}|int"
-    return targets_from_pattern(
+    targets = targets_from_pattern(
         f"({length_str})|count",
         {
             "{}": (
@@ -573,6 +573,7 @@ def gen_positive_integer_strcount(context: dict, value: int):
             ),
         },
     )
+    return [(EXPRESSION, precedence["tilde"], targets)]
 
 
 @expression_gen
