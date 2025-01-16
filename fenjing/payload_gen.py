@@ -478,9 +478,10 @@ class PayloadGenerator:
                 # 为了日志的简洁，仅打印一部分日志
                 if gen_type in (INTEGER, STRING) and result != str(args[0]):
                     rich_print(
-                        "[green bold]Great![/green bold] [yellow bold]{gen_type}[/yellow bold]"
-                        "[yellow]({args_repl})[/yellow] can be [blue]{result}[/blue]".format(
+                        "[green bold]Great![/] [cyan]{gen}[/] says [yellow bold]{gen_type}[/]"
+                        "[yellow]({args_repl})[/] can be [blue]{result}[/]".format(
                             gen_type=gen_type,
+                            gen=gen.__name__,
                             args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
                             result=rich_escape(result),
                         )

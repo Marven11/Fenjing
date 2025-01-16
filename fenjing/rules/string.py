@@ -510,21 +510,6 @@ def gen_string_splitnamespacedictjoin3(context: dict, value: str):
 
 
 @expression_gen
-def gen_string_splitbyabc(context: dict, value: str):
-    matches = re.match("[a-z]{3,}", value)
-    if not matches or matches.group(0) == value:
-        return [(UNSATISFIED,)]
-
-    return [
-        (
-            STRING_CONCAT,
-            (STRING, matches.group(0)),
-            (STRING, value[len(matches.group(0)) :]),
-        )
-    ]
-
-
-@expression_gen
 def gen_string_lipsumtobytes4(context: dict, value: str):
     ints: List[Target] = join_target(
         sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]
@@ -577,85 +562,6 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
             bytes_targets,
         )
     ] + [(REQUIRE_PYTHON3,)]
-
-
-@expression_gen
-def gen_string_intbytes1(context: dict, value: str):
-    if not all(x < 128 for x in value.encode()):
-        return [(UNSATISFIED,)]
-    if re.match(r"^[a-zA-Z0-9]$", value):
-        return [(UNSATISFIED,)]
-    n = int.from_bytes(value.encode(), "big")
-    targets = targets_from_pattern(
-        "N.to_bytes(LENGTH).decode()",
-        {
-            "N": (ENCLOSE_UNDER, precedence["attribute"], (INTEGER, n)),
-            "LENGTH": (INTEGER, len(value)),
-        },
-    )
-    return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3,)]
-
-
-@expression_gen
-def gen_string_intbytes2(context: dict, value: str):
-    if not all(x < 128 for x in value.encode()):
-        return [(UNSATISFIED,)]
-    if re.match(r"^[a-zA-Z0-9]$", value):
-        return [(UNSATISFIED,)]
-    n = int.from_bytes(value.encode(), "big")
-    targets = targets_from_pattern(
-        "( {BYTES:0}|map('attr','decode')|first)( )",
-        {
-            "BYTES": targets_from_pattern(
-                "( {NUM:0}|map('attr','to_bytes')|first)(LENGTH)",
-                {
-                    "NUM": (INTEGER, n),
-                    "LENGTH": (INTEGER, len(value)),
-                    "'attr'": (GENERATED_EXPR, (STRING, "attr")),
-                    "'to_bytes'": (GENERATED_EXPR, (STRING, "to_bytes")),
-                    "0": (INTEGER, 0),
-                    " ": (WHITESPACE,),
-                },
-            ),
-            "0": (INTEGER, 0),
-            "'attr'": (GENERATED_EXPR, (STRING, "attr")),
-            "'decode'": (GENERATED_EXPR, (STRING, "decode")),
-            " ": (WHITESPACE,),
-        },
-    )
-    return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3,)]
-
-
-@expression_gen
-def gen_string_intbytes3(context: dict, value: str):
-    if not all(x < 128 for x in value.encode()):
-        return [(UNSATISFIED,)]
-    if re.match(r"^[a-zA-Z0-9]$", value):
-        return [(UNSATISFIED,)]
-    n = int.from_bytes(value.encode(), "big")
-    targets = targets_from_pattern(
-        "( {BYTES:0}|map(**{'attribute':'decode'})|GETTHAT)( )",
-        {
-            "BYTES": targets_from_pattern(
-                "( {NUM:0}|map(**{'attribute':'to_bytes'})|GETTHAT)(LENGTH)",
-                {
-                    "NUM": (INTEGER, n),
-                    "LENGTH": (INTEGER, len(value)),
-                    "GETTHAT": (ONEOF, [[(LITERAL, "first")], [(LITERAL, "last")]]),
-                    "'attribute'": (GENERATED_EXPR, (STRING, "attribute")),
-                    "'to_bytes'": (GENERATED_EXPR, (STRING, "to_bytes")),
-                    "0": (INTEGER, 0),
-                    " ": (WHITESPACE,),
-                },
-            ),
-            "0": (INTEGER, 0),
-            "GETTHAT": (ONEOF, [[(LITERAL, "first")], [(LITERAL, "last")]]),
-            "'attribute'": (GENERATED_EXPR, (STRING, "attribute")),
-            "'decode'": (GENERATED_EXPR, (STRING, "decode")),
-            " ": (WHITESPACE,),
-        },
-    )
-    return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3,)]
 
 
 @expression_gen
@@ -792,22 +698,6 @@ def gen_string_joinbyreplace(context: dict, value: str):
 
 
 @expression_gen
-def gen_string_stringaschars(context: dict, value: str):
-    if len(value) <= 1 or re.match("^[a-zA-Z][a-zA-Z0-9]+$", value):
-        return [(UNSATISFIED,)]
-    targets = []
-    while value:
-        regexp = re.match("^[a-zA-Z][a-zA-Z0-9]{2}", value)
-        if regexp:
-            targets.append((STRING, regexp.group(0)))
-            value = value[len(regexp.group(0)) :]
-        else:
-            targets.append((STRING, value[0]))
-            value = value[1:]
-    return [(STRING_CONCATMANY, targets)]
-
-
-@expression_gen
 def gen_string_splitdictjoincycler(context: dict, value: str):
     if not re.match("^[a-zA-Z_]{1,20}$", value):
         return [(UNSATISFIED,)]
@@ -825,3 +715,83 @@ def gen_string_splitdictjoincycler(context: dict, value: str):
         )
     ]
     return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3,)]
+
+
+@expression_gen
+def gen_string_intbytes1(context: dict, value: str):
+    if not all(x < 128 for x in value.encode()):
+        return [(UNSATISFIED,)]
+    if re.match(r"^[a-zA-Z0-9]$", value):
+        return [(UNSATISFIED,)]
+    n = int.from_bytes(value.encode(), "big")
+    targets = targets_from_pattern(
+        "N.to_bytes(LENGTH).decode()",
+        {
+            "N": (ENCLOSE_UNDER, precedence["attribute"], (INTEGER, n)),
+            "LENGTH": (INTEGER, len(value)),
+        },
+    )
+    return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3,)]
+
+
+@expression_gen
+def gen_string_intbytes2(context: dict, value: str):
+    if not all(x < 128 for x in value.encode()):
+        return [(UNSATISFIED,)]
+    if re.match(r"^[a-zA-Z0-9]$", value):
+        return [(UNSATISFIED,)]
+    n = int.from_bytes(value.encode(), "big")
+    targets = targets_from_pattern(
+        "( {BYTES:0}|map('attr','decode')|first)( )",
+        {
+            "BYTES": targets_from_pattern(
+                "( {NUM:0}|map('attr','to_bytes')|first)(LENGTH)",
+                {
+                    "NUM": (INTEGER, n),
+                    "LENGTH": (INTEGER, len(value)),
+                    "'attr'": (GENERATED_EXPR, (STRING, "attr")),
+                    "'to_bytes'": (GENERATED_EXPR, (STRING, "to_bytes")),
+                    "0": (INTEGER, 0),
+                    " ": (WHITESPACE,),
+                },
+            ),
+            "0": (INTEGER, 0),
+            "'attr'": (GENERATED_EXPR, (STRING, "attr")),
+            "'decode'": (GENERATED_EXPR, (STRING, "decode")),
+            " ": (WHITESPACE,),
+        },
+    )
+    return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3,)]
+
+
+@expression_gen
+def gen_string_intbytes3(context: dict, value: str):
+    if not all(x < 128 for x in value.encode()):
+        return [(UNSATISFIED,)]
+    if re.match(r"^[a-zA-Z0-9]$", value):
+        return [(UNSATISFIED,)]
+    n = int.from_bytes(value.encode(), "big")
+    targets = targets_from_pattern(
+        "( {BYTES:0}|map(**{'attribute':'decode'})|GETTHAT)( )",
+        {
+            "BYTES": targets_from_pattern(
+                "( {NUM:0}|map(**{'attribute':'to_bytes'})|GETTHAT)(LENGTH)",
+                {
+                    "NUM": (INTEGER, n),
+                    "LENGTH": (INTEGER, len(value)),
+                    "GETTHAT": (ONEOF, [[(LITERAL, "first")], [(LITERAL, "last")]]),
+                    "'attribute'": (GENERATED_EXPR, (STRING, "attribute")),
+                    "'to_bytes'": (GENERATED_EXPR, (STRING, "to_bytes")),
+                    "0": (INTEGER, 0),
+                    " ": (WHITESPACE,),
+                },
+            ),
+            "0": (INTEGER, 0),
+            "GETTHAT": (ONEOF, [[(LITERAL, "first")], [(LITERAL, "last")]]),
+            "'attribute'": (GENERATED_EXPR, (STRING, "attribute")),
+            "'decode'": (GENERATED_EXPR, (STRING, "decode")),
+            " ": (WHITESPACE,),
+        },
+    )
+    return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3,)]
+
