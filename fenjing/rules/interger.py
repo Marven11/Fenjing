@@ -389,7 +389,7 @@ def gen_positive_integer_recurmulnoastral(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_lengthything(context: dict, value: int):
-    if value >= 50 or value <= 3:  # stop generating lengthy payload
+    if value >= 10 or value <= 3:  # stop generating lengthy payload
         return [(UNSATISFIED,)]
     lengthy_thing: OneofTarget = (
         ONEOF,
@@ -534,6 +534,8 @@ def gen_positive_integer_charint(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_count(context: dict, value: int):
+    if value > 10:
+        return [(UNSATISFIED,)]
     s = ",".join("x" * value)
     if value == 1:
         s += ","
@@ -543,24 +545,32 @@ def gen_positive_integer_count(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_onesum1(context: dict, value: int):
+    if value > 10:
+        return [(UNSATISFIED,)]
     target_list = [(LITERAL, "{}".format("+".join(["1"] * value)))]
     return [(EXPRESSION, precedence["plus"], target_list)]
 
 
 @expression_gen
 def gen_positive_integer_onesum2(context: dict, value: int):
+    if value > 10:
+        return [(UNSATISFIED,)]
     target_list = [(LITERAL, "({},)|sum".format(",".join(["1"] * value)))]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
 @expression_gen
 def gen_positive_integer_truesum1(context: dict, value: int):
+    if value > 10:
+        return [(UNSATISFIED,)]
     target_list = [(LITERAL, "{}".format("+".join(["True"] * value)))]
     return [(EXPRESSION, precedence["plus"], target_list)]
 
 
 @expression_gen
 def gen_positive_integer_truesum2(context: dict, value: int):
+    if value > 10:
+        return [(UNSATISFIED,)]
     target_list = [(LITERAL, "({},)|sum".format(",".join(["True"] * value)))]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
@@ -610,14 +620,13 @@ def gen_positive_integer_indexofglobal(context: dict, value: int):
 @expression_gen
 def gen_positive_integer_constexpr(context: dict, value: int):
 
-    alternatives = (
-        [[literal_to_target(k)] for k, v in const_exprs.items() if v == value]
-        + [
-            [literal_to_target(k), (REQUIRE_PYTHON3,)]
-            for k, v in const_exprs_py3.items()
-            if v == value
-        ]
-    )
+    alternatives = [
+        [literal_to_target(k)] for k, v in const_exprs.items() if v == value
+    ] + [
+        [literal_to_target(k), (REQUIRE_PYTHON3,)]
+        for k, v in const_exprs_py3.items()
+        if v == value
+    ]
     if not alternatives:
         return [(UNSATISFIED,)]
     return [(ONEOF, alternatives)]
@@ -625,7 +634,7 @@ def gen_positive_integer_constexpr(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_constexprsumoflength1(context: dict, value: int):
-    if value > 16 or value == 1:
+    if value > 10 or value == 1:
         return [(UNSATISFIED,)]
     target_length1 = (ONEOF, [[(INTEGER, x)] for x in range(10)])
     return [

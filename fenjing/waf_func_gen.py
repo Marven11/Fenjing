@@ -359,17 +359,18 @@ class WafFuncGen:
         if self.options.detect_waf_keywords == DetectWafKeywords.FULL:
             if keyword_passed("{{}}"):
                 wrappers.append("{{PAYLOAD}}")
-            for whiltespace in (
+            with pbar_manager.pbar((
                 [" ", "\t", "\n"]
                 if self.options.detect_mode == DetectMode.ACCURATE
                 else [" "]
-            ):
-                if keyword_passed(" {{ }} ".replace(" ", whiltespace)):
-                    wrappers.append(" {{ PAYLOAD }} ".replace(" ", whiltespace))
-                if keyword_passed("{%print %}".replace(" ", whiltespace)):
-                    wrappers.append("{%print PAYLOAD%}".replace(" ", whiltespace))
-                if keyword_passed(" {%print %} ".replace(" ", whiltespace)):
-                    wrappers.append(" {%print PAYLOAD %} ".replace(" ", whiltespace))
+            ), "waf_keywords_whitespace") as whitespaces:
+                for whiltespace in whitespaces:
+                    if keyword_passed(" {{ }} ".replace(" ", whiltespace)):
+                        wrappers.append(" {{ PAYLOAD }} ".replace(" ", whiltespace))
+                    if keyword_passed("{%print %}".replace(" ", whiltespace)):
+                        wrappers.append("{%print PAYLOAD%}".replace(" ", whiltespace))
+                    if keyword_passed(" {%print %} ".replace(" ", whiltespace)):
+                        wrappers.append(" {%print PAYLOAD %} ".replace(" ", whiltespace))
 
         for _ in range(10):
             kw = "".join(random.choices(string.ascii_lowercase, k=4))
