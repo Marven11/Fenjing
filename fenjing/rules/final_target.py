@@ -15,14 +15,6 @@ def gen_os_popen_obj_normal(context, cmd):
     return [(FUNCTION_CALL, (ATTRIBUTE, (MODULE_OS,), "popen"), [(STRING, cmd)])]
 
 
-@expression_gen
-def gen_os_popen_obj_eval(context, cmd):
-    targets = targets_from_pattern(
-        "__import__(OS).popen(CMD)", {"OS": (STRING, "os"), "CMD": (STRING, cmd)}
-    )
-    return [(EVAL, (EXPRESSION, precedence["function_call"], targets))]
-
-
 # ---
 
 
@@ -38,9 +30,7 @@ def gen_os_popen_read_normal2(context, cmd):
 
 @expression_gen
 def gen_os_popen_read_eval(context, cmd):
-    targets = targets_from_pattern(
-        "__import__(OS).popen(CMD).read()", {"OS": (STRING, "os"), "CMD": (STRING, cmd)}
-    )
+    code = f"__import__('os').popen({cmd!r}).read()"
     return [
-        (EVAL, (EXPRESSION, precedence["function_call"], targets)),
+        (EVAL, (STRING, code)),
     ]
