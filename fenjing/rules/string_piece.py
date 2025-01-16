@@ -317,23 +317,6 @@ def gen_char_cycledoc2(context, c):
     ]
 
 
-@expression_gen
-def gen_char_format(cotext, c):
-    if ord(c) > 256:
-        return [(UNSATISFIED,)]
-    return [
-        (
-            EXPRESSION,
-            precedence["mod"],
-            [
-                (ENCLOSE_UNDER, precedence["mod"], (STRING_PERCENT_LOWER_C,)),
-                (LITERAL, "%"),
-                (ENCLOSE_UNDER, precedence["mod"], (INTEGER, ord(c))),
-            ],
-        )
-    ]
-
-
 # ---
 
 
