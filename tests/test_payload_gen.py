@@ -7,6 +7,7 @@ import fenjing
 
 
 from fenjing.payload_gen import PayloadGenerator, expression_gens
+from fenjing.wordlist import CHAR_PATTERNS
 from fenjing import const
 import logging
 
@@ -19,9 +20,12 @@ def get_payload_gen(blacklist, context):
     def waf_func(x):
         return all(word not in x for word in blacklist)
 
-    return PayloadGenerator(waf_func, context, options=fenjing.Options(
-        python_version=fenjing.const.PythonEnvironment.PYTHON3
-    ))
+    return PayloadGenerator(
+        waf_func,
+        context,
+        options=fenjing.Options(python_version=fenjing.const.PythonEnvironment.PYTHON3),
+    )
+
 
 class PayloadGenTestsStringExpr(unittest.TestCase):
     def setUp(self):
@@ -34,8 +38,9 @@ class PayloadGenTestsStringExpr(unittest.TestCase):
             "!@#$%^&|;-_ ()[]{}",
             "print(114514)\n\n",
             "__globals__",
-            "__114514__"
+            "__114514__",
         ]
+
     def test_rules(self):
         for rule in expression_gens["string"]:
             for target_string in self.target_strings:
@@ -44,9 +49,11 @@ class PayloadGenTestsStringExpr(unittest.TestCase):
                 if not result:
                     continue
                 try:
-                    render_result = Template("{{"+result[0]+"}}").render()
+                    render_result = Template("{{" + result[0] + "}}").render()
                 except Exception as e:
-                    raise ValueError(f"{rule} failed generating {target_string!r}") from e
+                    raise ValueError(
+                        f"{rule} failed generating {target_string!r}"
+                    ) from e
                 self.assertIn(target_string, render_result)
 
 
@@ -61,9 +68,11 @@ class PayloadGenTestsStringPiecesExpr(unittest.TestCase):
             if not result:
                 continue
             try:
-                render_result = Template("{{"+result[0]+"}}").render()
+                render_result = Template("{{" + result[0] + "}}").render()
             except Exception as e:
-                raise ValueError(f"{rule} failed generating string_many_format_c") from e
+                raise ValueError(
+                    f"{rule} failed generating string_many_format_c"
+                ) from e
             self.assertIn("{:c}" * 3, render_result)
 
     def test_many_percent_lower_c(self):
@@ -73,9 +82,11 @@ class PayloadGenTestsStringPiecesExpr(unittest.TestCase):
             if not result:
                 continue
             try:
-                render_result = Template("{{"+result[0]+"}}").render()
+                render_result = Template("{{" + result[0] + "}}").render()
             except Exception as e:
-                raise ValueError(f"{rule} failed generating string_many_percent_lower_c") from e
+                raise ValueError(
+                    f"{rule} failed generating string_many_percent_lower_c"
+                ) from e
             self.assertIn("%c" * 3, render_result)
 
     def test_percent(self):
@@ -85,7 +96,7 @@ class PayloadGenTestsStringPiecesExpr(unittest.TestCase):
             if not result:
                 continue
             try:
-                render_result = Template("{{"+result[0]+"}}").render()
+                render_result = Template("{{" + result[0] + "}}").render()
             except Exception as e:
                 raise ValueError(f"{rule} failed generating string_percent") from e
             self.assertIn("%", render_result)
@@ -97,10 +108,11 @@ class PayloadGenTestsStringPiecesExpr(unittest.TestCase):
             if not result:
                 continue
             try:
-                render_result = Template("{{"+result[0]+"}}").render()
+                render_result = Template("{{" + result[0] + "}}").render()
             except Exception as e:
                 raise ValueError(f"{rule} failed generating string_percent") from e
             self.assertIn("c", render_result)
+
 
 class PayloadGenTestsTargetRules(unittest.TestCase):
 
@@ -113,8 +125,10 @@ class PayloadGenTestsTargetRules(unittest.TestCase):
             "loo": 100,
             "eoo": 300,
         }
-        self.context_payload = "{%set l=1%}{%set e=3%}{%set lo=10%}{%set loo=100%}{%set eoo=300%}"
-        self.payload_gen = get_payload_gen([],self.context)
+        self.context_payload = (
+            "{%set l=1%}{%set e=3%}{%set lo=10%}{%set loo=100%}{%set eoo=300%}"
+        )
+        self.payload_gen = get_payload_gen([], self.context)
 
     def target_test(self, target):
         gen_type = target[0]
@@ -122,7 +136,9 @@ class PayloadGenTestsTargetRules(unittest.TestCase):
             try:
                 target_list = gen_func(self.context, *target[1:])
             except Exception as e:
-                raise RuntimeError(f"Generate failed for rule {gen_func.__name__}") from e
+                raise RuntimeError(
+                    f"Generate failed for rule {gen_func.__name__}"
+                ) from e
             result = self.payload_gen.generate_by_list(target_list)
 
             if not result:
@@ -136,22 +152,20 @@ class PayloadGenTestsTargetRules(unittest.TestCase):
     def test_targets(self):
         targets = [
             (const.VARIABLE_OF, "%c"),
-            (const.ZERO, ),
+            (const.ZERO,),
             (const.INTEGER, 11),
             (const.INTEGER, 123),
             (const.PLUS, (const.INTEGER, 98), (const.INTEGER, 37)),
             (const.MULTIPLY, (const.INTEGER, 3), (const.INTEGER, 37)),
             (const.MULTIPLY, (const.STRING, "a"), (const.INTEGER, 11)),
-
             (const.STRING_PERCENT,),
             (const.STRING_LOWERC,),
-            (const.STRING_PERCENT_LOWER_C, ),
+            (const.STRING_PERCENT_LOWER_C,),
             (const.STRING_MANY_PERCENT_LOWER_C, 11),
             (const.STRING, "a"),
             (const.STRING, "__class__"),
             (const.STRING, "echo 'cracked\"\\'"),
             (const.STRING, "ls /;"),
-
             (const.MODULE_OS),
             (const.OS_POPEN_READ, "echo 'cracked\"\\'"),
         ]
@@ -274,18 +288,17 @@ class PayloadGenTestCaseHard(unittest.TestCase):
 
     def test_targets(self):
         targets = [
-            (const.STRING_PERCENT, ),
-            (const.STRING_LOWERC, ),
+            (const.STRING_PERCENT,),
+            (const.STRING_LOWERC,),
             (const.INTEGER, 11),
             (const.STRING, "a"),
-            (const.STRING_PERCENT_LOWER_C, ),
+            (const.STRING_PERCENT_LOWER_C,),
             (const.STRING_MANY_PERCENT_LOWER_C, 11),
             (const.STRING, "ls /;"),
         ]
         for target in targets:
             result = self.payload_gen.generate(target[0], *target[1:])
             self.assertIsNotNone(result, repr(target))
-
 
     def test_string(self):
         strings = [
@@ -295,9 +308,23 @@ class PayloadGenTestCaseHard(unittest.TestCase):
             "__import__('os').popen('echo test_command/$(ls / | base64 -w)').read()",
         ]
         for string in strings:
-            self.assertIsNotNone(self.payload_gen.generate(const.STRING, string), string)
+            self.assertIsNotNone(
+                self.payload_gen.generate(const.STRING, string), string
+            )
 
     def test_os_popen_read(self):
         self.assertIsNotNone(
             self.payload_gen.generate(const.OS_POPEN_READ, "echo fen  jing;")
         )
+
+
+class WordlistTest(unittest.TestCase):
+    def test_char_patterns(self):
+        for pattern, indexes in CHAR_PATTERNS.items():
+            for i, c in indexes.items():
+                expr = pattern.replace("INDEX", str(i))
+                payload = "{%if (EXPR)==VALUE%}yes{%endif%}".replace(
+                    "EXPR", expr
+                ).replace("VALUE", repr(c))
+                result = Template(payload).render()
+                assert "yes" in result, f"Test {pattern!r} at {i} failed"
