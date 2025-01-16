@@ -373,7 +373,7 @@ class ContextVariableManager:
         }
 
 
-def get_context_vars_manager(waf: WafFunc, options: Options) -> ContextVariableManager:
+def prepare_context_vars(waf: WafFunc, options: Options) -> ContextVariableManager:
     """根据waf函数和对应选项生成ContextVariableManager
 
     Args:
@@ -402,7 +402,7 @@ def get_context_vars_manager(waf: WafFunc, options: Options) -> ContextVariableM
     if options.python_version == PythonEnvironment.PYTHON3:
         exprs.update(const_exprs_py3)
     with pbar_manager.pbar(
-        list(exprs.items()), "get_context_vars_manager"
+        list(exprs.items()), "prepare_context_vars"
     ) as exprs_items:
         for expr, value in exprs_items:
             if not waf(expr):

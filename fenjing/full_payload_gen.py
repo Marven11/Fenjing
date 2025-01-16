@@ -8,7 +8,7 @@ import sys
 from . import payload_gen
 from .colorize import colored
 from .context_vars import (
-    get_context_vars_manager,
+    prepare_context_vars,
     ContextVariableManager,
 )
 from .const import (
@@ -169,7 +169,7 @@ class FullPayloadGen:
         if self.prepared:
             return True
 
-        self.context_vars = get_context_vars_manager(self.waf_func, self.options)
+        self.context_vars = prepare_context_vars(self.waf_func, self.options)
 
         self.outer_pattern, self.will_print = get_outer_pattern(self.waf_func)
         if not self.outer_pattern:
