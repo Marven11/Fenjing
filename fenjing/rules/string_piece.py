@@ -61,8 +61,9 @@ def gen_char_selectpy3(context, c):
 @expression_gen
 def gen_char_selectpy2(context, c):
     matches = []
+    # in python2, reversed might not be an iterator
     for pattern, d in CHAR_PATTERNS.items():
-        if "dict" in pattern:
+        if "dict" in pattern or "reverse" in pattern:
             continue
         for index_str, value in d.items():
             if value == c:
