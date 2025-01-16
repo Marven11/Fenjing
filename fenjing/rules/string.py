@@ -677,11 +677,12 @@ def gen_string_joinbyreplace(context: dict, value: str):
     # 12|replace(1,a)|replace(2,b)
     if re.search(r"\d", value) or len(value) <= 1:
         return [(UNSATISFIED,)]
-    split = len(value) // 2
     if len(value) > 2 and value[:2] == "__":
         split = 2
     elif len(value) > 2 and value[-2:] == "__":
         split = -2
+    else:
+        return [(UNSATISFIED,)]
     targets = targets_from_pattern(
         "{12}|replace( {1} , {STR1} {,} )|replace( {2} , {STR2} {,} )",
         {
@@ -794,4 +795,3 @@ def gen_string_intbytes3(context: dict, value: str):
         },
     )
     return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3,)]
-

@@ -39,7 +39,7 @@ from .rules_utils import (
     unwrap_whitespace,
 )
 from .rules_types import *
-from .pbar import pbar_manager
+from .pbar import pbar_manager, Pbar
 
 expression_gens: DefaultDict[str, List[ExpressionGenerator]] = defaultdict(list)
 logger = logging.getLogger("payload_gen")
@@ -448,15 +448,18 @@ class PayloadGenerator:
             gen_type
             in [
                 STRING,
-                INTEGER,
+                POSITIVE_INTEGER,
+                ZERO,
                 OS_POPEN_READ,
                 EVAL,
             ],
             gens,
-            lambda gens: pbar_manager.pbar(gens, f"Expression {gen_type}"),
+            lambda gens: pbar_manager.pbar(gens, "Rule"),
         ) as gens:
             for gen in gens:
                 logger.debug("Trying gen rule: %s", gen.__name__)
+                if isinstance(gens, Pbar):
+                    gens.update(description="Rule: " + gen.__name__)
                 gen_ret: List[Target] = gen(self.context, *args)
                 try:
                     ret = self.generate_by_list(gen_ret)
@@ -476,12 +479,13 @@ class PayloadGenerator:
                     },
                 )
                 # 为了日志的简洁，仅打印一部分日志
-                if gen_type in (INTEGER, STRING) and result != str(args[0]):
+                if (
+                    gen_type in (POSITIVE_INTEGER, STRING) and result != str(args[0])
+                ) or (gen_type == ZERO and result != "0"):
                     rich_print(
-                        "[green bold]Great![/] [cyan]{gen}[/] says [yellow bold]{gen_type}[/]"
+                        "[green bold]Great![/] [yellow bold]{gen_type}[/]"
                         "[yellow]({args_repl})[/] can be [blue]{result}[/]".format(
                             gen_type=gen_type,
-                            gen=gen.__name__,
                             args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
                             result=rich_escape(result),
                         )

@@ -12,7 +12,7 @@ from rich.progress import (
 class PbarManager:
     def __init__(self):
         self.progress = Progress(
-            TextColumn("[bold yellow]{task.description}", justify="right"),
+            TextColumn("[bold yellow]{task.description}", justify="left"),
             BarColumn(bar_width=None),
             "[bold yellow][progress.percentage]{task.percentage:>3.1f}%",
             "•",
