@@ -125,6 +125,7 @@ class PayloadGenerator:
         callback: Union[Callable[[str, Dict], None], None] = None,
         options: Union[Options, None] = None,
         waf_expr_func: Union[WafFunc, None] = None,
+        generated_exprs: Union[Dict[Target, PayloadGeneratorResult], None] = None,
     ):
         self.waf_func = (
             waf_func
@@ -139,6 +140,10 @@ class PayloadGenerator:
             for k, v in gen_weight_default.items():
                 self.used_count[k] += v
         self.callback = callback if callback else (lambda x, y: None)
+        self.generated_exprs = generated_exprs if generated_exprs else {}
+
+    def add_generated_expr(self, target, result):
+        self.generated_exprs[target] = result
 
     # it is correct pylint, it returns a internal decorator.
     def create_generate_func_register():  # pylint: disable=no-method-argument
@@ -204,6 +209,20 @@ class PayloadGenerator:
         if not all(self.waf_func(word) for word in words):
             return None
         return (target[1], {}, [])
+
+    @register_generate_func(lambda self, target: target[0] == GENERATED_EXPR)
+    def generated_generate(
+        self, target: GeneratedExprTarget
+    ) -> Union[PayloadGeneratorResult, None]:
+        """找到已经准备好的生成结果
+
+        Args:
+            target (GeneratedExprTarget): 生成目标
+
+        Returns:
+            Union[PayloadGeneratorResult, None]: 生成结果
+        """
+        return self.generated_exprs.get(target[1])
 
     @register_generate_func(lambda self, target: target in self.cache_by_repr)
     def cache_generate(self, target: Target) -> Union[PayloadGeneratorResult, None]:
@@ -425,12 +444,15 @@ class PayloadGenerator:
         if self.options.detect_mode == DetectMode.FAST:
             gens.sort(key=lambda gen: self.used_count[gen.__name__], reverse=True)
         with optional_context(
-            gen_type in [
+            gen_type
+            in [
                 STRING,
                 INTEGER,
                 OS_POPEN_READ,
                 EVAL,
-            ], gens, lambda gens: pbar_manager.pbar(gens, f"Expression {gen_type}")
+            ],
+            gens,
+            lambda gens: pbar_manager.pbar(gens, f"Expression {gen_type}"),
         ) as gens:
             for gen in gens:
                 logger.debug("Trying gen rule: %s", gen.__name__)

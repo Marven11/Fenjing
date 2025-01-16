@@ -27,6 +27,8 @@ ENCLOSE = "enclose"
 WRAP = "wrap"
 # 标记使用了某个上下文中的变量
 WITH_CONTEXT_VAR = "with_context_var"
+# 事先提供的表达式
+GENERATED_EXPR = "generated_expr"
 # jinja上下文内置的变量
 JINJA_CONTEXT_VAR = "jinja_context_var"
 # flask上下文内置的变量

@@ -19,6 +19,7 @@ if sys.version_info >= (3, 8):
     EncloseTarget = Tuple[Literal["enclose"], "Target"]
     UnsatisfiedTarget = Tuple[Literal["unsatisfied"],]
     OneofTarget = Tuple[Literal["oneof"], List[List["Target"]]]
+    GeneratedExprTarget = Tuple[Literal["generated_expr"], "Target"]
     ListifyTarget = Tuple[Literal["listify"], "Target"]
 
     WithContextVarTarget = Tuple[Literal["with_context_var"], str]
@@ -66,6 +67,7 @@ if sys.version_info >= (3, 8):
         EncloseTarget,
         UnsatisfiedTarget,
         OneofTarget,
+        GeneratedExprTarget,
         ListifyTarget,
         WithContextVarTarget,
         JinjaContextVarTarget,
