@@ -41,7 +41,7 @@ class PayloadGenTestsStringExpr(unittest.TestCase):
             "__globals__",
             "__114514__",
         ]
-        for s in ["attr", "to_bytes", "decode"]:
+        for s in const.EXTRA_TARGETS:
             self.payload_gen.add_generated_expr(
                 (const.STRING, s), self.payload_gen.generate_detailed(const.STRING, s)
             )
