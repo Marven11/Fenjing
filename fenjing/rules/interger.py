@@ -315,14 +315,9 @@ def gen_positive_integer_recurmulitiply(context: dict, value: int):
             [
                 [
                     (
-                        WRAP,
-                        [
-                            (
-                                MULTIPLY,
-                                (POSITIVE_INTEGER, value // x),
-                                (POSITIVE_INTEGER, x),
-                            )
-                        ],
+                        MULTIPLY,
+                        (POSITIVE_INTEGER, value // x),
+                        (POSITIVE_INTEGER, x),
                     )
                 ]
                 for x in xs
@@ -434,6 +429,8 @@ def gen_positive_integer_lengthything(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_length(context: dict, value: int):
+    if not (1 < value < 10):
+        return [(UNSATISFIED,)]
     lengthy_tuples_zero = (
         [
             (LITERAL, "("),
@@ -525,7 +522,12 @@ def gen_positive_integer_charint(context: dict, value: int):
             EXPRESSION,
             precedence["filter"],
             [
-                (ENCLOSE, (STRING_CONCATMANY, [(INTEGER, int(x)) for x in str(value)])),
+                (
+                    WRAP,
+                    join_target(
+                        (LITERAL, "~"), [(INTEGER, int(x)) for x in str(value)]
+                    ),
+                ),
                 (LITERAL, "|int"),
             ],
         )
@@ -544,8 +546,38 @@ def gen_positive_integer_count(context: dict, value: int):
 
 
 @expression_gen
+def gen_positive_integer_strcount(context: dict, value: int):
+    if not (3 <= value <= 9):
+        return [(UNSATISFIED,)]
+    length_str = "~".join("{}" for _ in range(value // 2))
+    if value % 2 == 1:
+        length_str += "~{}|int"
+    return targets_from_pattern(
+        f"({length_str})|count",
+        {
+            "{}": (
+                ONEOF,
+                [
+                    [(LITERAL, "{}")],
+                    [(LITERAL, "()")],
+                    [(LITERAL, "{ }")],
+                    [(LITERAL, "( )")],
+                ],
+            ),
+            "count": (
+                ONEOF,
+                [
+                    [(LITERAL, "count")],
+                    [(LITERAL, "length")],
+                ],
+            ),
+        },
+    )
+
+
+@expression_gen
 def gen_positive_integer_onesum1(context: dict, value: int):
-    if value > 10:
+    if value > 10 or value < 2:
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, "{}".format("+".join(["1"] * value)))]
     return [(EXPRESSION, precedence["plus"], target_list)]
@@ -553,7 +585,7 @@ def gen_positive_integer_onesum1(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_onesum2(context: dict, value: int):
-    if value > 10:
+    if value > 10 or value < 2:
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, "({},)|sum".format(",".join(["1"] * value)))]
     return [(EXPRESSION, precedence["filter"], target_list)]
@@ -561,7 +593,7 @@ def gen_positive_integer_onesum2(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_truesum1(context: dict, value: int):
-    if value > 10:
+    if value > 10 or value < 2:
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, "{}".format("+".join(["True"] * value)))]
     return [(EXPRESSION, precedence["plus"], target_list)]
@@ -569,7 +601,7 @@ def gen_positive_integer_truesum1(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_truesum2(context: dict, value: int):
-    if value > 10:
+    if value > 10 or value < 2:
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, "({},)|sum".format(",".join(["True"] * value)))]
     return [(EXPRESSION, precedence["filter"], target_list)]
@@ -580,41 +612,8 @@ def gen_positive_integer_bool(context: dict, value: int):
     if value not in (0, 1):
         return [(UNSATISFIED,)]
 
-    target_list = [(LITERAL, str(value == 1))]
+    target_list = [(LITERAL, f"{value == 1}+False")]
     return [(EXPRESSION, precedence["literal"], target_list)]
-
-
-@expression_gen
-def gen_positive_integer_indexoftrue(context: dict, value: int):
-    if value <= 1:
-        return [(UNSATISFIED,)]
-    falses = [(LITERAL, "False,") for _ in range(value - 1)]
-    target_list = (
-        [
-            (LITERAL, "("),
-        ]
-        + falses
-        + [(LITERAL, ",True).index(True)")]
-    )
-    return [(EXPRESSION, precedence["function_call"], target_list)]
-
-
-@expression_gen
-def gen_positive_integer_indexofglobal(context: dict, value: int):
-    alternatives = []
-    if value <= 1 or value > 150:
-        return [(UNSATISFIED,)]
-    for global_var in ["lipsum", "namespace", "cycler", "joiner"]:
-        falses = [(LITERAL, "False,") for _ in range(value - 1)]
-        target_list = (
-            [
-                (LITERAL, "("),
-            ]
-            + falses
-            + [(LITERAL, f",{global_var}).index({global_var})")]
-        )
-        alternatives.append(target_list)
-    return [(EXPRESSION, precedence["function_call"], [(ONEOF, alternatives)])]
 
 
 @expression_gen
@@ -634,14 +633,11 @@ def gen_positive_integer_constexpr(context: dict, value: int):
 
 @expression_gen
 def gen_positive_integer_constexprsumoflength1(context: dict, value: int):
-    if value > 10 or value == 1:
+    if value > 10 or value <= 1:
         return [(UNSATISFIED,)]
-    target_length1 = (ONEOF, [[(INTEGER, x)] for x in range(10)])
+    target_length1: Target = (ONEOF, [[(INTEGER, x)] for x in range(10)])
     return [
-        (
-            ENCLOSE,
-            (STRING_CONCATMANY, [target_length1 for _ in range(value)]),
-        ),
+        (WRAP, join_target((LITERAL, "~"), [target_length1 for _ in range(value)])),
         (
             ONEOF,
             [

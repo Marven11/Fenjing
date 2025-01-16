@@ -58,6 +58,30 @@ class PayloadGenTestsStringExpr(unittest.TestCase):
                 self.assertIn(target_string, render_result)
 
 
+class PositiveIntegers(unittest.TestCase):
+    def setUp(self):
+        self.payload_gen = get_payload_gen([], {})
+
+    def test_rules(self):
+        for rule in expression_gens["positive_integer"]:
+            for target_integer in range(0, 150):
+                target_list = rule({}, target_integer)
+                result = self.payload_gen.generate_by_list(target_list)
+                if not result:
+                    continue
+                try:
+                    render_result = Template("{{" + result[0] + "}}").render()
+                except Exception as e:
+                    raise ValueError(
+                        f"{rule.__name__} failed generating {target_integer!r} {result[0]=} {target_list=}"
+                    ) from e
+                self.assertIn(
+                    str(target_integer),
+                    render_result,
+                    f"{rule.__name__} failed generating {target_integer!r} {result[0]=} {target_list=}",
+                )
+
+
 class PayloadGenTestsStringPiecesExpr(unittest.TestCase):
     def setUp(self):
         self.payload_gen = get_payload_gen([], {})
