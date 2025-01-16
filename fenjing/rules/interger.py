@@ -719,7 +719,7 @@ def gen_integer_subtract(context: dict, value: int):
             return [(UNSATISFIED,)]
         value_left -= ints[0][1]
         sub_vars.append(ints[0][0])
-    return [
+    targets = [
         (
             LITERAL,
             "({})".format(
@@ -738,3 +738,4 @@ def gen_integer_subtract(context: dict, value: int):
         ]
         + sub_vars
     ]
+    return [(EXPRESSION, precedence["subtract"], targets)]
