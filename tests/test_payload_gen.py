@@ -41,6 +41,10 @@ class PayloadGenTestsStringExpr(unittest.TestCase):
             "__globals__",
             "__114514__",
         ]
+        for s in ["attr", "to_bytes", "decode"]:
+            self.payload_gen.add_generated_expr(
+                (const.STRING, s), self.payload_gen.generate_detailed(const.STRING, s)
+            )
 
     def test_rules(self):
         for rule in expression_gens["string"]:
@@ -53,9 +57,14 @@ class PayloadGenTestsStringExpr(unittest.TestCase):
                     render_result = Template("{{" + result[0] + "}}").render()
                 except Exception as e:
                     raise ValueError(
-                        f"{rule} failed generating {target_string!r}"
+                        f"{rule.__name__} failed generating {target_string!r} {result[0]=}"
                     ) from e
-                self.assertIn(target_string, render_result)
+                self.assertIn(
+                    target_string,
+                    render_result,
+                    f"{rule.__name__} failed generating {target_string!r} "
+                    + f"{result[0]=} {render_result=}",
+                )
 
 
 class PositiveIntegers(unittest.TestCase):
