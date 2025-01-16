@@ -226,7 +226,7 @@ class Cracker:
         if will_print:
             if test_result == "SUCCESS":
                 rich_print(
-                    "[green bold]Success![/] Now we can generate payloads.",
+                    "[cyan bold]Success![/] Now we can generate payloads.",
                 )
             elif test_result == "FAIL_UNKNOWN":
                 rich_print(
@@ -239,7 +239,8 @@ class Cracker:
         else:
             if test_result == "FAIL_500":
                 rich_print(
-                    "Target return status code [yellow bold]500[/]! (although payload won't print anything)",
+                    "Target return status code [yellow bold]500[/]! "
+                    "(although payload won't print anything)",
                 )
             else:
                 rich_print(
