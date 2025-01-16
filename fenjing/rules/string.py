@@ -525,13 +525,6 @@ def gen_string_splitbyabc(context: dict, value: str):
 
 
 @expression_gen
-def gen_string_splitbylength(context: dict, value: str):
-    if len(value) < 16:
-        return [(UNSATISFIED,)]
-    return [(STRING_CONCAT, (STRING, value[:8]), (STRING, value[8:]))]
-
-
-@expression_gen
 def gen_string_lipsumtobytes4(context: dict, value: str):
     ints: List[Target] = join_target(
         sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]
