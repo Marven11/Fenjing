@@ -726,10 +726,16 @@ def gen_string_intbytes1(context: dict, value: str):
         return [(UNSATISFIED,)]
     n = int.from_bytes(value.encode(), "big")
     targets = targets_from_pattern(
-        "N.to_bytes(LENGTH).decode()",
+        "N.to_bytes(ARGS).decode()",
         {
             "N": (ENCLOSE_UNDER, precedence["attribute"], (INTEGER, n)),
-            "LENGTH": (INTEGER, len(value)),
+            "ARGS": (
+                ONEOF,
+                [
+                    [(INTEGER, len(value)), (REQUIRE_PYTHON3_SUBVERSION, 11)],
+                    [(INTEGER, len(value)), (LITERAL, ","), (STRING, "big")],
+                ],
+            ),
         },
     )
     return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3,)]
@@ -746,10 +752,16 @@ def gen_string_intbytes2(context: dict, value: str):
         "( {BYTES:0}|map('attr','decode')|first)( )",
         {
             "BYTES": targets_from_pattern(
-                "( {NUM:0}|map('attr','to_bytes')|first)(LENGTH)",
+                "( {NUM:0}|map('attr','to_bytes')|first)(ARGS)",
                 {
                     "NUM": (INTEGER, n),
-                    "LENGTH": (INTEGER, len(value)),
+                    "ARGS": (
+                        ONEOF,
+                        [
+                            [(INTEGER, len(value)), (REQUIRE_PYTHON3_SUBVERSION, 11)],
+                            [(INTEGER, len(value)), (LITERAL, ","), (STRING, "big")],
+                        ],
+                    ),
                     "'attr'": (GENERATED_EXPR, (STRING, "attr")),
                     "'to_bytes'": (GENERATED_EXPR, (STRING, "to_bytes")),
                     "0": (INTEGER, 0),
@@ -776,10 +788,16 @@ def gen_string_intbytes3(context: dict, value: str):
         "( {BYTES:0}|map(**{'attribute':'decode'})|GETTHAT)( )",
         {
             "BYTES": targets_from_pattern(
-                "( {NUM:0}|map(**{'attribute':'to_bytes'})|GETTHAT)(LENGTH)",
+                "( {NUM:0}|map(**{'attribute':'to_bytes'})|GETTHAT)(ARGS)",
                 {
                     "NUM": (INTEGER, n),
-                    "LENGTH": (INTEGER, len(value)),
+                    "ARGS": (
+                        ONEOF,
+                        [
+                            [(INTEGER, len(value)), (REQUIRE_PYTHON3_SUBVERSION, 11)],
+                            [(INTEGER, len(value)), (LITERAL, ","), (STRING, "big")],
+                        ],
+                    ),
                     "GETTHAT": (ONEOF, [[(LITERAL, "first")], [(LITERAL, "last")]]),
                     "'attribute'": (GENERATED_EXPR, (STRING, "attribute")),
                     "'to_bytes'": (GENERATED_EXPR, (STRING, "to_bytes")),
@@ -796,5 +814,4 @@ def gen_string_intbytes3(context: dict, value: str):
     )
     return [
         (EXPRESSION, precedence["function_call"], targets),
-        (REQUIRE_PYTHON3_SUBVERSION, 11),
     ]
