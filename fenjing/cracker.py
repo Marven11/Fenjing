@@ -69,7 +69,7 @@ def guess_python_version(
         (
             PythonEnvironment.PYTHON3,
             (
-                int(version_regexp.group(2).removeprefix("."))
+                int(version_regexp.group(2)[1:])
                 if version_regexp.group(2)
                 else None
             ),
