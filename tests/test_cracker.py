@@ -59,6 +59,8 @@ class TestBase(unittest.TestCase):
 
     def test_waf(self):
         cracker = Cracker(self.subm, **self.cracker_other_opts)
+        if cracker.options.python_version == const.PythonEnvironment.UNKNOWN:
+            cracker.options.python_version = const.PythonEnvironment.PYTHON3
         full_payload_gen = cracker.crack()
         assert full_payload_gen is not None, self.__class__.__name__
         payload, will_print = full_payload_gen.generate(
@@ -614,9 +616,7 @@ class TestRandomCharsWaf(TestBase):
     def setUp(self):
         super().setUp()
         self.blacklist = None
-        self.cracker_other_opts["options"] = Options(
-            waf_keywords=["Naidesu"]
-        )
+        self.cracker_other_opts["options"] = Options(waf_keywords=["Naidesu"])
         self.setup_remote_waf("/random_chars_waf")
 
 
