@@ -35,6 +35,8 @@ JINJA_CONTEXT_VAR = "jinja_context_var"
 FLASK_CONTEXT_VAR = "flask_context_var"
 # 需要python3环境
 REQUIRE_PYTHON3 = "require_python3"
+# 需要python3小版本至少为
+REQUIRE_PYTHON3_SUBVERSION = "require_python3_subversion"
 # 需要flask环境
 REQUIRE_FLASK = "require_flask"
 

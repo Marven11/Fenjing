@@ -399,6 +399,28 @@ class PayloadGenerator:
             return None
         return ("", {}, [])
 
+    @register_generate_func(
+        lambda self, target: target[0] == REQUIRE_PYTHON3_SUBVERSION
+    )
+    def require_python3_subversion_generate(
+        self, target: RequirePython3SubversionTarget
+    ) -> Union[PayloadGeneratorResult, None]:
+        """生成类型为flask_context_var_generate的生成目标，将其中包含的变量名加入到已经使用的变量中
+
+        Args:
+            target (RequirePython3SubversionTarget): 生成目标
+
+        Returns:
+            _type_: 生成结果
+        """
+        if (
+            self.options.python_version != PythonEnvironment.PYTHON3
+            or self.options.python_subversion is None
+            or self.options.python_subversion < target[1]
+        ):
+            return None
+        return ("", {}, [])
+
     @register_generate_func(lambda self, target: target[0] == REQUIRE_FLASK)
     def require_flask_generate(
         self, target: RequireFlaskTarget

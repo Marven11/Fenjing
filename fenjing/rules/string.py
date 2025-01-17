@@ -794,4 +794,7 @@ def gen_string_intbytes3(context: dict, value: str):
             " ": (WHITESPACE,),
         },
     )
-    return [(EXPRESSION, precedence["function_call"], targets), (REQUIRE_PYTHON3,)]
+    return [
+        (EXPRESSION, precedence["function_call"], targets),
+        (REQUIRE_PYTHON3_SUBVERSION, 11),
+    ]
