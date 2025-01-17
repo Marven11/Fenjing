@@ -46,7 +46,9 @@ logger = logging.getLogger("cracker")
 Result = namedtuple("Result", "full_payload_gen input_field")
 
 
-def guess_python_version(url: str, requester: HTTPRequester) -> PythonEnvironment:
+def guess_python_version(
+    url: str, requester: HTTPRequester
+) -> Tuple[PythonEnvironment, Union[int, None]]:
     """猜测目标的python版本
 
     Args:
@@ -58,17 +60,27 @@ def guess_python_version(url: str, requester: HTTPRequester) -> PythonEnvironmen
     """
     resp = requester.request(method="GET", url=url)
     if resp is None:
-        return PythonEnvironment.UNKNOWN
-    version_regexp = re.search(r"Python/(\d)", resp.headers.get("Server", ""))
+        return PythonEnvironment.UNKNOWN, None
+    header = resp.headers.get("Server", "")
+    version_regexp = re.search(r"Python/(\d)(\.?\d+)?", header)
     if not version_regexp:
-        return PythonEnvironment.UNKNOWN
-    result = (
-        PythonEnvironment.PYTHON3
+        return PythonEnvironment.UNKNOWN, None
+    version, subversion = (
+        (
+            PythonEnvironment.PYTHON3,
+            (
+                int(version_regexp.group(2).removeprefix("."))
+                if version_regexp.group(2)
+                else None
+            ),
+        )
         if version_regexp.group(1) == "3"
-        else PythonEnvironment.PYTHON2
+        else (PythonEnvironment.PYTHON2, None)
     )
-    rich_print(f"[blue bold]Target[/] is [blue]{result.value}[/]")
-    return result
+    rich_print(
+        f"[blue bold]Target[/] is [blue bold]{version.value}.{subversion if subversion else 'x'}[/]"
+    )
+    return version, subversion
 
 
 class EvalArgsModePayloadGen:

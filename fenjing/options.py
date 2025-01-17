@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Union
 from dataclasses import dataclass
 from .const import (
     DetectMode,
@@ -18,6 +18,7 @@ class Options:
     environment: TemplateEnvironment = TemplateEnvironment.FLASK
     replaced_keyword_strategy: ReplacedKeywordStrategy = ReplacedKeywordStrategy.AVOID
     python_version: PythonEnvironment = PythonEnvironment.UNKNOWN
+    python_subversion: Union[int, None] = None
     autofix_500: AutoFix500Code = AutoFix500Code.ENABLED
     detect_waf_keywords: DetectWafKeywords = DetectWafKeywords.NONE
     waf_keywords: Sequence[str] = tuple()

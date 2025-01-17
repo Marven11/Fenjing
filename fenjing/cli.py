@@ -220,10 +220,10 @@ def do_crack_form_pre(
     Returns:
         Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
     """
-    python_version = (
+    python_version, python_subversion = (
         guess_python_version(url, requester)
         if options.python_version == PythonEnvironment.UNKNOWN
-        else options.python_version
+        else (options.python_version, None)
     )
     for input_field in form["inputs"]:
         submitter = FormSubmitter(
@@ -239,7 +239,11 @@ def do_crack_form_pre(
         with pbar_manager.progress:
             cracker = Cracker(
                 submitter=submitter,
-                options=dataclasses.replace(options, python_version=python_version),
+                options=dataclasses.replace(
+                    options,
+                    python_version=python_version,
+                    python_subversion=python_subversion,
+                ),
             )
             if not cracker.has_respond():
                 return None
@@ -268,10 +272,10 @@ def do_crack_form_eval_args_pre(
     Returns:
         Union[Tuple[Submitter, EvalArgsModePayloadGen], None]: 攻击结果
     """
-    python_version = (
+    python_version, python_subversion = (
         guess_python_version(url, requester)
         if options.python_version == PythonEnvironment.UNKNOWN
-        else options.python_version
+        else (options.python_version, None)
     )
     for input_field in form["inputs"]:
         submitter = FormSubmitter(
@@ -286,7 +290,11 @@ def do_crack_form_eval_args_pre(
         with pbar_manager.progress:
             cracker = Cracker(
                 submitter=submitter,
-                options=dataclasses.replace(options, python_version=python_version),
+                options=dataclasses.replace(
+                    options,
+                    python_version=python_version,
+                    python_subversion=python_subversion,
+                ),
             )
             if not cracker.has_respond():
                 return None
@@ -318,10 +326,10 @@ def do_crack_json_pre(
     Returns:
         Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
     """
-    python_version = (
+    python_version, python_subversion = (
         guess_python_version(url, requester)
         if options.python_version == PythonEnvironment.UNKNOWN
-        else options.python_version
+        else (options.python_version, None)
     )
     json_obj = json.loads(json_data)
     submitter = JsonSubmitter(
@@ -337,7 +345,11 @@ def do_crack_json_pre(
     with pbar_manager.progress:
         cracker = Cracker(
             submitter=submitter,
-            options=dataclasses.replace(options, python_version=python_version),
+            options=dataclasses.replace(
+                options,
+                python_version=python_version,
+                python_subversion=python_subversion,
+            ),
         )
         if not cracker.has_respond():
             return None
@@ -345,6 +357,7 @@ def do_crack_json_pre(
     if full_payload_gen:
         return full_payload_gen, submitter
     return None
+
 
 def do_crack_path_pre(
     url: str,
@@ -363,10 +376,10 @@ def do_crack_path_pre(
     Returns:
         Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
     """
-    python_version = (
+    python_version, python_subversion = (
         guess_python_version(url, requester)
         if options.python_version == PythonEnvironment.UNKNOWN
-        else options.python_version
+        else (options.python_version, None)
     )
     submitter = PathSubmitter(url=url, requester=requester)
     if tamper_cmd:
@@ -375,7 +388,11 @@ def do_crack_path_pre(
     with pbar_manager.progress:
         cracker = Cracker(
             submitter=submitter,
-            options=dataclasses.replace(options, python_version=python_version),
+            options=dataclasses.replace(
+                options,
+                python_version=python_version,
+                python_subversion=python_subversion,
+            ),
         )
         if not cracker.has_respond():
             return None
