@@ -184,6 +184,19 @@ def gen_zero_emptylength(context: dict):
     return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
+def gen_zero_const_expr(context):
+    alternatives = [
+        [literal_to_target(k)] for k, v in const_exprs.items() if v == 0
+    ] + [
+        [literal_to_target(k), (REQUIRE_PYTHON3,)]
+        for k, v in const_exprs_py3.items()
+        if v == 0
+    ]
+    if not alternatives:
+        return [(UNSATISFIED,)]
+    return [(ONEOF, alternatives)]
+
+
 # ---
 
 
@@ -306,7 +319,7 @@ def gen_positive_integer_sum(context: dict, value: int):
 @expression_gen
 def gen_positive_integer_recurmulitiply(context: dict, value: int):
     if value > 1000:
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
     xs = [x for x in range(3, value // 2) if value % x == 0]
     xs.sort(key=lambda x: max(x, value // x))
     if xs == [] or value < 20:
@@ -697,7 +710,7 @@ def gen_integer_negative(context: dict, value: int):
 @expression_gen
 def gen_integer_subtract(context: dict, value: int):
     if value > 1000:
-        return [(UNSATISFIED, )]
+        return [(UNSATISFIED,)]
     ints = [
         (var_name, var_value)
         for var_name, var_value in context.items()
