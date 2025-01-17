@@ -272,61 +272,63 @@ class FullPayloadGen:
         Args:
             append_targets (list): 指定更多需要生成的字符串
         """
-        targets = [
-            1,
-            4,
-            37,  # '%'
-            128,
-            "urlencode",
-            "%",
-            "c",
-            "%c",
-            "_",
-            # "__", # payload_gen don't want to use it
-            # since it can just use '_'+'_'
-            "class",
-            "globals",
-            "init",
-            "dict",
-            "builtins",
-            "getitem",
-            "import",
-            "add",
-            "mul",
-            "mod",
-            "os",
-            "popen",
-            "read",
-            "pop",
-            "get",
-            "eval",
-            "bytes",
-            "decode",
-            "chr",
-            "truediv",
-            "pos",
-            "concat",
-            "big",
-            "doc",
-            "attr",
-            "__class__",
-            "__globals__",
-            "__init__",
-            "__dict__",
-            "__builtins__",
-            "__getitem__",
-            "__import__",
-            "__add__",
-            "__mul__",
-            "__mod__",
-            "__truediv__",
-            "__doc__",
-            "%",
-            "c",
-            "%s%s",
-            "%s%%s",
-            "%c",  # try to regenerate
-        ] + append_targets
+        targets = (
+            list(range(10))
+            + [
+                37,  # '%'
+                128,
+                "urlencode",
+                "%",
+                "c",
+                "%c",
+                "_",
+                # "__", # payload_gen don't want to use it
+                # since it can just use '_'+'_'
+                "class",
+                "globals",
+                "init",
+                "dict",
+                "builtins",
+                "getitem",
+                "import",
+                "add",
+                "mul",
+                "mod",
+                "os",
+                "popen",
+                "read",
+                "pop",
+                "get",
+                "eval",
+                "bytes",
+                "decode",
+                "chr",
+                "truediv",
+                "pos",
+                "concat",
+                "big",
+                "doc",
+                "attr",
+                "__class__",
+                "__globals__",
+                "__init__",
+                "__dict__",
+                "__builtins__",
+                "__getitem__",
+                "__import__",
+                "__add__",
+                "__mul__",
+                "__mod__",
+                "__truediv__",
+                "__doc__",
+                "%",
+                "c",
+                "%s%s",
+                "%s%%s",
+                "%c",  # try to regenerate
+            ]
+            + append_targets
+        )
         if not self.prepared and not self.do_prepare():
             return
         if not any(

@@ -208,7 +208,8 @@ class PayloadGenerator:
         # 事先测试literal中的某些片段，从而提速
         # 因为这些片段的种类比Literal少得多，利于缓存
         # 为了提升速度，literal也会被generate_by_list检查
-        words = set(re.findall("[a-z]{3,}|[0-9]+", target[1]))
+        # 不应该在这里检测单双引号，因为引号对应的页面hash可能被收集了，导致误判
+        words = set(re.findall(r"[a-z]{3,}|[0-9]", target[1]))
         if not all(self.waf_func(word) for word in words):
             return None
         return (target[1], {}, [])
