@@ -175,13 +175,6 @@ class PayloadGenerator:
         targets = unwrap_whitespace(targets)
         str_result, used_context, tree = "", {}, []
 
-        # 先测试一下literal部分，如果这都过不了那就不要再往下测了
-        literalparts = "".join(
-            target[1] for target in targets if target[0] == LITERAL  # type: ignore
-        )
-        if len(literalparts) >= 5 and not self.waf_func(literalparts):
-            return None
-
         for target in targets:
             for checker, runner in self.generate_funcs:
                 if not checker(self, target):
@@ -215,7 +208,7 @@ class PayloadGenerator:
         # 事先测试literal中的某些片段，从而提速
         # 因为这些片段的种类比Literal少得多，利于缓存
         # 为了提升速度，literal也会被generate_by_list检查
-        words = re.findall("[a-z0-9]{4,}", target[1])
+        words = set(re.findall("[a-z]{3,}|[0-9]+", target[1]))
         if not all(self.waf_func(word) for word in words):
             return None
         return (target[1], {}, [])
