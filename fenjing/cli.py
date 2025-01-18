@@ -71,12 +71,6 @@ TITLE = r"""
 
 LOGGING_FORMAT = "%(message)s"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format=LOGGING_FORMAT,
-    datefmt="[%X]",
-    handlers=[RichHandler(markup=True, show_time=False, show_path=False)],
-)
 logger = logging.getLogger("cli")
 
 
@@ -567,6 +561,13 @@ def add_options(options):
 @click.group()
 def main():
     """click的命令组"""
+    rich_print(f"[yellow bold]{rich_escape(TITLE)}[/]")
+    logging.basicConfig(
+        level=logging.INFO,
+        format=LOGGING_FORMAT,
+        datefmt="[%X]",
+        handlers=[RichHandler(markup=True, show_time=False, show_path=False)],
+    )
 
 
 @main.command()
@@ -611,7 +612,7 @@ def crack(
     """
     攻击指定的表单
     """
-    rich_print(f"[yellow bold]{rich_escape(TITLE)}[/]")
+
     assert all(param is not None for param in [url, inputs]), "Please check your param"
     form = get_form(
         action=action or urlparse(url).path,
@@ -694,7 +695,7 @@ def crack_path(
     攻击指定的路径
     """
     assert url is not None, "Please provide URL!"
-    rich_print(f"[yellow bold]{rich_escape(TITLE)}[/]")
+
     requester = HTTPRequester(
         interval=interval,
         user_agent=user_agent,
@@ -753,7 +754,7 @@ def crack_json(
     """
     攻击指定的JSON API
     """
-    rich_print(f"[yellow bold]{rich_escape(TITLE)}[/]")
+
     assert url is not None, "Please check your param"
     requester = HTTPRequester(
         interval=interval,
@@ -810,7 +811,7 @@ def scan(
     """
     扫描指定的网站
     """
-    rich_print(f"[yellow bold]{rich_escape(TITLE)}[/]")
+
     requester = HTTPRequester(
         interval=interval,
         user_agent=user_agent,
