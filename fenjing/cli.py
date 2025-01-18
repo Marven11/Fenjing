@@ -66,7 +66,7 @@ TITLE = r"""
 """
 
 
-LOGGING_FORMAT = "%(message)s"
+LOGGING_FORMAT = "[bright_black bold]\\[%(levelname)s][/] | %(message)s"
 
 logger = logging.getLogger("cli")
 
@@ -563,7 +563,7 @@ def main():
         level=logging.INFO,
         format=LOGGING_FORMAT,
         datefmt="[%X]",
-        handlers=[RichHandler(markup=True, show_time=False, show_path=False)],
+        handlers=[RichHandler(show_level=False, markup=True, show_time=False, show_path=False, keywords=[])],
     )
 
 

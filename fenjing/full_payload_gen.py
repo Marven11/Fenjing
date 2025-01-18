@@ -265,7 +265,7 @@ class FullPayloadGen:
             self.payload_gen.cache_by_repr.clear()
         else:
             self.payload_gen.delete_from_cache(STRING, value)
-        logger.info(
+        logger.debug(
             "Adding [yellow]%s[/] with %s",
             rich_escape(repr(value)),
             rich_escape(payload),
