@@ -27,10 +27,15 @@ def get_full_payload_gen(
     blacklist,
     detect_mode=fenjing.const.DetectMode.ACCURATE,
     environment=fenjing.const.TemplateEnvironment.FLASK,
+    python_version=fenjing.const.PythonEnvironment.PYTHON3,
 ):
     return FullPayloadGen(
         lambda x: all(word not in x for word in blacklist),
-        options=options.Options(detect_mode=detect_mode, environment=environment),
+        options=options.Options(
+            detect_mode=detect_mode,
+            environment=environment,
+            python_version=python_version,
+        ),
     )
 
 
@@ -64,7 +69,9 @@ class FullPayloadGenTestCaseSimple(unittest.TestCase):
             # cause the stupid type checker thinks the 'payload' below would still be None
             resp = self.subm.submit(payload)
             assert resp is not None
-            self.assertIn(string, resp.text, f"Test {string!r} failed with payload {payload!r}")
+            self.assertIn(
+                string, resp.text, f"Test {string!r} failed with payload {payload!r}"
+            )
             for word in self.blacklist:
                 self.assertNotIn(word, payload)
 
@@ -168,6 +175,81 @@ class FullPayloadGenTestCaseHard2(FullPayloadGenTestCaseSimple):
             '"',
             "config",
             "=",
+        ]
+        self.full_payload_gen = get_full_payload_gen(self.blacklist)
+
+
+class FullPayloadGenTestCaseHard3(FullPayloadGenTestCaseSimple):
+    def setUp(self) -> None:
+        super().setUp()
+        # issue #55
+        self.blacklist = [
+            "#",
+            "%",
+            "!",
+            "=",
+            "+",
+            "-",
+            "/",
+            "&",
+            "^",
+            "<",
+            ">",
+            "and",
+            "or",
+            "not",
+            "\\",
+            "[",
+            "]",
+            ".",
+            "_",
+            ",",
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            '"',
+            "'",
+            "`",
+            "?",
+            "attr",
+            "request",
+            "args",
+            "cookies",
+            "headers",
+            "files",
+            "form",
+            "json",
+            "flag",
+            "lipsum",
+            "cycler",
+            "joiner",
+            "namespace",
+            "url_for",
+            "flash",
+            "config",
+            "session",
+            "dict",
+            "range",
+            "lower",
+            "upper",
+            "format",
+            "get",
+            "item",
+            "key",
+            "pop",
+            "globals",
+            "class",
+            "builtins",
+            "mro",
+            "True",
+            "False",
         ]
         self.full_payload_gen = get_full_payload_gen(self.blacklist)
 
