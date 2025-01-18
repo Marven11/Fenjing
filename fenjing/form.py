@@ -58,7 +58,8 @@ def parse_forms(url, html: Union[str, BeautifulSoup]) -> List[Form]:
         bs_doc = BeautifulSoup(html, "html.parser")
     elif isinstance(html, BeautifulSoup):
         bs_doc = html
-
+    else:
+        raise ValueError(f"Wrong type for html: {type(html)}")
     details = []
     for form_element in bs_doc.select("form"):
         form = get_form(
