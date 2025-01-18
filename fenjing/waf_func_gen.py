@@ -273,7 +273,7 @@ class WafFuncGen:
                     logger.info(
                         "Submit [yellow]failed[/] for [yellow]%s[/]",
                         rich_escape(repr(keyword)),
-                        extra={"markup": True},
+                        extra={"markup": True, "highlighter": None},
                     )
                     continue
                 status_code, text = result
@@ -281,7 +281,7 @@ class WafFuncGen:
                     "Fuzzing waf page hash [yellow]%s[/] with response [blue]%s[/]",
                     rich_escape(repr(keyword)),
                     repr(text) if len(text) < 100 else repr(text[:100]) + "......",
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
                 if status_code == 500 and "Internal Server Error" in text:
                     continue
@@ -295,7 +295,7 @@ class WafFuncGen:
         Returns:
             List[int]: 过长payload页面的hash
         """
-        logger.info("Fuzzing long payloads...")
+        logger.info("Fuzzing long payloads...", extra={"highlighter": None})
         keywords = [
             "".join(random.choices(string.ascii_lowercase, k=5)) * 40 for _ in range(20)
         ]
@@ -306,6 +306,7 @@ class WafFuncGen:
                 if result is None:
                     logger.info(
                         "Submit failed, continue",
+                        extra={"highlighter": None},
                     )
                     continue
                 status_code, text = result
@@ -317,7 +318,7 @@ class WafFuncGen:
             logger.warning(
                 "[red bold]WAF ban long payloads[/]!, maybe you should try `--eval-args-payload`"
                 + " option to generate shorter payload.",
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             time.sleep(2)
         return [k for k, v in Counter(hashes).items() if v >= 2]
@@ -398,7 +399,7 @@ class WafFuncGen:
             logger.info(
                 "These keywords might get [yellow bold]banned[/]: [yellow]%s[/]",
                 rich_escape(repr(result)),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
         return result
 
@@ -426,14 +427,14 @@ class WafFuncGen:
                 logger.debug(
                     "Fuzzing keyword replacement: [yellow]%s[/]",
                     rich_escape(repr(payload)),
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
                 result = self.subm.submit(payload)
                 if result is None:
                     logger.info(
                         "Submit failed for [yellow]%s[/]",
                         rich_escape(repr(payload)),
-                        extra={"markup": True},
+                        extra={"markup": True, "highlighter": None},
                     )
                     continue
 
@@ -453,6 +454,7 @@ class WafFuncGen:
                         logger.info(
                             "Replaced keywords found, ignore because it's too long (length=%d)",
                             len(payload_replaced_keyword),
+                            extra={"highlighter": None},
                         )
                     else:
                         keywords += payload_replaced_keyword
@@ -463,7 +465,7 @@ class WafFuncGen:
             logger.info(
                 "These keywords might get [yellow bold]replaced[/]: [yellow]%s[/]",
                 rich_escape(repr(keywords)),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
         return keywords
 
@@ -473,7 +475,7 @@ class WafFuncGen:
         logger.info(
             "Perform [blue]doubletapping[/] for payload: [blue]%s[/]",
             rich_escape(payload),
-            extra={"markup": True},
+            extra={"markup": True, "highlighter": None},
         )
         exist_keywords = [w for w in keywords if w in payload]
         replacement = {
@@ -547,9 +549,7 @@ class WafFuncGen:
                     re.match(r"^[a-zA-Z0-9-_'\"!%=\+\-\*\/\[\], .()]+$", payload)
                     and payload not in result.text
                 ):
-                    logger.debug(
-                        "payload足够简单但却没有完全回显: %s", payload
-                    )
+                    logger.debug("payload足够简单但却没有完全回显: %s", payload)
                     return False
                 # 含有被waf的keyword
                 # 如果这个payload触发了500错误则说明payload被正常渲染了，先前找到的keyword有误，

@@ -69,8 +69,14 @@ TITLE = r"""
 """
 
 
-LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
-logging.basicConfig(level=logging.WARNING, format=LOGGING_FORMAT, handlers=[RichHandler()])
+LOGGING_FORMAT = "%(message)s"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format=LOGGING_FORMAT,
+    datefmt="[%X]",
+    handlers=[RichHandler(markup=True, show_time=False, show_path=False)],
+)
 logger = logging.getLogger("cli")
 
 
@@ -152,22 +158,30 @@ def do_submit_cmdexec(
                 EVAL, (STRING, f"exec({repr(statements)})")
             )
         else:
-            logger.info(extra={"markup": True}, msg="Please check your command")
+            logger.info(
+                "Please check your command",
+                extra={"markup": False, "highlighter": None},
+            )
             return ""
     else:
         payload, will_print = full_payload_gen_like.generate(OS_POPEN_READ, cmd)
     # 使用payload
     if payload is None:
-        logger.warning(extra={"markup": True}, msg="[red]Failed[/] generating payload.")
+        logger.warning(
+            "[red]Failed[/] generating payload.",
+            extra={"markup": True, "highlighter": None},
+        )
         return ""
     logger.info(
-        extra={"markup": True}, msg=f"Submit payload [blue]{rich_escape(payload)}[/]"
+        "Submit payload [blue]%s[/]",
+        rich_escape(payload),
+        extra={"markup": True, "highlighter": None},
     )
     if not will_print:
         logger.warning(
-            extra={"markup": True},
-            msg="Payload generator says that this payload "
+            "Payload generator says that this payload "
             "[red]won't print[/] command execution result.",
+            extra={"markup": True, "highlighter": None},
         )
     result = submitter.submit(payload)
     assert result is not None
@@ -189,10 +203,18 @@ def parse_headers_cookies(headers_list: List[str], cookies: str) -> Dict[str, st
         for header in headers_list:
             key, _, value = header.partition(": ")
             if not key or not value:
-                logger.warning("Failed parsing %s, ignored.", repr(header))
+                logger.warning(
+                    "Failed parsing %s, ignored.",
+                    repr(header),
+                    extra={"highlighter": None},
+                )
                 continue
             if key.capitalize() != key:
-                logger.warning("Header %s is not capitalized, fixed.", key)
+                logger.warning(
+                    "Header %s is not capitalized, fixed.",
+                    key,
+                    extra={"highlighter": None},
+                )
                 key = key.capitalize()
             headers[key] = value
     if cookies:
@@ -620,7 +642,7 @@ def crack(
             tamper_cmd,
         )
         if not result:
-            logger.warning("Test form failed...")
+            logger.warning("Test form failed...", extra={"highlighter": None})
             raise RunFailed()
         full_payload_gen, submitter = result
         do_crack(full_payload_gen, submitter, exec_cmd)
@@ -641,7 +663,7 @@ def crack(
             tamper_cmd,
         )
         if not result2:
-            logger.warning("Test form failed...")
+            logger.warning("Test form failed...", extra={"highlighter": None})
             raise RunFailed()
         submitter, evalargs_payload_gen = result2
         do_crack_eval_args(submitter, evalargs_payload_gen, exec_cmd)
@@ -695,7 +717,7 @@ def crack_path(
         tamper_cmd,
     )
     if not result:
-        logger.warning("Test form failed...")
+        logger.warning("Test form failed...", extra={"highlighter": None})
         raise RunFailed()
     full_payload_gen, submitter = result
     do_crack(full_payload_gen, submitter, exec_cmd)
@@ -758,7 +780,7 @@ def crack_json(
         tamper_cmd,
     )
     if not result:
-        logger.warning("Test form failed...")
+        logger.warning("Test form failed...", extra={"highlighter": None})
         raise RunFailed()
     full_payload_gen, submitter = result
     do_crack(full_payload_gen, submitter, exec_cmd)
@@ -804,7 +826,7 @@ def scan(
         for form in forms
     )
     for page_url, form in url_forms:
-        logger.warning("Scan form: %s", repr(form))
+        logger.warning("Scan form: %s", repr(form), extra={"highlighter": None})
         result = do_crack_form_pre(
             page_url,
             form,
@@ -823,11 +845,12 @@ def scan(
         full_payload_gen, submitter = result
         do_crack(full_payload_gen, submitter, exec_cmd)
         return
-    logger.warning("Scan failed...")
+    logger.warning("Scan failed...", extra={"highlighter": None})
     logger.warning(
         "Try to pass params manualy: "
         + "python -m fenjing crack %s --inputs aaa,bbb --method GET",
         url,
+        extra={"highlighter": None},
     )
 
     raise RunFailed()
@@ -878,13 +901,23 @@ def crack_request(
         logger.error("File doesn't exist: %s", request_filepath)
     request_pattern = request_filepath.read_bytes()
     if not raw and not check_tail(request_pattern):
-        logger.warning("Request doesn't ends with '\\r\\n\\r\\n', fixing...")
-        logger.warning("You can use `--raw` flag to disable this")
+        logger.warning(
+            "Request doesn't ends with '\\r\\n\\r\\n', fixing...",
+            extra={"highlighter": None},
+        )
+        logger.warning(
+            "You can use `--raw` flag to disable this", extra={"highlighter": None}
+        )
         request_pattern = fix_tail(request_pattern)
         time.sleep(2)
     if not raw and not check_line_break(request_pattern):
-        logger.warning("Request's linebreak is not '\\r\\n', fixing...")
-        logger.warning("You can use `--raw` flag to disable this")
+        logger.warning(
+            "Request's linebreak is not '\\r\\n', fixing...",
+            extra={"highlighter": None},
+        )
+        logger.warning(
+            "You can use `--raw` flag to disable this", extra={"highlighter": None}
+        )
         request_pattern = fix_line_break(request_pattern)
         time.sleep(2)
 
@@ -912,7 +945,7 @@ def crack_request(
         ),
     )
     if not full_payload_gen:
-        logger.warning("Crack request failed...")
+        logger.warning("Crack request failed...", extra={"highlighter": None})
         raise RunFailed()
     do_crack(full_payload_gen, submitter, exec_cmd)
 

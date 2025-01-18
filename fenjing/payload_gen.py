@@ -513,7 +513,7 @@ class PayloadGenerator:
                             args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
                             result=rich_escape(result),
                         ),
-                        extra={"markup": True},
+                        extra={"markup": True, "highlighter": None},
                     )
 
                 elif gen_type in (
@@ -531,7 +531,7 @@ class PayloadGenerator:
                             gen_type=gen_type,
                             args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
                         ),
-                        extra={"markup": True},
+                        extra={"markup": True, "highlighter": None},
                     )
 
                 self.cache_by_repr[gen_req] = ret
@@ -558,7 +558,7 @@ class PayloadGenerator:
                     gen_type=gen_type,
                     args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
                 ),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
 
         self.cache_by_repr[gen_req] = None

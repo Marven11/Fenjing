@@ -63,9 +63,15 @@ def burst_respond_params_data(
     words = list(set(words))
     random.shuffle(words)
     if len(words) > PARAM_CHUNK_SIZE * 100:
-        logger.warning("found %d params, don't burst", len(words))
+        logger.warning(
+            "found %d params, don't burst", len(words), extra={"highlighter": None}
+        )
         return [], []
-    logger.info("Bursting %d params...", len(words))
+    logger.info(
+        "Bursting %d params...",
+        len(words),
+        extra={"highlighter": None},
+    )
     respond_get_params: Set[str] = set()
     respond_post_params: Set[str] = set()
     with pbar_manager.pbar(
@@ -119,7 +125,7 @@ def yield_form(
         start_url,
     ]
     visited = set()
-    logger.info("Start scanning")
+    logger.info("Start scanning", extra={"highlighter": None})
     while targets:
         target_url = targets.pop(0)
         if target_url in visited:
@@ -128,7 +134,11 @@ def yield_form(
 
         resp = requester.request(method="GET", url=target_url)
         if resp is None:
-            logger.info("Fetch URL %s failed!", target_url)
+            logger.info(
+                "Fetch URL %s failed!",
+                target_url,
+                extra={"highlighter": None},
+            )
             continue
 
         html = BeautifulSoup(resp.text, "html.parser")
@@ -145,7 +155,7 @@ def yield_form(
             logger.info(
                 "Found [yellow]GET[/] params with burst: [blue]%s[/]",
                 rich_escape(repr(respond_get_params)),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             yield target_url, [
                 get_form(
@@ -159,7 +169,7 @@ def yield_form(
             logger.info(
                 "Found [yellow]POST[/] params with burst: [blue]%s[/]",
                 rich_escape(repr(respond_post_params)),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             yield target_url, [
                 get_form(
@@ -172,4 +182,4 @@ def yield_form(
 
         targets += parse_urls(html)
     if not found:
-        logger.warning("Found nothing.")
+        logger.warning("Found nothing.", extra={"highlighter": None})

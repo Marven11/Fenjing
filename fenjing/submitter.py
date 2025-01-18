@@ -55,7 +55,7 @@ def shell_tamperer(shell_cmd: str) -> Tamperer:
                 " ends with '\\n', it may cause some issues.",
                 rich_escape(shell_cmd),
                 rich_escape(out),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
         return out
 
@@ -230,7 +230,7 @@ class RequestSubmitter(BaseSubmitter):
             self.method,
             rich_escape(repr(params)),
             rich_escape(repr(data)),
-            extra={"markup": True},
+            extra={"markup": True, "highlighter": None},
         )
 
         return self.req.request(
@@ -305,7 +305,8 @@ class PathSubmitter(BaseSubmitter):
         super().__init__(callback)
         if not url.endswith("/"):
             logger.warning(
-                "PathSubmitter get a url that's not ends with '/', appending it."
+                "PathSubmitter get a url that's not ends with '/', appending it.",
+                extra={"highlighter": None},
             )
             url += "/"
         self.url = url
@@ -321,7 +322,7 @@ class PathSubmitter(BaseSubmitter):
             logger.info(
                 "Don't submit [yellow]%s[/] because it can't be in the path.",
                 rich_escape(repr(raw_payload)),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             return None
         resp = self.req.request(method="GET", url=self.url + quote(raw_payload))

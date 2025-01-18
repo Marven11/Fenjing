@@ -319,7 +319,7 @@ class ContextVariableManager:
                 logger.warning(
                     "Needed variables not found: [blue]%s[/]",
                     rich_escape(repr(notfound_vars)),
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
                 return False
             self.payload_dependency[payload] = depends_on

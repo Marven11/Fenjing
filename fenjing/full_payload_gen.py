@@ -83,11 +83,11 @@ def get_outer_pattern(
                     "Test pattern [blue]%s[/] with [blue]%s[/] failed",
                     rich_escape(repr(outer_pattern)),
                     rich_escape(repr(test_payload)),
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
     logger.warning(
         "Every pattern we know is [red]BANNED![/] There is [red]%s[/] we can generate anything!",
-        extra={"markup": True},
+        extra={"markup": True, "highlighter": None},
     )
     return None, None
 
@@ -181,13 +181,13 @@ class FullPayloadGen:
             logger.info(
                 "use [blue]%s[/]",
                 rich_escape(self.outer_pattern),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
         else:
             logger.info(
                 "use [blue]%s[/], which [red]will not print[/] your result!",
                 rich_escape(self.outer_pattern),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
 
         self.payload_gen = payload_gen.PayloadGenerator(
@@ -239,9 +239,10 @@ class FullPayloadGen:
         expression, used_context, _ = ret
 
         if len(expression) - len(repr(value)) < 3 or "(" not in expression:
-            logger.info(
+            logger.debug(
                 "Generated expression [blue]%s[/] is too simple, skip it.",
                 rich_escape(expression),
+                extra={"markup": True, "highlighter": None},
             )
             return "skip"
 
@@ -268,6 +269,7 @@ class FullPayloadGen:
             "Adding [yellow]%s[/] with %s",
             rich_escape(repr(value)),
             rich_escape(payload),
+            extra={"markup": True, "highlighter": None},
         )
         return "success"
 
@@ -340,11 +342,15 @@ class FullPayloadGen:
         if not any(
             self.waf_func(test_pattern) for _, test_pattern in SET_STMT_PATTERNS
         ):
-            logger.info("We cannot set any variable through {%set %}, continue...")
+            logger.info(
+                "We cannot set any variable through {%set %}, continue...",
+                extra={"highlighter": None},
+            )
             return
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
         logger.info(
             "Adding some string variables...",
+            extra={"highlighter": None},
         )
         with pbar_manager.pbar(targets, "prepare_extra_context_vars") as targets:
             for target in targets:
@@ -353,7 +359,9 @@ class FullPayloadGen:
                 result = self.try_add_context_var(target, clean_cache=False)
                 if result == "failed":
                     logger.info(
-                        "Failed generating [yellow]%s[/]", rich_escape(repr(target))
+                        "Failed generating [yellow]%s[/]",
+                        rich_escape(repr(target)),
+                        extra={"markup": True, "highlighter": None},
                     )
                     continue
                 if result == "success":
@@ -432,13 +440,13 @@ class FullPayloadGen:
                 extra_strings = [args[0][1]]
             self.prepare_extra_context_vars(extra_strings)
 
-        logger.info("Start generating final expression...")
+        logger.info("Start generating final expression...", extra={"highlighter": None})
 
         # 生成并检查
         ret = self.payload_gen.generate_detailed(gen_type, *args)
 
         if ret is None:
-            logger.info("Bypassing WAF Failed.")
+            logger.info("Bypassing WAF Failed.", extra={"highlighter": None})
             return None
         inner_payload, used_context, tree = ret
         context_payload = self.context_vars.get_payload(used_context)
@@ -459,6 +467,7 @@ class FullPayloadGen:
             logger.warning(
                 "use [blue]%s[/], which [red]won't print[/] your result!",
                 rich_escape(self.outer_pattern),
+                extra={"highlighter": None},
             )
         return (payload, self.will_print, tree)
 

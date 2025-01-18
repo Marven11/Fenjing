@@ -115,7 +115,7 @@ class CallBackLogger:
 
     def __call__(self, callback_type, data):
         def default_handler(_):
-            return logger.warning("callback_type=%s not found", callback_type)
+            return logger.warning("callback_type=%s not found", callback_type, extra={"highlighter": None})
 
         return {
             CALLBACK_PREPARE_FULLPAYLOADGEN: self.callback_prepare_fullpayloadgen,
@@ -480,7 +480,7 @@ def browser_open_url_delayed(url, delay):
         try:
             webbrowser.open(url)
         except webbrowser.Error:
-            logger.warning("Open browser failed")
+            logger.warning("Open browser failed", extra={"highlighter": None})
 
     t = threading.Thread(target=f)
     t.daemon = True

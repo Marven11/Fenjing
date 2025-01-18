@@ -72,10 +72,10 @@ def guess_python_version(
         else (PythonVersion.PYTHON2, None)
     )
     logger.info(
-        "[blue bold]Target[/] is [blue bold]%s.%s[/]",
+        "Target is [blue bold]%s.%s[/]",
         version.value,
-        str(subversion) if subversion else 'x',
-        extra={"markup": True},
+        str(subversion) if subversion else "x",
+        extra={"markup": True, "highlighter": None},
     )
     return version, subversion
 
@@ -160,6 +160,7 @@ class Cracker:
         """
         logger.info(
             "Testing generated payload.",
+            extra={"highlighter": None},
         )
         result = self.subm.submit(payload)
         assert result is not None
@@ -183,7 +184,7 @@ class Cracker:
         """
         logger.info(
             "Testing generated payload as eval args.",
-            extra={"markup": True},
+            extra={"highlighter": None},
         )
         result = subm.submit(payload)
         assert result is not None
@@ -237,30 +238,30 @@ class Cracker:
             if test_result == "SUCCESS":
                 logger.info(
                     "[cyan bold]Success![/] Now we can generate payloads.",
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
             elif test_result == "FAIL_UNKNOWN":
                 logger.info(
                     "[yellow bold]Test Payload Failed[/] Generated payloads might be useless.",
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
             else:  # test_result == "FAIL_500"
                 logger.info(
                     "Target return status code [yellow bold]500[/]!",
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
         else:
             if test_result == "FAIL_500":
                 logger.info(
                     "Target return status code [yellow bold]500[/]! "
                     "(although payload won't print anything)",
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
             else:
                 logger.info(
                     "We WON'T SEE the execution result! "
                     + "You can try generating payloads anyway.",
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
 
     def expr_waf_not500(
@@ -277,7 +278,7 @@ class Cracker:
                 "payload [blue]%s[/] generate status code [yellow]%d[/]",
                 rich_escape(payload),
                 status_code,
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             return status_code == 500
 
@@ -295,7 +296,7 @@ class Cracker:
         Returns:
             Union[FullPayloadGen, None]: 生成器
         """
-        logger.info("Cracking...")
+        logger.info("Cracking...", extra={"highlighter": None})
         waf_func = self.waf_func_gen.generate()
         result = self.crack_with_waf(waf_func)
         if not result:
@@ -311,15 +312,15 @@ class Cracker:
         ):
             logger.warning(
                 "[yellow bold]Start fixing status code 500.[/]",
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             logger.warning(
                 "[yellow bold]IT MIGHT MAKE YOUR COMMAND EXECUTE TWICE![/]",
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             logger.warning(
                 "[yellow bold]Use Ctrl+C to exit if you don't want it![/]",
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             time.sleep(6)
             waf_expr_func = self.expr_waf_not500(
@@ -331,7 +332,7 @@ class Cracker:
             if test_result == "FAIL_500":
                 logger.info(
                     "[yellow bold]It's still 500, sorry...[/]",
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
             self.log_with_result(will_print, test_result)
         return full_payload_gen
@@ -345,7 +346,10 @@ class Cracker:
                 产生的payload生成器，提交器，以及是否会产生回显
         """
         args_target_field = "x"
-        logger.info("Cracking with request GET args...", extra={"markup": True})
+        logger.info(
+            "Cracking with request GET args...",
+            extra={"markup": True, "highlighter": None},
+        )
         assert isinstance(
             self.subm, FormSubmitter
         ), "Currently onlu FormSubmitter is supported"
@@ -383,17 +387,17 @@ class Cracker:
             if self.test_payload_eval_args(self.test_eval, new_subm):
                 logger.info(
                     "[cran bold]Success[/] Now we can generate payloads.",
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
             else:
                 logger.info(
                     "[yellow bold]Test Payload Failed[/] Generated payloads might be useless.",
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
         else:
             logger.info(
                 "We WON'T SEE the execution result! You can try generating payloads anyway.",
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
 
         return new_subm, EvalArgsModePayloadGen(will_print)

@@ -161,7 +161,7 @@ class TCPRequester:
             logger.warning(
                 "Get socket failed: [red]%s[/]",
                 rich_escape(repr(exception)),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             logger.debug(traceback.format_exc())
             return None
@@ -172,7 +172,7 @@ class TCPRequester:
             logger.warning(
                 "Send request failed: [red]%s[/]",
                 rich_escape(repr(exception)),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             logger.debug(traceback.format_exc())
             return None
@@ -184,7 +184,7 @@ class TCPRequester:
             logger.warning(
                 "Receive response failed: [red]%s[/]",
                 rich_escape(repr(exception)),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             logger.debug(traceback.format_exc())
             return None
@@ -194,7 +194,7 @@ class TCPRequester:
             logging.warning(
                 "Failed to find status code: [blue]%s[/]",
                 rich_escape(response),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             return None
 
@@ -204,7 +204,7 @@ class TCPRequester:
             logger.warning(
                 "Close socket failed, ignoring... [red]%s[/]",
                 rich_escape(repr(exception)),
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
 
         return int(status_code_result.group(0)), response.partition("\r\n\r\n")[2]
@@ -259,7 +259,7 @@ class HTTPRequester:
             logger.warning(
                 "Request interval might be [yellow]too large[/]: %.2f between two requests.",
                 interval,
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
 
         if headers:
@@ -292,20 +292,21 @@ class HTTPRequester:
         except requests.exceptions.SSLError:
             logger.warning(
                 "SSL Error. Maybe you want to ignore certificate with --no-verify-ssl"
+                , extra={"highlighter": None}
             )
             return None
         except Exception as exception:  # pylint: disable=W0718
-            logger.warning("Request failed with exception: %s", repr(exception))
+            logger.warning("Request failed with exception: %s", repr(exception), extra={"highlighter": None})
             logger.debug(traceback.format_exc())
             return None
         if resp.status_code in self.retry_status:
             logger.warning(
                 "[yellow bold]Rate limit detected[/]: status code is [yellow]%d[/], try to sleep +1s",
                 resp.status_code,
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
             logger.warning(
-                "You might want to use `--interval` option to set request interval."
+                "You might want to use `--interval` option to set request interval.", extra={"highlighter": None}
             )
             time.sleep(1)
             return None
@@ -313,7 +314,7 @@ class HTTPRequester:
             logger.warning(
                 "Not expected status code: [yellow]%d[/] ... continue anyway",
                 resp.status_code,
-                extra={"markup": True},
+                extra={"markup": True, "highlighter": None},
             )
 
         self.last_request_time = time.perf_counter()
@@ -335,7 +336,7 @@ class HTTPRequester:
                     "Method [blue]%s[/] might not need a request body, "
                     "still adding extra data anyway.",
                     kwargs["method"],
-                    extra={"markup": True},
+                    extra={"markup": True, "highlighter": None},
                 )
             data = self.extra_data.copy()
             data.update(kwargs.get("data", {}))
