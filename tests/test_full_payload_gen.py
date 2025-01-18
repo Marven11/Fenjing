@@ -35,6 +35,7 @@ def get_full_payload_gen(
             detect_mode=detect_mode,
             environment=environment,
             python_version=python_version,
+            python_subversion=sys.version_info.minor,  # expected 11 or higher
         ),
     )
 
