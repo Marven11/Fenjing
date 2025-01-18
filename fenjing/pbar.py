@@ -1,5 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
-import time
 from contextlib import contextmanager
 from rich.progress import (
     BarColumn,
