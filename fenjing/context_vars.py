@@ -7,7 +7,7 @@ import logging
 import random
 import string
 import re
-from .const import WafFunc, TemplateEnvironment, PythonEnvironment, SET_STMT_PATTERNS
+from .const import WafFunc, TemplateEnvironment, PythonVersion, SET_STMT_PATTERNS
 from .options import Options
 from .pbar import pbar_manager
 
@@ -384,7 +384,7 @@ def prepare_context_vars(waf: WafFunc, options: Options) -> ContextVariableManag
         ContextVariableManager: 生成的实例
     """
     context_payloads = context_payloads_stmts.copy()
-    if options.python_version == PythonEnvironment.PYTHON3:
+    if options.python_version == PythonVersion.PYTHON3:
         context_payloads.update(context_payloads_stmts_py3)
     manager = ContextVariableManager(waf, context_payloads)
     manager.do_prepare()
@@ -399,7 +399,7 @@ def prepare_context_vars(waf: WafFunc, options: Options) -> ContextVariableManag
         return manager
 
     exprs = const_exprs.copy()
-    if options.python_version == PythonEnvironment.PYTHON3:
+    if options.python_version == PythonVersion.PYTHON3:
         exprs.update(const_exprs_py3)
     with pbar_manager.pbar(
         list(exprs.items()), "prepare_context_vars"

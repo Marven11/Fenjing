@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from .const import (
     DetectMode,
     TemplateEnvironment,
-    PythonEnvironment,
+    PythonVersion,
     ReplacedKeywordStrategy,
     AutoFix500Code,
     DetectWafKeywords,
@@ -17,7 +17,7 @@ class Options:
     detect_mode: DetectMode = DetectMode.ACCURATE
     environment: TemplateEnvironment = TemplateEnvironment.FLASK
     replaced_keyword_strategy: ReplacedKeywordStrategy = ReplacedKeywordStrategy.AVOID
-    python_version: PythonEnvironment = PythonEnvironment.UNKNOWN
+    python_version: PythonVersion = PythonVersion.UNKNOWN
     python_subversion: Union[int, None] = None
     autofix_500: AutoFix500Code = AutoFix500Code.ENABLED
     detect_waf_keywords: DetectWafKeywords = DetectWafKeywords.NONE

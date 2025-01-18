@@ -389,7 +389,7 @@ class PayloadGenerator:
         Returns:
             _type_: 生成结果
         """
-        if self.options.python_version != PythonEnvironment.PYTHON3:
+        if self.options.python_version != PythonVersion.PYTHON3:
             return None
         return ("", {}, [])
 
@@ -408,7 +408,7 @@ class PayloadGenerator:
             _type_: 生成结果
         """
         if (
-            self.options.python_version != PythonEnvironment.PYTHON3
+            self.options.python_version != PythonVersion.PYTHON3
             or self.options.python_subversion is None
             or self.options.python_subversion < target[1]
         ):

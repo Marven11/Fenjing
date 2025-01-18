@@ -19,7 +19,7 @@ import click
 from .const import (
     DetectMode,
     TemplateEnvironment,
-    PythonEnvironment,
+    PythonVersion,
     ReplacedKeywordStrategy,
     DetectWafKeywords,
     OS_POPEN_READ,
@@ -222,7 +222,7 @@ def do_crack_form_pre(
     """
     python_version, python_subversion = (
         guess_python_version(url, requester)
-        if options.python_version == PythonEnvironment.UNKNOWN
+        if options.python_version == PythonVersion.UNKNOWN
         else (options.python_version, None)
     )
     for input_field in form["inputs"]:
@@ -274,7 +274,7 @@ def do_crack_form_eval_args_pre(
     """
     python_version, python_subversion = (
         guess_python_version(url, requester)
-        if options.python_version == PythonEnvironment.UNKNOWN
+        if options.python_version == PythonVersion.UNKNOWN
         else (options.python_version, None)
     )
     for input_field in form["inputs"]:
@@ -328,7 +328,7 @@ def do_crack_json_pre(
     """
     python_version, python_subversion = (
         guess_python_version(url, requester)
-        if options.python_version == PythonEnvironment.UNKNOWN
+        if options.python_version == PythonVersion.UNKNOWN
         else (options.python_version, None)
     )
     json_obj = json.loads(json_data)
@@ -378,7 +378,7 @@ def do_crack_path_pre(
     """
     python_version, python_subversion = (
         guess_python_version(url, requester)
-        if options.python_version == PythonEnvironment.UNKNOWN
+        if options.python_version == PythonVersion.UNKNOWN
         else (options.python_version, None)
     )
     submitter = PathSubmitter(url=url, requester=requester)

@@ -22,7 +22,7 @@ from .form import random_fill
 from .submitter import FormSubmitter, RequestSubmitter, Submitter
 from .colorize import colored
 from .const import (
-    PythonEnvironment,
+    PythonVersion,
     AutoFix500Code,
     ATTRIBUTE,
     CHAINED_ATTRIBUTE_ITEM,
@@ -48,7 +48,7 @@ Result = namedtuple("Result", "full_payload_gen input_field")
 
 def guess_python_version(
     url: str, requester: HTTPRequester
-) -> Tuple[PythonEnvironment, Union[int, None]]:
+) -> Tuple[PythonVersion, Union[int, None]]:
     """猜测目标的python版本
 
     Args:
@@ -60,14 +60,14 @@ def guess_python_version(
     """
     resp = requester.request(method="GET", url=url)
     if resp is None:
-        return PythonEnvironment.UNKNOWN, None
+        return PythonVersion.UNKNOWN, None
     header = resp.headers.get("Server", "")
     version_regexp = re.search(r"Python/(\d)(\.?\d+)?", header)
     if not version_regexp:
-        return PythonEnvironment.UNKNOWN, None
+        return PythonVersion.UNKNOWN, None
     version, subversion = (
         (
-            PythonEnvironment.PYTHON3,
+            PythonVersion.PYTHON3,
             (
                 int(version_regexp.group(2)[1:])
                 if version_regexp.group(2)
@@ -75,7 +75,7 @@ def guess_python_version(
             ),
         )
         if version_regexp.group(1) == "3"
-        else (PythonEnvironment.PYTHON2, None)
+        else (PythonVersion.PYTHON2, None)
     )
     rich_print(
         f"[blue bold]Target[/] is [blue bold]{version.value}.{subversion if subversion else 'x'}[/]"

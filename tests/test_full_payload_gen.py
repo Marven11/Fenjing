@@ -27,7 +27,7 @@ def get_full_payload_gen(
     blacklist,
     detect_mode=fenjing.const.DetectMode.ACCURATE,
     environment=fenjing.const.TemplateEnvironment.FLASK,
-    python_version=fenjing.const.PythonEnvironment.PYTHON3,
+    python_version=fenjing.const.PythonVersion.PYTHON3,
 ):
     return FullPayloadGen(
         lambda x: all(word not in x for word in blacklist),

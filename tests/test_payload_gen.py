@@ -24,7 +24,7 @@ def get_payload_gen(blacklist, context):
     return PayloadGenerator(
         waf_func,
         context,
-        options=fenjing.Options(python_version=fenjing.const.PythonEnvironment.PYTHON3),
+        options=fenjing.Options(python_version=fenjing.const.PythonVersion.PYTHON3),
     )
 
 

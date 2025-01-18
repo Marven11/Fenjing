@@ -105,7 +105,7 @@ class TemplateEnvironment(Enum):
     JINJA2 = "jinja2"
 
 
-class PythonEnvironment(Enum):
+class PythonVersion(Enum):
     """模板的python执行环境：手动指定python3或者python2，或者让脚本猜测"""
 
     UNKNOWN = "unknown"
