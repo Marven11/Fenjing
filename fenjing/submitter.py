@@ -51,8 +51,10 @@ def shell_tamperer(shell_cmd: str) -> Tamperer:
         out = proc.stdout.read().decode()
         if out.endswith("\n"):
             logger.info(
-                f"Tamperer [blue]{shell_cmd}[/] output [blue]{out}[/]"
+                "Tamperer [blue]%s[/] output [blue]%s[/]"
                 " ends with '\\n', it may cause some issues.",
+                rich_escape(shell_cmd),
+                rich_escape(out),
                 extra={"markup": True},
             )
         return out
@@ -140,7 +142,7 @@ class BaseSubmitter:
             logger.debug("Applying tampers...")
             for tamperer in self.tamperers:
                 payload = tamperer(payload)
-        logger.debug("Submit %s", colored("blue", payload))
+        logger.debug("Submit [blue]%s[/]", rich_escape(payload))
         resp = self.submit_raw(payload)
         if resp is None:
             return None
@@ -223,8 +225,11 @@ class RequestSubmitter(BaseSubmitter):
         else:
             params.update({self.target_field: raw_payload})
         logger.info(
-            f"Submit [blue]{rich_escape(self.url)} {self.method} "
-            f"params={rich_escape(repr(params))} data={rich_escape(repr(data))}[/]",
+            "Submit [blue]%s method=%s params=%s data=%s[/]",
+            rich_escape(self.url),
+            self.method,
+            rich_escape(repr(params)),
+            rich_escape(repr(data)),
             extra={"markup": True},
         )
 
@@ -314,8 +319,8 @@ class PathSubmitter(BaseSubmitter):
         # that's why we're avoiding spaces and '%'
         if any(w in raw_payload for w in ["/", "..", " ", "%"]):
             logger.info(
-                f"Don't submit [yellow]{repr(raw_payload)}[/] "
-                "because it can't be in the path.",
+                "Don't submit [yellow]%s[/] because it can't be in the path.",
+                rich_escape(repr(raw_payload)),
                 extra={"markup": True},
             )
             return None

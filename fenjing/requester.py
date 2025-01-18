@@ -11,9 +11,10 @@ import warnings
 import urllib3
 from urllib.parse import parse_qs
 from typing import Union, Tuple
+
+from rich.markup import escape as rich_escape
 import requests
 
-from fenjing.colorize import colored
 from .const import DEFAULT_USER_AGENT
 
 logger = logging.getLogger("requester")
@@ -157,14 +158,22 @@ class TCPRequester:
         try:
             sock = self._get_socket()
         except Exception as exception:
-            logger.warning("Get socket failed: %s", repr(exception))
+            logger.warning(
+                "Get socket failed: [red]%s[/]",
+                rich_escape(repr(exception)),
+                extra={"markup": True},
+            )
             logger.debug(traceback.format_exc())
             return None
 
         try:
             sock.sendall(request)
         except Exception as exception:
-            logger.warning("Send request failed: %s", repr(exception))
+            logger.warning(
+                "Send request failed: [red]%s[/]",
+                rich_escape(repr(exception)),
+                extra={"markup": True},
+            )
             logger.debug(traceback.format_exc())
             return None
 
@@ -172,19 +181,31 @@ class TCPRequester:
         try:
             response = self._recv_all(sock)
         except Exception as exception:
-            logger.warning("Receive response failed: %s", repr(exception))
+            logger.warning(
+                "Receive response failed: [red]%s[/]",
+                rich_escape(repr(exception)),
+                extra={"markup": True},
+            )
             logger.debug(traceback.format_exc())
             return None
         response = response.decode()
         status_code_result = re.search(r"\d{3}", response.partition("\n")[0])
         if status_code_result is None:
-            logging.warning("Failed to find status code: %s", response)
+            logging.warning(
+                "Failed to find status code: [blue]%s[/]",
+                rich_escape(response),
+                extra={"markup": True},
+            )
             return None
 
         try:
             sock.close()
         except Exception as exception:
-            logger.warning("Close socket failed, ignoring... %s", repr(exception))
+            logger.warning(
+                "Close socket failed, ignoring... [red]%s[/]",
+                rich_escape(repr(exception)),
+                extra={"markup": True},
+            )
 
         return int(status_code_result.group(0)), response.partition("\r\n\r\n")[2]
 
@@ -219,7 +240,7 @@ class HTTPRequester:
         extra_params_querystr=None,
         extra_data_querystr=None,
         proxy=None,
-        no_verify_ssl = False,
+        no_verify_ssl=False,
     ):
         self.interval = interval
         self.timeout = timeout
@@ -236,9 +257,9 @@ class HTTPRequester:
 
         if interval > 1:
             logger.warning(
-                "Request interval might be %s: %.2fs between two requests.",
-                colored("yellow", "too large"),
+                "Request interval might be [yellow]too large[/]: %.2f between two requests.",
                 interval,
+                extra={"markup": True},
             )
 
         if headers:
@@ -269,7 +290,9 @@ class HTTPRequester:
         try:
             resp = self.session.request(**kwargs)
         except requests.exceptions.SSLError:
-            logger.warning("SSL Error. Maybe you want to ignore certificate with --no-verify-ssl")
+            logger.warning(
+                "SSL Error. Maybe you want to ignore certificate with --no-verify-ssl"
+            )
             return None
         except Exception as exception:  # pylint: disable=W0718
             logger.warning("Request failed with exception: %s", repr(exception))
@@ -277,9 +300,9 @@ class HTTPRequester:
             return None
         if resp.status_code in self.retry_status:
             logger.warning(
-                "%s: status code is %s, try to sleep +1s",
-                colored("yellow", "Rate limit", bold=True),
-                colored("yellow", str(resp.status_code)),
+                "[yellow bold]Rate limit detected[/]: status code is [yellow]%d[/], try to sleep +1s",
+                resp.status_code,
+                extra={"markup": True},
             )
             logger.warning(
                 "You might want to use `--interval` option to set request interval."
@@ -288,8 +311,9 @@ class HTTPRequester:
             return None
         if resp.status_code not in [200, 500]:
             logger.warning(
-                "Not expected status code: %s ... continue anyway",
-                colored("yellow", str(resp.status_code)),
+                "Not expected status code: [yellow]%d[/] ... continue anyway",
+                resp.status_code,
+                extra={"markup": True},
             )
 
         self.last_request_time = time.perf_counter()
@@ -308,8 +332,10 @@ class HTTPRequester:
         if self.extra_data:
             if kwargs["method"] not in ("POST", "PUT", "DELETE", "PATCH"):
                 logger.warning(
-                    "Method %s might not need a request body, still adding extra data anyway.",
+                    "Method [blue]%s[/] might not need a request body, "
+                    "still adding extra data anyway.",
                     kwargs["method"],
+                    extra={"markup": True},
                 )
             data = self.extra_data.copy()
             data.update(kwargs.get("data", {}))

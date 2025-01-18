@@ -7,7 +7,10 @@ import logging
 import random
 import string
 import re
-from .const import WafFunc, TemplateEnvironment, PythonVersion, SET_STMT_PATTERNS
+
+from rich.markup import escape as rich_escape
+
+from .const import WafFunc, PythonVersion, SET_STMT_PATTERNS
 from .options import Options
 from .pbar import pbar_manager
 
@@ -313,7 +316,11 @@ class ContextVariableManager:
                 notfound_vars = [
                     v for v in depends_on if not self.is_variable_exists(v)
                 ]
-                logger.warning("Variables not found: %s", repr(notfound_vars))
+                logger.warning(
+                    "Needed variables not found: [blue]%s[/]",
+                    rich_escape(repr(notfound_vars)),
+                    extra={"markup": True},
+                )
                 return False
             self.payload_dependency[payload] = depends_on
         self.context_payloads[payload] = variables
@@ -401,9 +408,7 @@ def prepare_context_vars(waf: WafFunc, options: Options) -> ContextVariableManag
     exprs = const_exprs.copy()
     if options.python_version == PythonVersion.PYTHON3:
         exprs.update(const_exprs_py3)
-    with pbar_manager.pbar(
-        list(exprs.items()), "prepare_context_vars"
-    ) as exprs_items:
+    with pbar_manager.pbar(list(exprs.items()), "prepare_context_vars") as exprs_items:
         for expr, value in exprs_items:
             if not waf(expr):
                 continue

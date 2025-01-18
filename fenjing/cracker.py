@@ -72,8 +72,10 @@ def guess_python_version(
         else (PythonVersion.PYTHON2, None)
     )
     logger.info(
+        "[blue bold]Target[/] is [blue bold]%s.%s[/]",
+        version.value,
+        str(subversion) if subversion else 'x',
         extra={"markup": True},
-        msg=f"[blue bold]Target[/] is [blue bold]{version.value}.{subversion if subversion else 'x'}[/]",
     )
     return version, subversion
 
@@ -157,8 +159,7 @@ class Cracker:
             str: 测试结果
         """
         logger.info(
-            extra={"markup": True},
-            msg="Testing generated payload.",
+            "Testing generated payload.",
         )
         result = self.subm.submit(payload)
         assert result is not None
@@ -181,8 +182,8 @@ class Cracker:
             bool: 是否产生回显
         """
         logger.info(
+            "Testing generated payload as eval args.",
             extra={"markup": True},
-            msg="Testing generated payload as eval args.",
         )
         result = subm.submit(payload)
         assert result is not None
@@ -234,29 +235,29 @@ class Cracker:
         """
         if will_print:
             if test_result == "SUCCESS":
-                logger.warning(
+                logger.info(
                     "[cyan bold]Success![/] Now we can generate payloads.",
                     extra={"markup": True},
                 )
             elif test_result == "FAIL_UNKNOWN":
-                logger.warning(
+                logger.info(
                     "[yellow bold]Test Payload Failed[/] Generated payloads might be useless.",
                     extra={"markup": True},
                 )
             else:  # test_result == "FAIL_500"
-                logger.warning(
+                logger.info(
                     "Target return status code [yellow bold]500[/]!",
                     extra={"markup": True},
                 )
         else:
             if test_result == "FAIL_500":
-                logger.warning(
+                logger.info(
                     "Target return status code [yellow bold]500[/]! "
                     "(although payload won't print anything)",
                     extra={"markup": True},
                 )
             else:
-                logger.warning(
+                logger.info(
                     "We WON'T SEE the execution result! "
                     + "You can try generating payloads anyway.",
                     extra={"markup": True},
@@ -272,7 +273,7 @@ class Cracker:
             result = self.subm.submit(payload)
             assert result is not None
             status_code, _ = result
-            logger.warning(
+            logger.info(
                 "payload [blue]%s[/] generate status code [yellow]%d[/]",
                 rich_escape(payload),
                 status_code,
@@ -294,7 +295,7 @@ class Cracker:
         Returns:
             Union[FullPayloadGen, None]: 生成器
         """
-        logger.info("Cracking...", extra={"markup": True})
+        logger.info("Cracking...")
         waf_func = self.waf_func_gen.generate()
         result = self.crack_with_waf(waf_func)
         if not result:
@@ -308,15 +309,15 @@ class Cracker:
             test_result == "FAIL_500"
             and self.options.autofix_500 == AutoFix500Code.ENABLED
         ):
-            logger.info(
+            logger.warning(
                 "[yellow bold]Start fixing status code 500.[/]",
                 extra={"markup": True},
             )
-            logger.info(
+            logger.warning(
                 "[yellow bold]IT MIGHT MAKE YOUR COMMAND EXECUTE TWICE![/]",
                 extra={"markup": True},
             )
-            logger.info(
+            logger.warning(
                 "[yellow bold]Use Ctrl+C to exit if you don't want it![/]",
                 extra={"markup": True},
             )

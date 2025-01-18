@@ -8,7 +8,6 @@ import sys
 from rich.markup import escape as rich_escape
 
 from . import payload_gen
-from .colorize import colored
 from .context_vars import (
     prepare_context_vars,
     ContextVariableManager,
@@ -179,11 +178,16 @@ class FullPayloadGen:
         if not self.outer_pattern:
             return False
         if self.will_print:
-            logger.info("use [blue]%s[/]", rich_escape(self.outer_pattern), extra={"markup": True})
+            logger.info(
+                "use [blue]%s[/]",
+                rich_escape(self.outer_pattern),
+                extra={"markup": True},
+            )
         else:
-            logger.warning(
+            logger.info(
                 "use [blue]%s[/], which [red]will not print[/] your result!",
                 rich_escape(self.outer_pattern),
+                extra={"markup": True},
             )
 
         self.payload_gen = payload_gen.PayloadGenerator(
@@ -236,8 +240,8 @@ class FullPayloadGen:
 
         if len(expression) - len(repr(value)) < 3 or "(" not in expression:
             logger.info(
-                "Generated expression %s is too simple, skip it.",
-                colored("blue", expression),
+                "Generated expression [blue]%s[/] is too simple, skip it.",
+                rich_escape(expression),
             )
             return "skip"
 
@@ -261,9 +265,9 @@ class FullPayloadGen:
         else:
             self.payload_gen.delete_from_cache(STRING, value)
         logger.info(
-            "Adding %s with %s",
-            colored("yellow", repr(value)),
-            colored("blue", payload),
+            "Adding [yellow]%s[/] with %s",
+            rich_escape(repr(value)),
+            rich_escape(payload),
         )
         return "success"
 
@@ -336,7 +340,7 @@ class FullPayloadGen:
         if not any(
             self.waf_func(test_pattern) for _, test_pattern in SET_STMT_PATTERNS
         ):
-            logger.warning("We cannot set any variable through {%set %}, continue...")
+            logger.info("We cannot set any variable through {%set %}, continue...")
             return
         assert self.payload_gen is not None, "when prepared, we should have payload_gen"
         logger.info(
@@ -348,8 +352,8 @@ class FullPayloadGen:
                     continue
                 result = self.try_add_context_var(target, clean_cache=False)
                 if result == "failed":
-                    logger.warning(
-                        "Failed generating %s", colored("yellow", repr(target))
+                    logger.info(
+                        "Failed generating [yellow]%s[/]", rich_escape(repr(target))
                     )
                     continue
                 if result == "success":
@@ -434,7 +438,7 @@ class FullPayloadGen:
         ret = self.payload_gen.generate_detailed(gen_type, *args)
 
         if ret is None:
-            logger.warning("Bypassing WAF Failed.")
+            logger.info("Bypassing WAF Failed.")
             return None
         inner_payload, used_context, tree = ret
         context_payload = self.context_vars.get_payload(used_context)
@@ -453,9 +457,8 @@ class FullPayloadGen:
         )
         if not self.will_print:
             logger.warning(
-                "use %s, which %s your result!",
-                colored("blue", self.outer_pattern),
-                colored("red", "will not print"),
+                "use [blue]%s[/], which [red]won't print[/] your result!",
+                rich_escape(self.outer_pattern),
             )
         return (payload, self.will_print, tree)
 

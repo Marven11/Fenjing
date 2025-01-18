@@ -13,6 +13,8 @@ from copy import copy
 from collections import Counter, namedtuple
 from functools import lru_cache
 from typing import Dict, Callable, Tuple, Union, List, Sequence
+from rich.markup import escape as rich_escape
+
 
 from .const import (
     DetectMode,
@@ -21,7 +23,6 @@ from .const import (
     DANGEROUS_KEYWORDS,
     WafFunc,
 )
-from .colorize import colored
 from .submitter import Submitter
 from .options import Options
 from .pbar import pbar_manager
@@ -270,19 +271,17 @@ class WafFuncGen:
                 result = self.subm.submit(keyword)
                 if result is None:
                     logger.info(
-                        "Submit %s for %s",
-                        colored("yellow", "failed"),
-                        colored("yellow", repr(keyword)),
+                        "Submit [yellow]failed[/] for [yellow]%s[/]",
+                        rich_escape(repr(keyword)),
+                        extra={"markup": True},
                     )
                     continue
                 status_code, text = result
-                logger.info(
-                    "Fuzzing waf page hash %s with response %s",
-                    colored("yellow", repr(keyword)),
-                    colored(
-                        "blue",
-                        repr(text) if len(text) < 100 else repr(text[:100]) + "......",
-                    ),
+                logger.debug(
+                    "Fuzzing waf page hash [yellow]%s[/] with response [blue]%s[/]",
+                    rich_escape(repr(keyword)),
+                    repr(text) if len(text) < 100 else repr(text[:100]) + "......",
+                    extra={"markup": True},
                 )
                 if status_code == 500 and "Internal Server Error" in text:
                     continue
@@ -306,8 +305,7 @@ class WafFuncGen:
                 result = self.subm.submit(keyword)
                 if result is None:
                     logger.info(
-                        "Submit %s, continue",
-                        colored("yellow", "failed"),
+                        "Submit failed, continue",
                     )
                     continue
                 status_code, text = result
@@ -317,9 +315,9 @@ class WafFuncGen:
         hashes_uniq = list(set(hashes))
         if len(hashes_uniq) <= 3:
             logger.warning(
-                "%s detected!, maybe you should try `--eval-args-payload`"
+                "[red bold]WAF ban long payloads[/]!, maybe you should try `--eval-args-payload`"
                 + " option to generate shorter payload.",
-                colored("red", "Long payload waf", bold=True),
+                extra={"markup": True},
             )
             time.sleep(2)
         return [k for k, v in Counter(hashes).items() if v >= 2]
@@ -342,9 +340,9 @@ class WafFuncGen:
 
             for wrapper in wrappers:
                 payload = wrapper.replace("PAYLOAD", w)
-                logger.info(
-                    "Fuzzing waf keywords with payload %s",
-                    colored("yellow", repr(payload)),
+                logger.debug(
+                    "Fuzzing waf keywords with payload [yellow]%s[/]",
+                    rich_escape(repr(payload)),
                 )
                 result = self.subm.submit(payload)
                 if not result:
@@ -359,18 +357,23 @@ class WafFuncGen:
         if self.options.detect_waf_keywords == DetectWafKeywords.FULL:
             if keyword_passed("{{}}"):
                 wrappers.append("{{PAYLOAD}}")
-            with pbar_manager.pbar((
-                [" ", "\t", "\n"]
-                if self.options.detect_mode == DetectMode.ACCURATE
-                else [" "]
-            ), "waf_keywords_whitespace") as whitespaces:
+            with pbar_manager.pbar(
+                (
+                    [" ", "\t", "\n"]
+                    if self.options.detect_mode == DetectMode.ACCURATE
+                    else [" "]
+                ),
+                "waf_keywords_whitespace",
+            ) as whitespaces:
                 for whiltespace in whitespaces:
                     if keyword_passed(" {{ }} ".replace(" ", whiltespace)):
                         wrappers.append(" {{ PAYLOAD }} ".replace(" ", whiltespace))
                     if keyword_passed("{%print %}".replace(" ", whiltespace)):
                         wrappers.append("{%print PAYLOAD%}".replace(" ", whiltespace))
                     if keyword_passed(" {%print %} ".replace(" ", whiltespace)):
-                        wrappers.append(" {%print PAYLOAD %} ".replace(" ", whiltespace))
+                        wrappers.append(
+                            " {%print PAYLOAD %} ".replace(" ", whiltespace)
+                        )
 
         for _ in range(10):
             kw = "".join(random.choices(string.ascii_lowercase, k=4))
@@ -380,7 +383,9 @@ class WafFuncGen:
 
         # we decide to test every keyword by batches
         size = int(len(dangerous_keywords) ** 0.3) + 1
-        with pbar_manager.pbar(range(0, len(dangerous_keywords), size), "waf_keywords") as it:
+        with pbar_manager.pbar(
+            range(0, len(dangerous_keywords), size), "waf_keywords"
+        ) as it:
             for i in it:
                 l = dangerous_keywords[i : i + size]
                 random.shuffle(l)
@@ -391,9 +396,9 @@ class WafFuncGen:
                         result.append(word)
         if result:
             logger.info(
-                "These keywords might get %s: %s",
-                colored("yellow", "banned", bold=True),
-                colored("yellow", repr(result)),
+                "These keywords might get [yellow bold]banned[/]: [yellow]%s[/]",
+                rich_escape(repr(result)),
+                extra={"markup": True},
             )
         return result
 
@@ -410,22 +415,25 @@ class WafFuncGen:
             else grouped_payloads(4, sep=extra)
         )
         keywords = []
-        with pbar_manager.pbar(list(test_payloads), "replaced_keyword") as test_payloads:
+        with pbar_manager.pbar(
+            list(test_payloads), "replaced_keyword"
+        ) as test_payloads:
             for keyword in test_payloads:
                 # 如果extra的开头或结尾和payload的相同，被替换后可能会因为错误拼合导致检测失效
                 while extra[0] == keyword[0] or extra[-1] == keyword[-1]:
                     extra = "".join(random.choices(string.ascii_lowercase, k=4))
                 payload = extra + keyword + extra
-                logger.info(
-                    "Fuzzing keyword replacement: %s",
-                    colored("yellow", repr(payload)),
+                logger.debug(
+                    "Fuzzing keyword replacement: [yellow]%s[/]",
+                    rich_escape(repr(payload)),
+                    extra={"markup": True},
                 )
                 result = self.subm.submit(payload)
                 if result is None:
                     logger.info(
-                        "Submit %s for %s",
-                        colored("yellow", "failed"),
-                        colored("yellow", repr(payload)),
+                        "Submit failed for [yellow]%s[/]",
+                        rich_escape(repr(payload)),
+                        extra={"markup": True},
                     )
                     continue
 
@@ -453,9 +461,9 @@ class WafFuncGen:
         keywords = list(set(keywords))
         if keywords:
             logger.info(
-                "These keywords might get %s: %s",
-                colored("yellow", "replaced", bold=True),
-                colored("yellow", repr(keywords)),
+                "These keywords might get [yellow bold]replaced[/]: [yellow]%s[/]",
+                rich_escape(repr(keywords)),
+                extra={"markup": True},
             )
         return keywords
 
@@ -463,9 +471,9 @@ class WafFuncGen:
         if not keywords:
             return payload
         logger.info(
-            "Perform %s for payload: %s",
-            colored("blue", "doubletapping"),
-            colored("yellow", payload),
+            "Perform [blue]doubletapping[/] for payload: [blue]%s[/]",
+            rich_escape(payload),
+            extra={"markup": True},
         )
         exist_keywords = [w for w in keywords if w in payload]
         replacement = {
@@ -540,7 +548,7 @@ class WafFuncGen:
                     and payload not in result.text
                 ):
                     logger.debug(
-                        "payload足够简单但却没有完全回显: %s", colored("blue", payload)
+                        "payload足够简单但却没有完全回显: %s", payload
                     )
                     return False
                 # 含有被waf的keyword
@@ -549,7 +557,7 @@ class WafFuncGen:
                 if any(w in payload for w in waf_keywords):
                     logger.debug(
                         "payload %s 含有被waf的keyword %s",
-                        colored("blue", payload),
+                        payload,
                         repr([w for w in waf_keywords if w in payload]),
                     )
                     return False
@@ -562,7 +570,7 @@ class WafFuncGen:
                 if replaced_list:
                     logger.debug(
                         "发现了新的关键词替换：%s",
-                        colored("yellow", repr(replaced_list)),
+                        repr(replaced_list),
                     )
                     replaced_keyword += replaced_list
                     # 如果策略为“忽略”则返回True, 否则返回False

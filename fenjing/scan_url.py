@@ -9,7 +9,7 @@ import string
 
 from urllib.parse import urlparse
 from typing import Union, Generator, Tuple, List, Set
-
+from rich.markup import escape as rich_escape
 from bs4 import BeautifulSoup
 
 from .form import get_form, parse_forms, Form
@@ -65,19 +65,25 @@ def burst_respond_params_data(
     if len(words) > PARAM_CHUNK_SIZE * 100:
         logger.warning("found %d params, don't burst", len(words))
         return [], []
-    logger.warning("Bursting %d params...", len(words))
+    logger.info("Bursting %d params...", len(words))
     respond_get_params: Set[str] = set()
     respond_post_params: Set[str] = set()
-    with pbar_manager.pbar(range(0, len(words), PARAM_CHUNK_SIZE), "burst_respond_params_data") as it:
+    with pbar_manager.pbar(
+        range(0, len(words), PARAM_CHUNK_SIZE), "burst_respond_params_data"
+    ) as it:
         for i in it:
             words_chunk = words[i : i + PARAM_CHUNK_SIZE]
             for _ in range(3):
                 params = {
-                    k: "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+                    k: "".join(
+                        random.choices(string.ascii_lowercase + string.digits, k=6)
+                    )
                     for k in words_chunk
                 }
                 data = {
-                    k: "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+                    k: "".join(
+                        random.choices(string.ascii_lowercase + string.digits, k=6)
+                    )
                     for k in words_chunk
                 }
                 resp = requester.request(method="GET", url=url, params=params)
@@ -87,7 +93,9 @@ def burst_respond_params_data(
                     )
                 resp = requester.request(method="POST", url=url, data=data)
                 if resp:
-                    respond_post_params |= set(k for k, v in data.items() if v in resp.text)
+                    respond_post_params |= set(
+                        k for k, v in data.items() if v in resp.text
+                    )
                     break
 
     return list(respond_get_params), list(respond_post_params)
@@ -111,7 +119,7 @@ def yield_form(
         start_url,
     ]
     visited = set()
-    logger.warning("Start scanning")
+    logger.info("Start scanning")
     while targets:
         target_url = targets.pop(0)
         if target_url in visited:
@@ -120,7 +128,7 @@ def yield_form(
 
         resp = requester.request(method="GET", url=target_url)
         if resp is None:
-            logger.warning("Fetch URL %s failed!", target_url)
+            logger.info("Fetch URL %s failed!", target_url)
             continue
 
         html = BeautifulSoup(resp.text, "html.parser")
@@ -134,9 +142,10 @@ def yield_form(
                 requester, target_url, resp.text
             )
         if respond_get_params and len(respond_get_params) < PARAM_MAXIMUM_COUNT:
-            logger.warning(
-                "Found get params with burst: %s",
-                colored("blue", repr(respond_get_params)),
+            logger.info(
+                "Found [yellow]GET[/] params with burst: [blue]%s[/]",
+                rich_escape(repr(respond_get_params)),
+                extra={"markup": True},
             )
             yield target_url, [
                 get_form(
@@ -147,9 +156,10 @@ def yield_form(
             ]
             found = True
         if respond_post_params and len(respond_post_params) < PARAM_MAXIMUM_COUNT:
-            logger.warning(
-                "Found post params with burst: %s",
-                colored("blue", repr(respond_post_params)),
+            logger.info(
+                "Found [yellow]POST[/] params with burst: [blue]%s[/]",
+                rich_escape(repr(respond_post_params)),
+                extra={"markup": True},
             )
             yield target_url, [
                 get_form(
