@@ -13,7 +13,6 @@ from rich.markup import escape as rich_escape
 
 from .form import Form, fill_form
 from .requester import HTTPRequester, TCPRequester
-from .colorize import colored
 from .const import CALLBACK_SUBMIT
 
 logger = logging.getLogger("submitter")

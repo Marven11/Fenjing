@@ -29,7 +29,6 @@ from .const import (
     STRING,
     DEFAULT_USER_AGENT,
 )
-from .colorize import set_enable_coloring
 from .cracker import Cracker, EvalArgsModePayloadGen, guess_python_version
 from .form import Form, get_form
 from .full_payload_gen import FullPayloadGen
@@ -54,8 +53,6 @@ from .webui import main as webui_main
 from .interact import interact
 from .options import Options
 from .pbar import pbar_manager
-
-set_enable_coloring()
 
 TITLE = r"""
     ____             _ _

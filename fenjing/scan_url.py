@@ -14,7 +14,6 @@ from bs4 import BeautifulSoup
 
 from .form import get_form, parse_forms, Form
 from .requester import HTTPRequester
-from .colorize import colored
 from .wordlist import HTTP_PARAMS_LIST
 from .pbar import pbar_manager
 
