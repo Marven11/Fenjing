@@ -309,6 +309,7 @@ class FullPayloadGen:
                 "big",
                 "doc",
                 "attr",
+                "attribute",
                 "__class__",
                 "__globals__",
                 "__init__",

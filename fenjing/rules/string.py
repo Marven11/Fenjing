@@ -390,6 +390,13 @@ def gen_string_o2(context: dict, value: str):
 
 
 @expression_gen
+def gen_string_char(context: dict, value: str):
+    if len(value) != 1:
+        return [(UNSATISFIED,)]
+    return [(CHAR, value)]
+
+
+@expression_gen
 def gen_string_lowerfilternamespaceattrs1(context: dict, value: str):
     if value.upper().lower() != value or not re.match(
         r"^[A-Za-z_][A-Za-z0-9_]+$", value
