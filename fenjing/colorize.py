@@ -29,19 +29,4 @@ def colored(color, text, bold=False):
     Returns:
         str: 上色后的字符串
     """
-    if not IS_SUPPORTED_PLATFORM or not IS_COLORING_ENABLED:
-        return text
-    colors = {
-        "red": "31",
-        "green": "32",
-        "yellow": "33",
-        "blue": "34",
-        "purple": "35",
-        "cyan": "36",
-    }
-    format_str = "\033[{};{}m{}\033[0m"
-    if bold:
-        format_str = "\033[1;{};{}m{}\033[0m"
-    if color not in colors:
-        color = "blue"
-    return format_str.format(int(bold), colors[color], text)
+    return text  # TODO: remove this function

@@ -5,6 +5,8 @@
 import logging
 import sys
 
+from rich.markup import escape as rich_escape
+
 from . import payload_gen
 from .colorize import colored
 from .context_vars import (
@@ -79,14 +81,14 @@ def get_outer_pattern(
                 return outer_pattern, will_print
             else:
                 logger.warning(
-                    "Test pattern %s with %s failed",
-                    colored("blue", repr(outer_pattern)),
-                    colored("blue", repr(test_payload)),
+                    "Test pattern [blue]%s[/] with [blue]%s[/] failed",
+                    rich_escape(repr(outer_pattern)),
+                    rich_escape(repr(test_payload)),
+                    extra={"markup": True},
                 )
     logger.warning(
-        "Every pattern we know is %s There is %s we can generate anything!",
-        colored("red", "BANNED!", bold=True),
-        colored("red", "Noway", bold=True),
+        "Every pattern we know is [red]BANNED![/] There is [red]%s[/] we can generate anything!",
+        extra={"markup": True},
     )
     return None, None
 
@@ -177,12 +179,11 @@ class FullPayloadGen:
         if not self.outer_pattern:
             return False
         if self.will_print:
-            logger.info("use %s", colored("blue", self.outer_pattern))
+            logger.info("use [blue]%s[/]", rich_escape(self.outer_pattern), extra={"markup": True})
         else:
             logger.warning(
-                "use %s, which %s your result!",
-                colored("blue", self.outer_pattern),
-                colored("red", "will not print"),
+                "use [blue]%s[/], which [red]will not print[/] your result!",
+                rich_escape(self.outer_pattern),
             )
 
         self.payload_gen = payload_gen.PayloadGenerator(

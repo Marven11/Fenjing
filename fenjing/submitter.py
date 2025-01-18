@@ -9,7 +9,6 @@ import re
 from typing import List, Callable, Union, NamedTuple, Dict
 from urllib.parse import quote
 
-from rich import print as rich_print
 from rich.markup import escape as rich_escape
 
 from .form import Form, fill_form
@@ -51,10 +50,10 @@ def shell_tamperer(shell_cmd: str) -> Tamperer:
             )
         out = proc.stdout.read().decode()
         if out.endswith("\n"):
-            rich_print(
+            logger.info(
                 f"Tamperer [blue]{shell_cmd}[/] output [blue]{out}[/]"
                 " ends with '\\n', it may cause some issues.",
-
+                extra={"markup": True},
             )
         return out
 
@@ -223,9 +222,10 @@ class RequestSubmitter(BaseSubmitter):
             data.update({self.target_field: raw_payload})
         else:
             params.update({self.target_field: raw_payload})
-        rich_print(
+        logger.info(
             f"Submit [blue]{rich_escape(self.url)} {self.method} "
-            f"params={rich_escape(repr(params))} data={rich_escape(repr(data))}[/]"
+            f"params={rich_escape(repr(params))} data={rich_escape(repr(data))}[/]",
+            extra={"markup": True},
         )
 
         return self.req.request(
@@ -313,9 +313,10 @@ class PathSubmitter(BaseSubmitter):
         # python requests would reencode url, resulting in payload being changed
         # that's why we're avoiding spaces and '%'
         if any(w in raw_payload for w in ["/", "..", " ", "%"]):
-            rich_print(
+            logger.info(
                 f"Don't submit [yellow]{repr(raw_payload)}[/] "
                 "because it can't be in the path.",
+                extra={"markup": True},
             )
             return None
         resp = self.req.request(method="GET", url=self.url + quote(raw_payload))

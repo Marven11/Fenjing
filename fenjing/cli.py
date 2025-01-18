@@ -14,6 +14,7 @@ from pathlib import Path
 
 from rich import print as rich_print
 from rich.markup import escape as rich_escape
+from rich.logging import RichHandler
 import click
 
 from .const import (
@@ -28,7 +29,7 @@ from .const import (
     STRING,
     DEFAULT_USER_AGENT,
 )
-from .colorize import colored, set_enable_coloring
+from .colorize import set_enable_coloring
 from .cracker import Cracker, EvalArgsModePayloadGen, guess_python_version
 from .form import Form, get_form
 from .full_payload_gen import FullPayloadGen
@@ -56,9 +57,7 @@ from .pbar import pbar_manager
 
 set_enable_coloring()
 
-TITLE = colored(
-    "yellow",
-    r"""
+TITLE = r"""
     ____             _ _
    / __/__  ____    (_|_)___  ____ _
   / /_/ _ \/ __ \  / / / __ \/ __ `/
@@ -67,14 +66,11 @@ TITLE = colored(
               /___/        /____/
 
     ------Made with passion by Marven11
-""".strip(
-        "\n"
-    ),
-    bold=True,
-)
+"""
+
 
 LOGGING_FORMAT = "%(levelname)s:[%(name)s] | %(message)s"
-logging.basicConfig(level=logging.ERROR, format=LOGGING_FORMAT)
+logging.basicConfig(level=logging.WARNING, format=LOGGING_FORMAT, handlers=[RichHandler()])
 logger = logging.getLogger("cli")
 
 
@@ -156,19 +152,22 @@ def do_submit_cmdexec(
                 EVAL, (STRING, f"exec({repr(statements)})")
             )
         else:
-            rich_print("Please check your command")
+            logger.info(extra={"markup": True}, msg="Please check your command")
             return ""
     else:
         payload, will_print = full_payload_gen_like.generate(OS_POPEN_READ, cmd)
     # 使用payload
     if payload is None:
-        rich_print("[red]Failed[/] generating payload.")
+        logger.warning(extra={"markup": True}, msg="[red]Failed[/] generating payload.")
         return ""
-    rich_print(f"Submit payload [blue]{rich_escape(payload)}[/]")
+    logger.info(
+        extra={"markup": True}, msg=f"Submit payload [blue]{rich_escape(payload)}[/]"
+    )
     if not will_print:
-        rich_print(
-            "Payload generator says that this payload "
-            "[red]won't print[/] command execution result."
+        logger.warning(
+            extra={"markup": True},
+            msg="Payload generator says that this payload "
+            "[red]won't print[/] command execution result.",
         )
     result = submitter.submit(payload)
     assert result is not None
@@ -590,7 +589,7 @@ def crack(
     """
     攻击指定的表单
     """
-    print(TITLE)
+    rich_print(f"[yellow bold]{rich_escape(TITLE)}[/]")
     assert all(param is not None for param in [url, inputs]), "Please check your param"
     form = get_form(
         action=action or urlparse(url).path,
@@ -673,7 +672,7 @@ def crack_path(
     攻击指定的路径
     """
     assert url is not None, "Please provide URL!"
-    print(TITLE)
+    rich_print(f"[yellow bold]{rich_escape(TITLE)}[/]")
     requester = HTTPRequester(
         interval=interval,
         user_agent=user_agent,
@@ -732,7 +731,7 @@ def crack_json(
     """
     攻击指定的JSON API
     """
-    print(TITLE)
+    rich_print(f"[yellow bold]{rich_escape(TITLE)}[/]")
     assert url is not None, "Please check your param"
     requester = HTTPRequester(
         interval=interval,
@@ -789,7 +788,7 @@ def scan(
     """
     扫描指定的网站
     """
-    print(TITLE)
+    rich_print(f"[yellow bold]{rich_escape(TITLE)}[/]")
     requester = HTTPRequester(
         interval=interval,
         user_agent=user_agent,
@@ -805,7 +804,7 @@ def scan(
         for form in forms
     )
     for page_url, form in url_forms:
-        logger.warning("Scan form: %s", colored("blue", repr(form)))
+        logger.warning("Scan form: %s", repr(form))
         result = do_crack_form_pre(
             page_url,
             form,

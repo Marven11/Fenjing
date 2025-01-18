@@ -28,7 +28,6 @@ from typing import (
 )
 from pprint import pformat
 
-from rich import print as rich_print
 from rich.markup import escape as rich_escape
 
 from .const import *
@@ -507,13 +506,14 @@ class PayloadGenerator:
                 if (
                     gen_type in (POSITIVE_INTEGER, STRING) and result != str(args[0])
                 ) or (gen_type == ZERO and result != "0"):
-                    rich_print(
+                    logger.info(
                         "[green bold]Great![/] [yellow bold]{gen_type}[/]"
                         "[yellow]({args_repl})[/] can be [blue]{result}[/]".format(
                             gen_type=gen_type,
                             args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
                             result=rich_escape(result),
-                        )
+                        ),
+                        extra={"markup": True},
                     )
 
                 elif gen_type in (
@@ -524,13 +524,14 @@ class PayloadGenerator:
                     OS_POPEN_OBJ,
                     OS_POPEN_READ,
                 ):
-                    rich_print(
+                    logger.info(
                         "[green bold]Great![/green bold] we generate "
                         "[yellow bold]{gen_type}[/yellow bold]"
                         "[yellow]({args_repl})[/yellow]".format(
                             gen_type=gen_type,
                             args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
-                        )
+                        ),
+                        extra={"markup": True},
                     )
 
                 self.cache_by_repr[gen_req] = ret
@@ -551,12 +552,13 @@ class PayloadGenerator:
             WRAP,
             FUNCTION_CALL,
         ):
-            rich_print(
+            logger.info(
                 "[red]Failed[/red] generating [yellow bold]{gen_type}[/yellow bold][yellow]({args_repl})[/yellow]. "
                 "Hopefully it might not be an issue.".format(
                     gen_type=gen_type,
                     args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
-                )
+                ),
+                extra={"markup": True},
             )
 
         self.cache_by_repr[gen_req] = None
