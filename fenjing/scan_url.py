@@ -18,7 +18,7 @@ from .wordlist import HTTP_PARAMS_LIST
 from .pbar import pbar_manager
 
 logger = logging.getLogger("scan_url")
-PARAM_CHUNK_SIZE = 150
+PARAM_CHUNK_SIZE = 50
 PARAM_MAXIMUM_COUNT = 5
 
 
@@ -81,13 +81,13 @@ def burst_respond_params_data(
             for _ in range(3):
                 params = {
                     k: "".join(
-                        random.choices(string.ascii_lowercase + string.digits, k=6)
+                        random.choices(string.ascii_lowercase, k=6)
                     )
                     for k in words_chunk
                 }
                 data = {
                     k: "".join(
-                        random.choices(string.ascii_lowercase + string.digits, k=6)
+                        random.choices(string.ascii_lowercase, k=6)
                     )
                     for k in words_chunk
                 }
