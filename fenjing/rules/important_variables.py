@@ -78,6 +78,7 @@ def gen_builtins_dict_lipsum(context):
 def gen_builtins_dict_jinjaattrs(context):
 
     jinja_funcs_attrs = [
+        ("e", "__eq__"),
         ("cycler", "next"),
         ("cycler", "reset"),
         ("cycler", "__init__"),

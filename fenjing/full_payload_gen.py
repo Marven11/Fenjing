@@ -78,13 +78,12 @@ def get_outer_pattern(
         for test_payload, outer_pattern, will_print in outer_payloads:
             if waf_func(test_payload):
                 return outer_pattern, will_print
-            else:
-                logger.warning(
-                    "Test pattern [blue]%s[/] with [blue]%s[/] failed",
-                    rich_escape(repr(outer_pattern)),
-                    rich_escape(repr(test_payload)),
-                    extra={"markup": True, "highlighter": None},
-                )
+            logger.info(
+                "Test pattern [blue]%s[/] with [blue]%s[/] failed",
+                rich_escape(repr(outer_pattern)),
+                rich_escape(repr(test_payload)),
+                extra={"markup": True, "highlighter": None},
+            )
     logger.warning(
         "Every pattern we know is [red]BANNED![/] There is [red]%s[/] we can generate anything!",
         extra={"markup": True, "highlighter": None},

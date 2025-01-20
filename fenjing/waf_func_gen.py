@@ -239,12 +239,8 @@ class WafFuncGen:
         test_keywords = None
         if self.options.detect_mode == DetectMode.ACCURATE:
             test_keywords = [
-                wrapper.replace("PAYLOAD", word)
-                for word in grouped_payloads(2) + dangerous_keywords
-                for wrapper in [
-                    "PAYLOADPAYLOAD",
-                    "{{PAYLOAD}}PAYLOAD",
-                ]
+                "{{PAYLOAD}}PAYLOAD".replace("PAYLOAD", word)
+                for word in grouped_payloads(2)  # + dangerous_keywords
             ] + [
                 wrapper.replace("PAYLOAD", word)
                 for word in grouped_payloads(8)
