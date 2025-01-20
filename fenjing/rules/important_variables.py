@@ -126,7 +126,7 @@ def gen_builtins_dict_flaskattrs(context):
 @expression_gen
 def gen_builtins_dict_undefined(context):
     funcs_attrs = [
-        ("".join(random.choices(string.ascii_lowercase, k=2)), "__init__")
+        ("".join(random.choices(string.ascii_lowercase, k=3)), "__eq__")
         for _ in range(10)
     ]
     alternatives = [

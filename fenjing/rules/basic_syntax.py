@@ -12,6 +12,7 @@ logger = logging.getLogger("rules.basic_syntax")
 
 # ---
 
+
 @expression_gen
 def gen_enclose_normal(context: dict, target):
     return [
@@ -31,6 +32,7 @@ def gen_enclose_normal(context: dict, target):
 
 # ---
 
+
 @expression_gen
 def gen_wrap_normal(context: dict, targets: List[Target]):
     return [
@@ -43,6 +45,7 @@ def gen_wrap_normal(context: dict, targets: List[Target]):
 
 
 # ---
+
 
 @expression_gen
 def gen_string_concat_plus(context: dict, a, b):
@@ -57,6 +60,23 @@ def gen_string_concat_tilde(context: dict, a, b):
         (ENCLOSE_UNDER, precedence["tilde"], b),
     ]
     return [(EXPRESSION, precedence["tilde"], target_list)]
+
+
+@expression_gen
+def gen_string_concat_join(context: dict, a, b):
+    return [
+        (
+            EXPRESSION,
+            precedence["filter"],
+            targets_from_pattern(
+                "(STR_A,STR_B)|join",
+                {
+                    "STR_A": a,
+                    "STR_B": b,
+                },
+            ),
+        )
+    ]
 
 
 @expression_gen
@@ -81,11 +101,13 @@ def gen_string_concat_format(context: dict, a, b):
 
 # ---
 
+
 @expression_gen
 def gen_string_concatmany_noconcat(context: dict, parts):
     if len(parts) == 1:
         return parts
-    return [(UNSATISFIED, )]
+    return [(UNSATISFIED,)]
+
 
 @expression_gen
 def gen_string_concatmany_onebyone(context: dict, parts):

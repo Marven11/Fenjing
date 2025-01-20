@@ -257,7 +257,7 @@ def gen_string_lowerfilterdict1(context: dict, value: str):
     ):
         return [(UNSATISFIED,)]
     chars = [str_escape(c, '"') for c in value.upper()]
-    target_list = [(LITERAL, "dict({}=x)|first|lower".format("".join(chars)))]
+    target_list = [(LITERAL, "dict({}=i)|first|lower".format("".join(chars)))]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -268,7 +268,7 @@ def gen_string_lowerfilterdict2(context: dict, value: str):
     ):
         return [(UNSATISFIED,)]
     chars = [str_escape(c, '"') for c in value.upper()]
-    target_list = [(LITERAL, "dict({}=x)|last|lower".format("".join(chars)))]
+    target_list = [(LITERAL, "dict({}=i)|last|lower".format("".join(chars)))]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -312,7 +312,7 @@ def gen_string_concat4(context: dict, value: str):
 def gen_string_dictjoin(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
-    target_list = [(LITERAL, "dict({}=x)|join".format(value))]
+    target_list = [(LITERAL, "dict({}=i)|join".format(value))]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -320,7 +320,7 @@ def gen_string_dictjoin(context: dict, value: str):
 def gen_string_dictfirst(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
-    target_list = [(LITERAL, "dict({}=x)|first".format(value))]
+    target_list = [(LITERAL, "dict({}=i)|first".format(value))]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -328,7 +328,15 @@ def gen_string_dictfirst(context: dict, value: str):
 def gen_string_dictfirstreverse(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
-    target_list = [(LITERAL, "dict({}=x)|first|reverse".format(value[::-1]))]
+    target_list = [(LITERAL, "dict({}=i)|first|reverse".format(value[::-1]))]
+    return [(EXPRESSION, precedence["filter"], target_list)]
+
+
+@expression_gen
+def gen_string_dictlastreverse(context: dict, value: str):
+    if not re.match("^[a-zA-Z_]+$", value):
+        return [(UNSATISFIED,)]
+    target_list = [(LITERAL, "dict({}=i)|last|reverse".format(value[::-1]))]
     return [(EXPRESSION, precedence["filter"], target_list)]
 
 
@@ -445,7 +453,7 @@ def gen_string_splitdictjoin2(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
     parts = [value[i : i + 3] for i in range(0, len(value), 3)]
-    targets = [(LITERAL, "dict({}=x)|join".format(part)) for part in parts]
+    targets = [(LITERAL, "dict({}=i)|join".format(part)) for part in parts]
     strings = [(EXPRESSION, precedence["filter"], [target]) for target in targets]
     return [(STRING_CONCATMANY, strings), (REQUIRE_PYTHON3,)]
 
