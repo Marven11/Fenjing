@@ -409,13 +409,22 @@ def prepare_context_vars(waf: WafFunc, options: Options) -> ContextVariableManag
     if options.python_version == PythonVersion.PYTHON3:
         exprs.update(const_exprs_py3)
     with pbar_manager.pbar(list(exprs.items()), "prepare_context_vars") as exprs_items:
+        visited = set()
         for expr, value in exprs_items:
-            if not waf(expr):
+            value_hashable = False
+            try:
+                _ = hash(value)
+                value_hashable = True
+            except TypeError:
+                pass
+            if (value_hashable and value in visited) or not waf(expr):
                 continue
             name = manager.generate_random_variable_name()
             if not name:
                 continue
             stmt = set_stmt_pattern.replace("NAME", name).replace("EXPR", expr)
             _ = manager.add_payload(stmt, {name: value})
+            if value_hashable:
+                visited.add(value)
 
     return manager
