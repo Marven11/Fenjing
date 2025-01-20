@@ -46,6 +46,7 @@ from .submitter import (
     FormSubmitter,
     TCPSubmitter,
     JsonSubmitter,
+    IOSubmitter,
     shell_tamperer,
 )
 from .scan_url import yield_form
@@ -563,7 +564,15 @@ def main():
         level=logging.INFO,
         format=LOGGING_FORMAT,
         datefmt="[%X]",
-        handlers=[RichHandler(show_level=False, markup=True, show_time=False, show_path=False, keywords=[])],
+        handlers=[
+            RichHandler(
+                show_level=False,
+                markup=True,
+                show_time=False,
+                show_path=False,
+                keywords=[],
+            )
+        ],
     )
 
 
@@ -946,6 +955,107 @@ def crack_request(
         logger.warning("Crack request failed...", extra={"highlighter": None})
         raise RunFailed()
     do_crack(full_payload_gen, submitter, exec_cmd)
+
+
+@main.command()
+@click.option(
+    "--keywords-file",
+    "-k",
+    required=True,
+    help="保存着所有关键字的文件，可为.txt或.json",
+)
+@click.option(
+    "--output-file",
+    "-o",
+    default="",
+    help="输出文件，后缀名一般为.jinja2，不填则直接print",
+)
+@click.option(
+    "--command",
+    "-c",
+    required=True,
+    help="需要执行的shell指令",
+)
+@click.option(
+    "--detect-mode",
+    type=DetectMode,
+    cls=EnumOption,
+    default=DetectMode.ACCURATE,
+    help="分析模式，可为accurate或fast",
+)
+@click.option(
+    "--replaced-keyword-strategy",
+    default=ReplacedKeywordStrategy.AVOID,
+    type=ReplacedKeywordStrategy,
+    cls=EnumOption,
+    help="WAF替换关键字时的策略，可为avoid/ignore/doubletapping",
+)
+@click.option(
+    "--environment",
+    default=TemplateEnvironment.JINJA2,
+    type=TemplateEnvironment,
+    cls=EnumOption,
+    help="模板的执行环境，默认为不带flask全局变量的普通jinja2",
+)
+@click.option(
+    "--python-version",
+    default=PythonVersion.PYTHON3,
+    type=PythonVersion,
+    cls=EnumOption,
+    help="目标的python版本为python2/python3，默认为python3",
+)
+@click.option(
+    "--python-subversion",
+    default=6,
+    type=int,
+    help="目标的python小版本，默认为6(python3.6)",
+)
+def crack_keywords(
+    keywords_file: str,
+    output_file: str,
+    command: str,
+    detect_mode: DetectMode,
+    replaced_keyword_strategy: ReplacedKeywordStrategy,
+    environment: TemplateEnvironment,
+    python_version: PythonVersion,
+    python_subversion: int,
+):
+    keywords_path = Path(keywords_file)
+    output_path = Path(output_file) if output_file else None
+    if not keywords_path.exists():
+        logger.error(
+            "File [blue]%s[/] [red bold]Not Exists![/]",
+            rich_escape(keywords_file),
+            extra={"markup": True, "highlighter": None},
+        )
+        raise FileNotFoundError(keywords_file)
+
+    if keywords_path.suffix == ".json":
+        waf_keywords: List = json.loads(keywords_path.read_text())
+    else:
+        waf_keywords: List = keywords_path.read_text().strip().split("\n")
+    logger.info(
+        "Waf keywords are [blue]%s[/]",
+        rich_escape(repr(waf_keywords)),
+        extra={"markup": True, "highlighter": None},
+    )
+    time.sleep(1)
+    options = Options(
+        detect_mode=detect_mode,
+        environment=environment,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+        python_version=python_version,
+        python_subversion=python_subversion,
+        waf_keywords=waf_keywords,
+    )
+    submitter = IOSubmitter(output_path)
+    with submitter.stop_saving():
+        cracker = Cracker(submitter, callback=None, options=options)
+        full_payload_gen = cracker.crack()
+    if not full_payload_gen:
+        logger.error("Crack failed...")
+        raise RunFailed()
+    do_crack(full_payload_gen, submitter, command)
 
 
 @main.command()

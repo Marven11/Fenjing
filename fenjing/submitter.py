@@ -6,6 +6,8 @@ import subprocess
 import html
 import re
 
+from contextlib import contextmanager
+from pathlib import Path
 from typing import List, Callable, Union, NamedTuple, Dict
 from urllib.parse import quote
 
@@ -368,6 +370,49 @@ class JsonSubmitter(BaseSubmitter):
         if resp is None:
             return None
         return HTTPResponse(resp.status_code, resp.text)
+
+
+class IOSubmitter(BaseSubmitter):
+    """将payload保存在本地文件中"""
+
+    def __init__(self, path: Union[Path, None]):
+        super().__init__(callback=None)
+        self.path = path
+        self.is_do_saving = True
+
+    @contextmanager
+    def stop_saving(self):
+        self.is_do_saving = False
+        yield
+        self.is_do_saving = True
+
+    def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
+        """假提交函数，作用是将payload保存在文件中，返回的HTTPResponse是假的
+
+        Args:
+            raw_payload (str): _description_
+
+        Returns:
+            Union[HTTPResponse, None]: _description_
+        """
+        if self.is_do_saving and isinstance(self.path, Path):
+            try:
+                self.path.write_text(raw_payload)
+            except IOError as e:
+                logger.error(
+                    "[red bold]Failed to save file[/] [blue]%s[/]",
+                    rich_escape(self.path.as_posix()),
+                    extra={"markup": True, "highlighter": None},
+                )
+                raise e
+            logger.info(
+                "Saved to file [blue]%s[/]",
+                rich_escape(self.path.as_posix()),
+                extra={"markup": True, "highlighter": None},
+            )
+        elif self.is_do_saving:
+            print(raw_payload)
+        return HTTPResponse(250, raw_payload)
 
 
 Submitter = BaseSubmitter
