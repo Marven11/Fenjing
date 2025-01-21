@@ -25,6 +25,7 @@ Accept: */*
 Connection: close
 """
 
+
 class TestCLI(unittest.TestCase):
     def crack_test(self, params):
         ctx = click.Context(cli.crack)
@@ -45,7 +46,6 @@ class TestCLI(unittest.TestCase):
         }
         ctx.params.update(params)
         cli.crack_path.invoke(ctx)
-
 
     def crack_json_test(self, params):
         ctx = click.Context(cli.crack_json)
@@ -91,6 +91,20 @@ class TestCLI(unittest.TestCase):
                     "method": "GET",
                     "inputs": "name",
                     "exec_cmd": "ls /",
+                    "interval": SLEEP_INTERVAL,
+                }
+            )
+        for cmd in [
+            "@eval 114+514",
+            "@exec print(114514)",
+            "@ls",
+        ]:
+            self.crack_test(
+                {
+                    "url": VULUNSERVER_ADDR,
+                    "method": "GET",
+                    "inputs": "name",
+                    "exec_cmd": cmd,
                     "interval": SLEEP_INTERVAL,
                 }
             )
@@ -164,7 +178,7 @@ class TestCLI(unittest.TestCase):
                 "exec_cmd": "ls /",
                 "interval": SLEEP_INTERVAL,
                 "eval_args_payload": True,
-                "environment": options.TemplateEnvironment.FLASK
+                "environment": options.TemplateEnvironment.FLASK,
             }
         )
 
@@ -195,7 +209,7 @@ class TestCLI(unittest.TestCase):
                 "url": VULUNSERVER_ADDR + "/crackpath/",
                 "interval": SLEEP_INTERVAL,
                 "exec_cmd": "ls /",
-                "tamper_cmd": "cat"
+                "tamper_cmd": "cat",
             }
         )
 
@@ -214,7 +228,7 @@ class TestCLI(unittest.TestCase):
             {
                 "url": VULUNSERVER_ADDR + "/crackjson",
                 "interval": SLEEP_INTERVAL,
-                "json_data":  '{"name": "admin", "age": 24, "msg": ""}',
+                "json_data": '{"name": "admin", "age": 24, "msg": ""}',
                 "key": "msg",
                 "exec_cmd": "ls /",
             }
@@ -258,7 +272,7 @@ class TestCLI(unittest.TestCase):
                 "url": VULUNSERVER_ADDR + "/reversed_waf",
                 "interval": SLEEP_INTERVAL,
                 "exec_cmd": "ls /",
-                "tamper_cmd": "rev"
+                "tamper_cmd": "rev",
             }
         )
 
@@ -269,7 +283,7 @@ class TestCLI(unittest.TestCase):
         # 获取临时文件的路径
         temp_file_path = temp_file.name
         # 写入数据到临时文件
-        with open(temp_file_path, 'w') as file:
+        with open(temp_file_path, "w") as file:
             file.write(TEST_REQUEST)
         self.crack_request_test(
             {
