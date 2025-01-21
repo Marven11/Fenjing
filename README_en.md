@@ -93,6 +93,10 @@ And launch fenjing with:
 
 `python -m fenjing crack-request -f req.txt --host '127.0.0.1' --port 5000`
 
+### Others
+
+See [examples.md](examples.md) (Chinese) if you want to crack a JSON api or genrate payloads based on given keywords.
+
 ### Tab completion
 
 [Reference](https://click.palletsprojects.com/en/8.1.x/shell-completion/) to configure your shell.
