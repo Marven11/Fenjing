@@ -75,50 +75,31 @@ def gen_builtins_dict_lipsum(context):
 
 
 @expression_gen
-def gen_builtins_dict_jinjaattrs(context):
-
-    jinja_funcs_attrs = [
-        ("e", "__eq__"),
-        ("cycler", "next"),
-        ("cycler", "reset"),
-        ("cycler", "__init__"),
-        ("joiner", "__init__"),
-        ("namespace", "__init__"),
+def gen_builtins_dict_varattrs(context):
+    # [] cannot used for undefined
+    # e['__eq__'] would raise exception
+    var_attrs = [
+        (FLASK_CONTEXT_VAR, "g", "pop"),
+        (FLASK_CONTEXT_VAR, "g", "get"),
+        (JINJA_CONTEXT_VAR, "cycler", "next"),
+        (JINJA_CONTEXT_VAR, "cycler", "reset"),
+        (FLASK_CONTEXT_VAR, "session", "get"),
+        (FLASK_CONTEXT_VAR, "request", "close"),
+        (JINJA_CONTEXT_VAR, "cycler", "__init__"),
+        (JINJA_CONTEXT_VAR, "joiner", "__init__"),
+        (JINJA_CONTEXT_VAR, "namespace", "__init__"),
     ]
     alternatives = [
         [
             (
                 CHAINED_ATTRIBUTE_ITEM,
-                (JINJA_CONTEXT_VAR, obj_name),
+                (target_type, obj_name),
                 (ATTRIBUTE, attr_name),
                 (ATTRIBUTE, "__globals__"),
                 (ITEM, "__builtins__"),
             )
         ]
-        for obj_name, attr_name in jinja_funcs_attrs
-    ]
-    return [(ONEOF, alternatives)]
-
-
-@expression_gen
-def gen_builtins_dict_flaskattrs(context):
-    funcs_attrs = [
-        ("g", "pop"),
-        ("g", "get"),
-        ("session", "get"),
-        ("request", "close"),
-    ]
-    alternatives = [
-        [
-            (
-                CHAINED_ATTRIBUTE_ITEM,
-                (FLASK_CONTEXT_VAR, obj_name),
-                (ATTRIBUTE, attr_name),
-                (ATTRIBUTE, "__globals__"),
-                (ITEM, "__builtins__"),
-            )
-        ]
-        for obj_name, attr_name in funcs_attrs
+        for target_type, obj_name, attr_name in var_attrs
     ]
     return [(ONEOF, alternatives)]
 
@@ -142,26 +123,6 @@ def gen_builtins_dict_undefined(context):
         for obj_name, attr_name in funcs_attrs
     ]
     return [(ONEOF, alternatives)]
-
-
-@expression_gen
-def gen_builtins_dict_unexist(context):
-    unexist = [
-        [(LITERAL, "x")],
-        [(LITERAL, "unexistfuckyou")],
-    ] + [
-        [(LITERAL, "".join(random.choices(string.ascii_lowercase, k=6)))]
-        for _ in range(20)
-    ]
-    return [
-        (
-            CHAINED_ATTRIBUTE_ITEM,
-            (EXPRESSION, precedence["literal"], [(ONEOF, unexist)]),
-            (ATTRIBUTE, "__init__"),
-            (ATTRIBUTE, "__globals__"),
-            (ITEM, "__builtins__"),
-        )
-    ]
 
 
 @expression_gen
@@ -262,13 +223,6 @@ def gen_eval_func_mapfilter(context):
 @expression_gen
 def gen_eval_normal(context, eval_param):
     return [(FUNCTION_CALL, (EVAL_FUNC,), [eval_param])]
-    # target_list = [
-    #     (ENCLOSE_UNDER, precedence["function_call"], (EVAL_FUNC,)),
-    #     (LITERAL, "("),
-    #     eval_param,
-    #     (LITERAL, ")"),
-    # ]
-    # return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
 # ---
@@ -286,7 +240,7 @@ def gen_config_self(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
-            (JINJA_CONTEXT_VAR, "self"),
+            (FLASK_CONTEXT_VAR, "self"),
             (ATTRIBUTE, "__dict__"),
             (ITEM, "_TemplateReference__context"),
             (ITEM, "config"),
