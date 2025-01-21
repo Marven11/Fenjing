@@ -270,6 +270,12 @@ EXTRA_TARGETS = [
     (STRING, "eval"),
 ]
 
+RENDER_ERROR_KEYWORDS = [
+    "TemplateSyntaxError",
+    "Internal Server Error",
+    "Traceback (most recent call last):",
+]
+
 # charcodes that not supported by python3.2 are removed.
 UNICODE_INT_CHARCODES = [
     [1632, 1633, 1634, 1635, 1636, 1637, 1638, 1639, 1640, 1641],

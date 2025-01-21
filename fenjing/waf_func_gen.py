@@ -21,6 +21,7 @@ from .const import (
     ReplacedKeywordStrategy,
     DetectWafKeywords,
     DANGEROUS_KEYWORDS,
+    RENDER_ERROR_KEYWORDS,
     WafFunc,
 )
 from .submitter import Submitter
@@ -33,11 +34,6 @@ Result = namedtuple("Result", "payload_generate_func input_field")
 dangerous_keywords = copy(DANGEROUS_KEYWORDS)
 
 random.shuffle(dangerous_keywords)
-render_error_keywords = [
-    "TemplateSyntaxError",
-    "Internal Server Error",
-    "Traceback (most recent call last):",
-]
 
 
 def grouped_payloads(size=3, sep="") -> List[str]:
@@ -534,7 +530,7 @@ class WafFuncGen:
                 # 遇到500时，判断是否是Jinja渲染错误，是则返回True
                 if result.status_code == 500:
                     logger.debug("目标渲染payload失败")
-                    return any(w in result.text for w in render_error_keywords)
+                    return any(w in result.text for w in RENDER_ERROR_KEYWORDS)
                 # payload过长
                 hash_text = hash(result.text)
                 if hash_text in long_param_hashes:

@@ -28,6 +28,7 @@ from .const import (
     EVAL,
     STRING,
     DEFAULT_USER_AGENT,
+    RENDER_ERROR_KEYWORDS,
 )
 from .cracker import Cracker, EvalArgsModePayloadGen, guess_python_version
 from .form import Form, get_form
@@ -454,7 +455,10 @@ def do_crack(
         full_payload_gen_like=full_payload_gen,
     )
     if exec_cmd:
-        print(cmd_exec_func(exec_cmd))
+        result = cmd_exec_func(exec_cmd)
+        print(result)
+        if any(keyword in result for keyword in RENDER_ERROR_KEYWORDS):
+            raise RunFailed()
     else:
         interact(cmd_exec_func)
 
