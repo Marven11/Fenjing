@@ -25,6 +25,16 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
 - `python -m fenjing crack-request -f req.txt --host '127.0.0.1' --port 5000`
 - 需要提供HTTP请求文件的路径、目标的IP和端口
 
+攻击对应的JSON API
+- `python -m fenjing crack-json --url 'http://127.0.0.1:5000/crackjson' --json-data '{"name": "admin", "age": 24, "msg": ""}' --key msg`
+- 和攻击表单类似，需要提供JSON格式的请求数据，还有需要攻击的键
+
+根据指定的关键字生成payload
+- `python -m fenjing crack-keywords --keywords-file waf.json --output-file payload.jinja2 --command 'ls /'`
+- 指定保存着所有关键字的文件（.txt或者.json）以及需要执行的命令
+- 可选输出文件路径，不指定输出文件路径则直接打印
+- `--keywords-file`指定关键字文件的路径，支持.txt或者.json格式，其中.txt格式需要每行一个关键字，.json需要保存关键字（字符串）的列表
+
 通用设置
 - 指定请求间隔：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --interval 0.1`
 - 指定请求时使用的UA：`python -m fenjing crack --url 'http://xxx.xxx' --method GET --inputs name --user-agent 'Aaa/1.1'`

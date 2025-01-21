@@ -207,6 +207,12 @@ payload生成原理见[howitworks.md](./howitworks.md)
 - crack-request: 读取某个请求文件进行攻击
   - 读取文件里的请求，将其中的`PAYLOAD`替换成实际的payload然后提交
   - 根据HTTP格式会默认对请求进行urlencode, 可以使用`--urlencode-payload 0`关闭
+- crack-json: 攻击指定的JSON API
+  - 当一个API的body格式为JSON时攻击这个JSON中的某个键
+  - 示例：`python -m fenjing crack-json --url 'http://127.0.0.1:5000/crackjson' --json-data '{"name": "admin", "age": 24, "msg": ""}' --key msg`
+- crack-keywords: 读取文件中的所有关键字并攻击
+  - 从.txt或者.json文件中读取所有关键字，对给定的shell指令生成对应的payload
+  - 示例：`python -m fenjing crack-keywords -k waf.json -o payload.jinja2 --command 'ls /'`
 
 一些特殊的选项：
 - `--eval-args-payload`：将payload放在GET参数x中提交

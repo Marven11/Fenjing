@@ -231,6 +231,13 @@ Introduction to each function:
 - crack-request: Read a request file and attack
   - Read the requests in the file, replace `PAYLOAD` with the actual payload, and submit
   - By default, urlencode the request according to HTTP format, can be turned off with `--urlencode-payload 0`
+- crack-json: Attack a specified JSON API
+  - Attack a specific key in the JSON body of an API
+  - Example: `python -m fenjing crack-json --url 'http://xxx/crackjson' --json-data '{"name": "admin", "age": 24, "msg": ""}' --key msg`
+- crack-keywords: Read all keywords from a file and attack
+  - Read all keywords from a .txt or .json file and generate corresponding payloads for a given shell command
+  - Example: `python -m fenjing crack-keywords -k waf.json -o payload.jinja2 --command 'ls /'`
+
 
 Some special options:
 - `--eval-args-payload`: Place the payload in the GET parameter x and submit
