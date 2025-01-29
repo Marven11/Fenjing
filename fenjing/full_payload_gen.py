@@ -59,9 +59,9 @@ def get_outer_pattern(
             ("${WS}{%${WS}print PAYLOAD${WS}%}${WS}", True),
             ("${WS}{%${WS}print(${WS}PAYLOAD${WS})${WS}%}${WS}", True),
             ("${WS}{%${WS}set x=${WS}PAYLOAD${WS}%}${WS}", False),
-            (" {% if(PAYLOAD) %} {% endif %}", False),
+            ("${WS}{%${WS}if(PAYLOAD)${WS}%}${WS}{%${WS}endif${WS}%}", False),
             (
-                "{%for x in ((PAYLOAD),)%}x{%endfor%}",
+                "{%for${WS}x${WS}in${WS}(PAYLOAD,)%}x{%endfor%}",
                 False,
             ),
         ]
@@ -69,8 +69,8 @@ def get_outer_pattern(
         for payload in [
             "",
             # trying to trigger render error
-            "[][",
-            "()(",
+            "^",
+            "(",
             "***",
         ]
     ]
