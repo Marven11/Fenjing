@@ -46,7 +46,18 @@ def gen_builtins_dict_brainrot(context):
         (
             EXPRESSION,
             precedence["attribute"],
-            [(LITERAL, brainrot_varname + ".__eq__.__globals__.__builtins__")],
+            [
+                (
+                    CHAINED_ATTRIBUTE_ITEM,
+                    (
+                        EXPRESSION,
+                        precedence["attribute"],
+                        [(LITERAL, brainrot_varname + ".__eq__")],
+                    ),
+                    (ATTRIBUTE, "__globals__"),
+                    (ITEM, "__builtins__"),
+                )
+            ],
         )
     ]
 
@@ -57,7 +68,18 @@ def gen_builtins_dict_waftoosimple(context):
         (
             EXPRESSION,
             precedence["attribute"],
-            [(LITERAL, "lipsum.__globals__.__builtins__")],
+            [
+                (
+                    CHAINED_ATTRIBUTE_ITEM,
+                    (
+                        EXPRESSION,
+                        precedence["attribute"],
+                        [(LITERAL, "lipsum")],
+                    ),
+                    (ATTRIBUTE, "__globals__"),
+                    (ITEM, "__builtins__"),
+                )
+            ],
         )
     ]
 
