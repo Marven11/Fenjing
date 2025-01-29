@@ -234,6 +234,12 @@ def do_crack_form_pre(
     Returns:
         Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
     """
+    if "127.0.0.1" in url or "localhost" in url:
+        logger.info(
+            "Try out our new feature [cyan bold]crack-keywords[/] with "
+            "[cyan bold]'python -m fenjing crack-keywords'![/]",
+            extra={"markup": True, "highlighter": None},
+        )
     python_version, python_subversion = (
         guess_python_version(url, requester)
         if options.python_version == PythonVersion.UNKNOWN
