@@ -13,7 +13,7 @@ from enum import Enum
 from functools import partial
 from pathlib import Path
 
-from rich import print as rich_print
+from rich.console import Console
 from rich.markup import escape as rich_escape
 from rich.logging import RichHandler
 import click
@@ -48,7 +48,6 @@ from .submitter import (
     FormSubmitter,
     TCPSubmitter,
     JsonSubmitter,
-    IOSubmitter,
     shell_tamperer,
 )
 from .scan_url import yield_form
@@ -122,6 +121,8 @@ def load_keywords_dotpy_safe(content: str) -> List[str]:
         ]
         for node in list_nodes
     ]
+    if not lists:
+        raise ValueError("Can't find any list of string in the file")
     result = max(lists, key=len)
     if not result:
         logger.warning(
@@ -276,7 +277,7 @@ def do_crack_form_pre(
     if "127.0.0.1" in url or "localhost" in url:
         logger.info(
             "Try out our new feature [cyan bold]crack-keywords[/] with "
-            "[cyan bold]'python -m fenjing crack-keywords'![/]",
+            '[cyan bold]python -m fenjing crack-keywords -k ./app.py -c "ls"[/]!',
             extra={"markup": True, "highlighter": None},
         )
     python_version, python_subversion = (
@@ -608,7 +609,8 @@ def add_options(options):
 @click.group()
 def main():
     """click的命令组"""
-    rich_print(f"[yellow bold]{rich_escape(TITLE)}[/]")
+    console: Console = Console(stderr=True)
+    console.print(f"[yellow bold]{rich_escape(TITLE)}[/]")
     logging.basicConfig(
         level=logging.INFO,
         format=LOGGING_FORMAT,
@@ -616,6 +618,7 @@ def main():
         handlers=[
             RichHandler(
                 show_level=False,
+                console=console,
                 markup=True,
                 show_time=False,
                 show_path=False,
@@ -1090,8 +1093,18 @@ def crack_keywords(
     if suffix == ".json":
         waf_keywords: List = json.loads(keywords_path.read_text())
     elif suffix == ".py":
-        waf_keywords: List = load_keywords_dotpy_safe(keywords_path.read_text())
+        try:
+            waf_keywords: List = load_keywords_dotpy_safe(keywords_path.read_text())
+        except SyntaxError as e:
+            logger.error(
+                "Syntax error, check your %s",
+                keywords_file,
+                extra={"highlighter": None},
+            )
+            raise e
     else:
+        if suffix != ".txt":
+            logger.warning("Unknown suffix %s, handle it as .txt", suffix)
         waf_keywords: List = keywords_path.read_text().strip().split("\n")
     logger.info(
         "Waf keywords are [blue]%s[/]",
@@ -1132,7 +1145,7 @@ def crack_keywords(
             extra={"markup": True, "highlighter": None},
         )
     else:
-        print(payload)
+        print(payload, end="")  # don't print new line for base64
 
 
 @main.command()

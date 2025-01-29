@@ -371,7 +371,7 @@ class JsonSubmitter(BaseSubmitter):
             return None
         return HTTPResponse(resp.status_code, resp.text)
 
-
+# TODO: remove me
 class IOSubmitter(BaseSubmitter):
     """将payload保存在本地文件中"""
 
