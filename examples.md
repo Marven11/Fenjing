@@ -31,7 +31,9 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
 
 根据指定的关键字生成payload
 - `python -m fenjing crack-keywords --keywords-file waf.json --output-file payload.jinja2 --command 'ls /'`
-- 指定保存着所有关键字的文件（.txt或者.json）以及需要执行的命令
+- 指定保存着所有关键字的文件（.txt, .py或者.json）以及需要执行的命令
+- 指定.py时会自动用安全的方式读取，不会执行里面的任何代码
+- 并且指定.py时还会寻找其中最长的列表，所以可以直接安全地传入app.py
 - 可选输出文件路径，不指定输出文件路径则直接打印
 - `--keywords-file`指定关键字文件的路径，支持.txt或者.json格式，其中.txt格式需要每行一个关键字，.json需要保存关键字（字符串）的列表
 

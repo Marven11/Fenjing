@@ -214,7 +214,7 @@ payload生成原理见[howitworks.md](./howitworks.md)
   - 当一个API的body格式为JSON时攻击这个JSON中的某个键
   - 示例：`python -m fenjing crack-json --url 'http://127.0.0.1:5000/crackjson' --json-data '{"name": "admin", "age": 24, "msg": ""}' --key msg`
 - crack-keywords: 读取文件中的所有关键字并攻击
-  - 从.txt或者.json文件中读取所有关键字，对给定的shell指令生成对应的payload
+  - 从.txt, .py或者.json文件中读取所有关键字，对给定的shell指令生成对应的payload
   - 示例：`python -m fenjing crack-keywords -k waf.json -o payload.jinja2 --command 'ls /'`
 
 一些特殊的选项：
