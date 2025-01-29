@@ -2,6 +2,7 @@
 
 """
 
+import ast
 import dataclasses
 import json
 import logging
@@ -97,6 +98,44 @@ class EnumOption(click.Option):
 
 class RunFailed(Exception):
     """用于通知main和unit test运行失败的exception"""
+
+
+def load_keywords_dotpy_safe(content: str) -> List[str]:
+    """安全地从.py文件中读取关键字列表，不使用eval
+    自动寻找文件中最长的列表表达式并读取
+
+    Args:
+        content (str): 文件内容
+
+    Returns:
+        List[str]: 关键字的列表
+    """
+    tree = ast.parse(content)
+    list_nodes: List[ast.List] = [
+        node for node in ast.walk(tree) if isinstance(node, ast.List)
+    ]
+    lists: List[List[str]] = [
+        [
+            item.value
+            for item in node.elts
+            if isinstance(item, ast.Constant) and isinstance(item.value, str)
+        ]
+        for node in list_nodes
+    ]
+    result = max(lists, key=len)
+    if not result:
+        logger.warning(
+            "[red bold] Keyword list is empty. "
+            "What kind of WAF are you want to bypass?",
+            extra={"markup": True, "highlighter": None},
+        )
+        time.sleep(5)
+        logger.info(
+            "Anyway...",
+            extra={"markup": True, "highlighter": None},
+        )
+        time.sleep(1)
+    return result
 
 
 def do_submit_cmdexec(
@@ -972,7 +1011,7 @@ def crack_request(
     "--keywords-file",
     "-k",
     required=True,
-    help="保存着所有关键字的文件，可为.txt或.json",
+    help="保存着所有关键字的文件，可为.txt, .py或.json",
 )
 @click.option(
     "--output-file",
@@ -985,6 +1024,11 @@ def crack_request(
     "-c",
     required=True,
     help="需要执行的shell指令",
+)
+@click.option(
+    "--suffix",
+    default="",
+    help="手动指定关键字文件的后缀，默认按照文件原本的后缀名读取",
 )
 @click.option(
     "--detect-mode",
@@ -1024,12 +1068,14 @@ def crack_keywords(
     keywords_file: str,
     output_file: str,
     command: str,
+    suffix: str,
     detect_mode: DetectMode,
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
     python_version: PythonVersion,
     python_subversion: int,
 ):
+    """根据关键字生成对应的payload"""
     keywords_path = Path(keywords_file)
     output_path = Path(output_file) if output_file else None
     if not keywords_path.exists():
@@ -1039,9 +1085,12 @@ def crack_keywords(
             extra={"markup": True, "highlighter": None},
         )
         raise FileNotFoundError(keywords_file)
-
-    if keywords_path.suffix == ".json":
+    if not suffix:
+        suffix = keywords_path.suffix
+    if suffix == ".json":
         waf_keywords: List = json.loads(keywords_path.read_text())
+    elif suffix == ".py":
+        waf_keywords: List = load_keywords_dotpy_safe(keywords_path.read_text())
     else:
         waf_keywords: List = keywords_path.read_text().strip().split("\n")
     logger.info(
