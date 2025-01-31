@@ -332,7 +332,7 @@ def gen_string_lower_c_literal2(context):
 
 @expression_gen
 def gen_string_lower_c_joindict(context):
-    return [(EXPRESSION, precedence["plain_filter"], [(LITERAL, "dict(c=x)|join")])]
+    return [(EXPRESSION, precedence["plain_filter"], [(LITERAL, "dict(c=i)|join")])]
 
 
 @expression_gen
@@ -716,9 +716,9 @@ def gen_string_percent_lipsum(context):
         (
             LITERAL,
             "lipsum[(lipsum|escape|batch(22)|list|first|last)*2"
-            + "+dict(globals=x)|join+(lipsum|escape|batch(22)|list|first|last)*2]"
-            + "[(lipsum|escape|batch(22)|list|first|last)*2+dict(builtins=x)"
-            + "|join+(lipsum|escape|batch(22)|list|first|last)*2][dict(chr=x)|join](37)",
+            + "+dict(globals=i)|join+(lipsum|escape|batch(22)|list|first|last)*2]"
+            + "[(lipsum|escape|batch(22)|list|first|last)*2+dict(builtins=i)"
+            + "|join+(lipsum|escape|batch(22)|list|first|last)*2][dict(chr=i)|join](37)",
         )
     ]
     return [(EXPRESSION, precedence["function_call"], target_list)]
@@ -767,7 +767,7 @@ def gen_string_percent_urlencodelong(context):
             [
                 [(LITERAL, "'ur''lencode'")],
                 [(LITERAL, '"ur""lencode"')],
-                [(LITERAL, "dict(urlencode=x)|first")],
+                [(LITERAL, "dict(urlencode=i)|first")],
                 [(LITERAL, "dict(ur=x,lenc=x,ode=x)|join"), (REQUIRE_PYTHON3,)],
                 [(LITERAL, "dict(ur=x,le=x,nco=x,de=x)|join"), (REQUIRE_PYTHON3,)],
                 [(VARIABLE_OF, "urlencode")],
