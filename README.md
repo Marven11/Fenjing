@@ -98,6 +98,14 @@ Connection: close
 
 `python -m fenjing crack-request -f req.txt --host '127.0.0.1' --port 5000`
 
+### crack-keywords
+
+如果已经拿到了服务端源码`app.py`的话，可以自动提取代码中的列表作为黑名单生成对应的payload
+
+命令如下：
+
+`python -m fenjing crack-keywords -k app.py -c 'ls /'`
+
 ### 其他
 
 此外还支持接受JSON的API，以及根据给定关键字生成payload的用法，详见[examples.md](examples.md)

@@ -93,6 +93,12 @@ And launch fenjing with:
 
 `python -m fenjing crack-request -f req.txt --host '127.0.0.1' --port 5000`
 
+### crack-keywords
+
+If you have `app.py` you can generate payload locally with:
+
+`python -m fenjing crack-keywords -k app.py -c 'ls /'`
+
 ### Others
 
 See [examples.md](examples.md) (Chinese) if you want to crack a JSON api or genrate payloads based on given keywords.
