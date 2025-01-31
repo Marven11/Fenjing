@@ -179,7 +179,7 @@ def gen_string_removedunder4(context: dict, value: str):
             " ": (WHITESPACE,),
         },
     )
-    return [(EXPRESSION, precedence["filter_with_function_call"], targets)]
+    return [(EXPRESSION, precedence["called_filter"], targets)]
 
 
 @expression_gen
@@ -238,7 +238,7 @@ def gen_string_lowerfilter1(context: dict, value: str):
         return [(UNSATISFIED,)]
     chars = [str_escape(c, "'") for c in value.upper()]
     target_list = [(LITERAL, "'{}'|lower".format("".join(chars)))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -247,7 +247,7 @@ def gen_string_lowerfilter2(context: dict, value: str):
         return [(UNSATISFIED,)]
     chars = [str_escape(c, '"') for c in value.upper()]
     target_list = [(LITERAL, '"{}"|lower'.format("".join(chars)))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -258,7 +258,7 @@ def gen_string_lowerfilterdict1(context: dict, value: str):
         return [(UNSATISFIED,)]
     chars = [str_escape(c, '"') for c in value.upper()]
     target_list = [(LITERAL, "dict({}=i)|first|lower".format("".join(chars)))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -269,7 +269,7 @@ def gen_string_lowerfilterdict2(context: dict, value: str):
         return [(UNSATISFIED,)]
     chars = [str_escape(c, '"') for c in value.upper()]
     target_list = [(LITERAL, "dict({}=i)|last|lower".format("".join(chars)))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -313,7 +313,7 @@ def gen_string_dictjoin(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, "dict({}=i)|join".format(value))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -321,7 +321,7 @@ def gen_string_dictfirst(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, "dict({}=i)|first".format(value))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -329,7 +329,7 @@ def gen_string_dictfirstreverse(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, "dict({}=i)|first|reverse".format(value[::-1]))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -337,7 +337,7 @@ def gen_string_dictlastreverse(context: dict, value: str):
     if not re.match("^[a-zA-Z_]+$", value):
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, "dict({}=i)|last|reverse".format(value[::-1]))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 # 以下规则生成的payload显著长于原string
@@ -417,7 +417,7 @@ def gen_string_lowerfilternamespaceattrs1(context: dict, value: str):
             "namespace({}=x)._Namespace__attrs|first|lower".format("".join(chars)),
         )
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -430,7 +430,7 @@ def gen_string_lowerfilternamespaceattrs2(context: dict, value: str):
     target_list = [
         (LITERAL, "namespace({}=x)._Namespace__attrs|last|lower".format("".join(chars)))
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -445,7 +445,7 @@ def gen_string_splitdictjoin(context: dict, value: str):
     target_list = [
         (LITERAL, "dict({})|join".format(",".join(f"{part}=x" for part in parts)))
     ]
-    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3,)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list), (REQUIRE_PYTHON3,)]
 
 
 @expression_gen
@@ -454,7 +454,7 @@ def gen_string_splitdictjoin2(context: dict, value: str):
         return [(UNSATISFIED,)]
     parts = [value[i : i + 3] for i in range(0, len(value), 3)]
     targets = [(LITERAL, "dict({}=i)|join".format(part)) for part in parts]
-    strings = [(EXPRESSION, precedence["filter"], [target]) for target in targets]
+    strings = [(EXPRESSION, precedence["plain_filter"], [target]) for target in targets]
     return [(STRING_CONCATMANY, strings), (REQUIRE_PYTHON3,)]
 
 
@@ -469,7 +469,7 @@ def gen_string_splitdictjoin3(context: dict, value: str):
     target_list = [
         (LITERAL, "dict({})|join".format(",".join(f"{part}=x" for part in value)))
     ]
-    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3,)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list), (REQUIRE_PYTHON3,)]
 
 
 @expression_gen
@@ -489,7 +489,7 @@ def gen_string_splitnamespacedictjoin(context: dict, value: str):
             ),
         )
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -501,7 +501,7 @@ def gen_string_splitnamespacedictjoin2(context: dict, value: str):
         (LITERAL, "namespace({}=x)._Namespace__attrs|join".format(part))
         for part in parts
     ]
-    strings = [(EXPRESSION, precedence["filter"], [target]) for target in targets]
+    strings = [(EXPRESSION, precedence["plain_filter"], [target]) for target in targets]
     return [(STRING_CONCATMANY, strings)]
 
 
@@ -521,7 +521,7 @@ def gen_string_splitnamespacedictjoin3(context: dict, value: str):
             ),
         )
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -573,7 +573,7 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["function_call"],
             bytes_targets,
         )
     ] + [(REQUIRE_PYTHON3,)]
@@ -597,11 +597,13 @@ def gen_string_formatpercent1(context: dict, value: str):
 @expression_gen
 def gen_string_formatpercent(context: dict, value: str):
     # (('%c'*n)%(97,98,99))
-    number_tuple = (
-        [(LITERAL, "(")]
-        + join_target((LITERAL, ","), [(INTEGER, ord(c)) for c in value])
-        + [(LITERAL, ")")]
-    )
+    number_tuple = [
+        (LITERAL, "("),
+        (WHITESPACE,),
+        *join_target((LITERAL, ","), [(INTEGER, ord(c)) for c in value]),
+        (WHITESPACE,),
+        (LITERAL, ")"),
+    ]
     return [
         (
             MOD,
@@ -616,11 +618,11 @@ def gen_string_formatfunc(context: dict, value: str):
     # ('%c'*n)|format(97,98,99)
     req = []
     manypc = (STRING_MANY_PERCENT_LOWER_C, len(value))
-    req.append((ENCLOSE_UNDER, precedence["filter"], manypc))
+    req.append((ENCLOSE_UNDER, precedence["plain_filter"], manypc))
     req.append((LITERAL, "|format("))
     req += join_target((LITERAL, ","), [(INTEGER, ord(c)) for c in value])
     req.append((LITERAL, ")"))
-    return [(EXPRESSION, precedence["filter"], req)]
+    return [(EXPRESSION, precedence["called_filter"], req)]
 
 
 @expression_gen
@@ -684,7 +686,7 @@ def gen_string_chars2(context: dict, value: str):
         + join_target((LITERAL, ","), [(CHAR, c) for c in value])
         + [(LITERAL, ")|join")]
     )
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -710,7 +712,7 @@ def gen_string_joinbyreplace(context: dict, value: str):
             "{,}": (ONEOF, [[(LITERAL, "")], [(LITERAL, ",")]]),
         },
     )
-    return [(EXPRESSION, precedence["filter"], targets)]
+    return [(EXPRESSION, precedence["called_filter"], targets)]
 
 
 @expression_gen
@@ -730,7 +732,7 @@ def gen_string_splitdictjoincycler(context: dict, value: str):
             ),
         )
     ]
-    return [(EXPRESSION, precedence["filter"], target_list), (REQUIRE_PYTHON3,)]
+    return [(EXPRESSION, precedence["function_call"], target_list), (REQUIRE_PYTHON3,)]
 
 
 @expression_gen

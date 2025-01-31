@@ -67,7 +67,7 @@ def gen_string_concat_join(context: dict, a, b):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["plain_filter"],
             targets_from_pattern(
                 "(STR_A,STR_B)|join",
                 {
@@ -125,7 +125,7 @@ def gen_string_concatmany_join(context: dict, parts):
             "PARTS": join_target(sep=(LITERAL, ","), targets=parts),
         },
     )
-    return [(EXPRESSION, precedence["filter"], targets)]
+    return [(EXPRESSION, precedence["plain_filter"], targets)]
 
 
 # lipsum.__globals__.concat(("a", "b"))
@@ -218,9 +218,9 @@ def gen_plus_addfuncbyfilter(context: dict, a, b):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["called_filter"],
             [
-                (ENCLOSE_UNDER, precedence["filter"], a),
+                (ENCLOSE_UNDER, precedence["plain_filter"], a),
                 get_add_func,
                 (
                     WRAP,
@@ -276,9 +276,9 @@ def gen_mod_func2(context: dict, a, b):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["called_filter"],
             [
-                (ENCLOSE_UNDER, precedence["filter"], a),
+                (ENCLOSE_UNDER, precedence["plain_filter"], a),
                 mod_func,
                 (
                     WRAP,
@@ -292,7 +292,6 @@ def gen_mod_func2(context: dict, a, b):
 
 
 # ---
-
 
 @expression_gen
 def gen_function_call_forattr(context: dict, function_target, args_target_list):
@@ -327,38 +326,3 @@ def gen_function_call_forattr2(context: dict, function_target, args_target_list)
         ]
     )
     return [(EXPRESSION, precedence["function_call"], target_list)]
-
-
-@expression_gen
-def gen_function_call_forfilter1(context: dict, function_target, args_target_list):
-    target_list = (
-        [
-            (ENCLOSE_UNDER, precedence["filter_with_function_call"], function_target),
-            (LITERAL, "("),
-            (WHITESPACE,),
-        ]
-        + join_target((LITERAL, ","), args_target_list)
-        + [
-            (WHITESPACE,),
-            (LITERAL, ")"),
-        ]
-    )
-    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
-
-
-@expression_gen
-def gen_function_call_forfilter2(context: dict, function_target, args_target_list):
-    target_list = (
-        [
-            (ENCLOSE_UNDER, precedence["filter_with_function_call"], function_target),
-            (LITERAL, "("),
-            (WHITESPACE,),
-        ]
-        + join_target((LITERAL, ","), args_target_list)
-        + [
-            (LITERAL, ","),
-            (WHITESPACE,),
-            (LITERAL, ")"),
-        ]
-    )
-    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]

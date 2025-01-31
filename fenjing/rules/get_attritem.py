@@ -26,38 +26,38 @@ def gen_attribute_normal1(context, obj_req, attr_name):
 @expression_gen
 def gen_attribute_normal2(context, obj_req, attr_name):
     target_list = [
-        (ENCLOSE_UNDER, precedence["attribute"], obj_req),
+        (ENCLOSE_UNDER, precedence["item"], obj_req),
         (LITERAL, "["),
         (STRING, attr_name),
         (LITERAL, "]"),
     ]
-    return [(EXPRESSION, precedence["attribute"], target_list)]
+    return [(EXPRESSION, precedence["item"], target_list)]
 
 
 @expression_gen
 def gen_attribute_attrfilter(context, obj_req, attr_name):
     target_list = [
-        (ENCLOSE_UNDER, precedence["filter"], obj_req),
+        (ENCLOSE_UNDER, precedence["plain_filter"], obj_req),
         (LITERAL, "|attr"),
         (
             WRAP,
             [(STRING, attr_name)],
         ),
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["called_filter"], target_list)]
 
 
 @expression_gen
 def gen_attribute_attrfilter2(context, obj_req, attr_name):
     target_list = [
-        (ENCLOSE_UNDER, precedence["filter"], obj_req),
+        (ENCLOSE_UNDER, precedence["plain_filter"], obj_req),
         (LITERAL, "|attr("),
         (WHITESPACE,),
         (STRING, attr_name),
         (WHITESPACE,),
         (LITERAL, ",)"),
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["called_filter"], target_list)]
 
 
 @expression_gen
@@ -72,7 +72,7 @@ def gen_attribute_map(context, obj_req, attr_name):
         },
     )
 
-    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 # ---
@@ -83,11 +83,11 @@ def gen_item_normal1(context, obj_req, item_name):
     if not re.match("[A-Za-z_]([A-Za-z0-9_]+)?", item_name):
         return [(UNSATISFIED,)]
     target_list = [
-        (ENCLOSE_UNDER, precedence["item"], obj_req),
+        (ENCLOSE_UNDER, precedence["attribute"], obj_req),
         (LITERAL, "."),
         (LITERAL, item_name),
     ]
-    return [(EXPRESSION, precedence["item"], target_list)]
+    return [(EXPRESSION, precedence["attribute"], target_list)]
 
 
 @expression_gen
@@ -104,48 +104,13 @@ def gen_item_normal2(context, obj_req, item_name):
 @expression_gen
 def gen_item_getfunc(context, obj_req, item_name):
     target = (FUNCTION_CALL, (ATTRIBUTE, obj_req, "get"), [(STRING, item_name)])
-    return [(EXPRESSION, precedence["filter_with_function_call"], [target])]
-
-
-@expression_gen
-def gen_item_getfunc2(context, obj_req, item_name):
-    target_head = [
-        (
-            ENCLOSE_UNDER,
-            precedence["function_call"],
-            (ATTRIBUTE, obj_req, "get"),
-        ),
-        (LITERAL, "("),
-        (WHITESPACE,),
-        (STRING, item_name),
-        (WHITESPACE,),
-    ]
-    target = (ONEOF, [target_head + [(LITERAL, ")")], target_head + [(LITERAL, ",)")]])
     return [(EXPRESSION, precedence["function_call"], [target])]
 
 
 @expression_gen
 def gen_item_dunderfunc(context, obj_req, item_name):
     target = (FUNCTION_CALL, (ATTRIBUTE, obj_req, "__getitem__"), [(STRING, item_name)])
-    return [(EXPRESSION, precedence["filter_with_function_call"], [target])]
-
-
-@expression_gen
-def gen_item_dunderfunc2(context, obj_req, item_name):
-    target_head = [
-        (
-            ENCLOSE_UNDER,
-            precedence["function_call"],
-            (ATTRIBUTE, obj_req, "__getitem__"),
-        ),
-        (LITERAL, "("),
-        (WHITESPACE,),
-        (STRING, item_name),
-        (WHITESPACE,),
-    ]
-    target = (ONEOF, [target_head + [(LITERAL, ")")], target_head + [(LITERAL, ",)")]])
     return [(EXPRESSION, precedence["function_call"], [target])]
-
 
 # ---
 
@@ -172,14 +137,14 @@ def gen_class_attribute_attrfilter(context, obj_req, attr_name):
         "__class__",
     )
     target_list = [
-        (ENCLOSE_UNDER, precedence["filter"], class_target),
+        (ENCLOSE_UNDER, precedence["plain_filter"], class_target),
         (LITERAL, "|attr"),
         (
             WRAP,
             [(STRING, attr_name)],
         ),
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["called_filter"], target_list)]
 
 
 @expression_gen
@@ -190,12 +155,12 @@ def gen_class_attribute_attrfilter2(context, obj_req, attr_name):
         "__class__",
     )
     target_list = [
-        (ENCLOSE_UNDER, precedence["filter"], class_target),
+        (ENCLOSE_UNDER, precedence["plain_filter"], class_target),
         (LITERAL, "|attr("),
         (STRING, attr_name),
         (LITERAL, ",)"),
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["called_filter"], target_list)]
 
 
 # ---

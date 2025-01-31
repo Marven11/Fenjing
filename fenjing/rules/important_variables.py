@@ -152,7 +152,7 @@ def gen_builtins_dict_safesplit(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
-            (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
+            (EXPRESSION, precedence["plain_filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "split"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
@@ -165,7 +165,7 @@ def gen_builtins_dict_safejoin(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
-            (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
+            (EXPRESSION, precedence["plain_filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "join"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
@@ -178,7 +178,7 @@ def gen_builtins_dict_safelower(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
-            (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
+            (EXPRESSION, precedence["plain_filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "lower"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
@@ -191,7 +191,7 @@ def gen_builtins_dict_safezfill(context):
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
-            (EXPRESSION, precedence["filter"], [(LITERAL, "()|safe")]),
+            (EXPRESSION, precedence["plain_filter"], [(LITERAL, "()|safe")]),
             (ATTRIBUTE, "zfill"),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
@@ -224,7 +224,7 @@ def gen_eval_func_mapfilter(context):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["plain_filter"],
             targets_from_pattern(
                 pattern,
                 {

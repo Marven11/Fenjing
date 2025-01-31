@@ -35,7 +35,7 @@ def gen_listify_str(context, target):
     return targets_from_pattern(
         "STR|slice(1)|map('join')|list",
         {
-            "STR": (ENCLOSE_UNDER, precedence["filter"], target),
+            "STR": (ENCLOSE_UNDER, precedence["plain_filter"], target),
             "1": (INTEGER, 1),
             "'join'": (STRING, "join"),
         },
@@ -49,7 +49,7 @@ def gen_listify_str2(context, target):
     return targets_from_pattern(
         "STR|batch(LEN)|map('join')|list",
         {
-            "STR": (ENCLOSE_UNDER, precedence["filter"], target),
+            "STR": (ENCLOSE_UNDER, precedence["plain_filter"], target),
             "LEN": (INTEGER, len(target[1])),
             "'join'": (STRING, "join"),
         },
@@ -61,21 +61,21 @@ def gen_map_attr_normal(context, obj, name):
     targets = targets_from_pattern(
         "OBJ|map('attr','name')",
         {
-            "OBJ": (ENCLOSE_UNDER, precedence["filter"], obj),
+            "OBJ": (ENCLOSE_UNDER, precedence["plain_filter"], obj),
             "'attr'": (STRING, "attr"),
             "'name'": (STRING, name),
         },
     )
-    return [(EXPRESSION, precedence["filter"], targets)]
+    return [(EXPRESSION, precedence["called_filter"], targets)]
 
 
 @expression_gen
 def gen_map_attr_normal2(context, obj, name):
     targets = targets_from_pattern(
         "OBJ|map(attribute='name')",
-        {"OBJ": (ENCLOSE_UNDER, precedence["filter"], obj), "'name'": (STRING, name)},
+        {"OBJ": (ENCLOSE_UNDER, precedence["plain_filter"], obj), "'name'": (STRING, name)},
     )
-    return [(EXPRESSION, precedence["filter"], targets)]
+    return [(EXPRESSION, precedence["called_filter"], targets)]
 
 
 @expression_gen
@@ -83,9 +83,9 @@ def gen_map_attr_dict(context, obj, name):
     targets = targets_from_pattern(
         "OBJ|map(**{'attribute':'name'})",
         {
-            "OBJ": (ENCLOSE_UNDER, precedence["filter"], obj),
+            "OBJ": (ENCLOSE_UNDER, precedence["plain_filter"], obj),
             "'attribute'": (STRING, "attribute"),
             "'name'": (STRING, name),
         },
     )
-    return [(EXPRESSION, precedence["filter"], targets)]
+    return [(EXPRESSION, precedence["called_filter"], targets)]

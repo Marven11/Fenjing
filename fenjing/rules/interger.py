@@ -64,9 +64,9 @@ def gen_multiply_func2(context: dict, a, b):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["called_filter"],
             [
-                (ENCLOSE_UNDER, precedence["filter"], a),
+                (ENCLOSE_UNDER, precedence["plain_filter"], a),
                 mul_func,
                 (
                     WRAP,
@@ -100,7 +100,7 @@ def gen_formular_sum_tuplesum(context, num_targets):
         + join_target(sep=(LITERAL, ","), targets=num_targets)
         + [(LITERAL, ")|sum")]
     )
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -121,7 +121,7 @@ def gen_zero_literal(context: dict):
 
 @expression_gen
 def gen_zero_2(context: dict):
-    return [(EXPRESSION, precedence["filter"], [(LITERAL, "{}|int")])]
+    return [(EXPRESSION, precedence["plain_filter"], [(LITERAL, "{}|int")])]
 
 
 @expression_gen
@@ -129,7 +129,7 @@ def gen_zero_3(context: dict):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["plain_filter"],
             [(LITERAL, "g|urlencode|length"), (REQUIRE_FLASK,)],
         )
     ]
@@ -137,7 +137,7 @@ def gen_zero_3(context: dict):
 
 @expression_gen
 def gen_zero_4(context: dict):
-    return [(EXPRESSION, precedence["filter"], [(LITERAL, "{}|urlencode|count")])]
+    return [(EXPRESSION, precedence["plain_filter"], [(LITERAL, "{}|urlencode|count")])]
 
 
 @expression_gen
@@ -380,6 +380,7 @@ def gen_positive_integer_recurmulnoastral(context: dict, value: int):
         if a > pieces_max:
             continue
         if b == 0:
+
             alternative = [(MULTIPLY, (POSITIVE_INTEGER, a), (POSITIVE_INTEGER, i))]
             alternatives.insert(0, alternative)
         else:
@@ -393,8 +394,7 @@ def gen_positive_integer_recurmulnoastral(context: dict, value: int):
             alternatives.append(alternative)
     if not alternatives:
         return [(UNSATISFIED,)]
-    target_list = [(ONEOF, alternatives)]
-    return [(EXPRESSION, precedence["function_call"], target_list)]
+    return [(ONEOF, alternatives)]
 
 
 @expression_gen
@@ -439,7 +439,7 @@ def gen_positive_integer_lengthything(context: dict, value: int):
             ],
         )
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -525,7 +525,7 @@ def gen_positive_integer_numbersum2(context: dict, value: int):
         inner = ",".join(numbers)
         alternatives.append([(LITERAL, "({})|sum".format(inner))])
     target_list = [(ONEOF, alternatives)]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -535,7 +535,7 @@ def gen_positive_integer_charint(context: dict, value: int):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["plain_filter"],
             [
                 (
                     WRAP,
@@ -557,7 +557,7 @@ def gen_positive_integer_count(context: dict, value: int):
     if value == 1:
         s += ","
     target_list = [(LITERAL, "({})|count".format(s))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -604,7 +604,7 @@ def gen_positive_integer_onesum2(context: dict, value: int):
     if value > 10 or value < 2:
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, "({},)|sum".format(",".join(["1"] * value)))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -620,7 +620,7 @@ def gen_positive_integer_truesum2(context: dict, value: int):
     if value > 10 or value < 2:
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, "({},)|sum".format(",".join(["True"] * value)))]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen

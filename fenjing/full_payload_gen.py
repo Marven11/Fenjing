@@ -68,6 +68,8 @@ def get_outer_pattern(
         for whitespace in ["", " ", "\t", "\n"]
         for payload in [
             "",
+            # test multiple brackets
+            "()",
             # trying to trigger render error
             "^",
             "(",
@@ -76,12 +78,14 @@ def get_outer_pattern(
     ]
     with pbar_manager.pbar(outer_payloads, "get_outer_pattern") as outer_payloads:
         for test_payload, outer_pattern, will_print in outer_payloads:
-            if waf_func(test_payload):
+            if waf_func(test_payload) and (
+                "(" not in outer_pattern
+                or waf_func(outer_pattern.replace("PAYLOAD", "()"))
+            ):
                 return outer_pattern, will_print
             logger.info(
-                "Test pattern [blue]%s[/] with [blue]%s[/] failed",
+                "Test pattern [blue]%s[/] failed",
                 rich_escape(repr(outer_pattern)),
-                rich_escape(repr(test_payload)),
                 extra={"markup": True, "highlighter": None},
             )
     logger.warning(
@@ -316,6 +320,7 @@ class FullPayloadGen:
                 "doc",
                 "attr",
                 "attribute",
+                "next",
                 "__class__",
                 "__globals__",
                 "__init__",
@@ -454,7 +459,7 @@ class FullPayloadGen:
         # 防止waf ban掉 `}{` 等
         payload = None
         for whitespace in ["", " ", "\t", "\n"]:
-            if self.waf_func("%}" + whitespace + "{%"):
+            if not context_payload or self.waf_func("}" + whitespace + "{"):
                 payload = whitespace.join(
                     [
                         *context_payload,

@@ -55,7 +55,7 @@ def gen_char_selectpy3(context, c):
     if not matches:
         return [(UNSATISFIED,)]
     target_list = [(ONEOF, matches)]
-    return [(REQUIRE_PYTHON3,), (EXPRESSION, precedence["filter"], target_list)]
+    return [(REQUIRE_PYTHON3,), (EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -73,7 +73,7 @@ def gen_char_selectpy2(context, c):
     if not matches:
         return [(UNSATISFIED,)]
     target_list = [(ONEOF, matches)]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -132,7 +132,7 @@ def gen_char_select(context, c):
                 )
             )
     target_list = [(ONEOF, matches)]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -165,7 +165,7 @@ def gen_char_flaskg(context, c):
                 )
             )
     target_list = [(ONEOF, matches)]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -173,7 +173,7 @@ def gen_char_dict(context, c):
     if not re.match("[A-Za-z]", c):
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, f"dict({c}=x)|join")]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -181,7 +181,7 @@ def gen_char_namespacedict(context, c):
     if not re.match("[A-Za-z]", c):
         return [(UNSATISFIED,)]
     target_list = [(LITERAL, f"namespace({c}=x)._Namespace__attrs|join")]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -210,7 +210,7 @@ def gen_char_num2(context, c):
         (INTEGER, int(c)),
         (LITERAL, ")|string"),
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -270,7 +270,7 @@ def gen_char_cyclerdoc(cotext, c):
         if len(alternatives) > 100:  # for perfomance
             break
     target_list = [(ONEOF, alternatives)]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -332,7 +332,7 @@ def gen_string_lower_c_literal2(context):
 
 @expression_gen
 def gen_string_lower_c_joindict(context):
-    return [(EXPRESSION, precedence["filter"], [(LITERAL, "dict(c=x)|join")])]
+    return [(EXPRESSION, precedence["plain_filter"], [(LITERAL, "dict(c=x)|join")])]
 
 
 @expression_gen
@@ -340,7 +340,7 @@ def gen_string_lower_c_joinnamespacedict(context):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["plain_filter"],
             [(LITERAL, "namespace(c=x)._Namespace__attrs|join")],
         )
     ]
@@ -351,7 +351,7 @@ def gen_string_lower_c_lipsumurlencode(context):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["plain_filter"],
             [(LITERAL, "lipsum|pprint|first|urlencode|last|lower")],
         )
     ]
@@ -362,7 +362,7 @@ def gen_string_lower_c_lipsumbatch(context):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["plain_filter"],
             [
                 (LITERAL, "lipsum|escape|batch("),
                 (INTEGER, 8),
@@ -377,7 +377,7 @@ def gen_string_lower_c_joinerbatch(context):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["plain_filter"],
             [
                 (LITERAL, "joiner|string|batch("),
                 (INTEGER, 2),
@@ -392,7 +392,7 @@ def gen_string_lower_c_namespacebatch(context):
     return [
         (
             EXPRESSION,
-            precedence["filter"],
+            precedence["plain_filter"],
             [
                 (LITERAL, "namespace|escape|batch("),
                 (INTEGER, 36),
@@ -431,7 +431,7 @@ def gen_string_lower_c_classbatch(context):
             "{2}": (INTEGER, 2),
         },
     )
-    return [(EXPRESSION, precedence["filter"], targets)]
+    return [(EXPRESSION, precedence["plain_filter"], targets)]
 
 
 @expression_gen
@@ -449,7 +449,7 @@ def gen_string_lower_c_classbatch2(context):
         "{CLASS}|e|batch({5})|first|last",
         {"{CLASS}": (ONEOF, class_alternatives), "{5}": (INTEGER, 5)},
     )
-    return [(EXPRESSION, precedence["filter"], targets)]
+    return [(EXPRESSION, precedence["plain_filter"], targets)]
 
 
 @expression_gen
@@ -480,13 +480,13 @@ def gen_string_percent_context(context):
 
 @expression_gen
 def gen_string_percent_urlencode1(context):
-    return [(EXPRESSION, precedence["filter"], [(LITERAL, "lipsum()|urlencode|first")])]
+    return [(EXPRESSION, precedence["plain_filter"], [(LITERAL, "lipsum()|urlencode|first")])]
 
 
 @expression_gen
 def gen_string_percent_urlencode2(context):
     return [
-        (EXPRESSION, precedence["filter"], [(LITERAL, "{}|escape|urlencode|first")])
+        (EXPRESSION, precedence["plain_filter"], [(LITERAL, "{}|escape|urlencode|first")])
     ]
 
 
@@ -568,7 +568,7 @@ def gen_string_percent_lipsum4(context):
     return [
         (
             EXPRESSION,
-            precedence["filter_with_function_call"],
+            precedence["function_call"],
             [
                 (LITERAL, "lipsum|attr("),
                 (WHITESPACE,),
@@ -643,7 +643,7 @@ def gen_string_percent_moddoc(context):
             ],
         ),
     ]
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -705,7 +705,7 @@ def gen_string_percent_dictbatch(context):
         (LITERAL, ")"),
     ]
     return [
-        (EXPRESSION, precedence["filter_with_function_call"], target_list),
+        (EXPRESSION, precedence["function_call"], target_list),
         (REQUIRE_PYTHON3,),
     ]
 
@@ -747,7 +747,7 @@ def gen_string_percent_lipsumcomplex(context):
         (INTEGER, 37),
         (LITERAL, ")"),
     ]
-    return [(EXPRESSION, precedence["filter_with_function_call"], target_list)]
+    return [(EXPRESSION, precedence["function_call"], target_list)]
 
 
 @expression_gen
@@ -915,7 +915,7 @@ def gen_string_percent_lower_c_dictjoin(context):
     targets = targets_from_pattern(
         pattern, {"PERCENT": (STRING_PERCENT,), "LOWERC": (STRING_LOWERC,)}
     )
-    return [(EXPRESSION, precedence["filter"], targets), (REQUIRE_PYTHON3,)]
+    return [(EXPRESSION, precedence["plain_filter"], targets), (REQUIRE_PYTHON3,)]
 
 
 @expression_gen
@@ -925,7 +925,7 @@ def gen_string_percent_lower_c_listjoin(context):
     targets = targets_from_pattern(
         pattern, {"PERCENT": (STRING_PERCENT,), "LOWERC": (STRING_LOWERC,)}
     )
-    return [(EXPRESSION, precedence["filter"], targets)]
+    return [(EXPRESSION, precedence["plain_filter"], targets)]
 
 
 @expression_gen
@@ -935,7 +935,7 @@ def gen_string_percent_lower_c_tuplejoin(context):
     targets = targets_from_pattern(
         pattern, {"PERCENT": (STRING_PERCENT,), "LOWERC": (STRING_LOWERC,)}
     )
-    return [(EXPRESSION, precedence["filter"], targets)]
+    return [(EXPRESSION, precedence["plain_filter"], targets)]
 
 
 @expression_gen
@@ -946,7 +946,7 @@ def gen_string_percent_lower_c_replaceconcat(context):
         pattern,
         {"LOWERC": (STRING_LOWERC,), "PERCENT": (STRING_PERCENT,), "ONE": (INTEGER, 1)},
     )
-    return [(EXPRESSION, precedence["filter"], targets)]
+    return [(EXPRESSION, precedence["called_filter"], targets)]
 
 
 @expression_gen
@@ -958,7 +958,7 @@ def gen_string_percent_lower_c_cycler(context):
     targets = targets_from_pattern(
         pattern, {"TEN": (INTEGER, 10), "EIGHT": (INTEGER, 8)}
     )
-    return [(EXPRESSION, precedence["filter"], targets)]
+    return [(EXPRESSION, precedence["plain_filter"], targets)]
 
 
 # ---
@@ -1010,7 +1010,7 @@ def gen_string_many_percent_lower_c_replacespace(context, count: int):
         },
     )
 
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["called_filter"], target_list)]
 
 
 @expression_gen
@@ -1029,7 +1029,7 @@ def gen_string_many_percent_lower_c_nulljoin(context, count: int):
             " ": (WHITESPACE,),
         },
     )
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["called_filter"], target_list)]
 
 
 @expression_gen
@@ -1051,7 +1051,7 @@ def gen_string_many_percent_lower_c_join(context, count: int):
             " ": (WHITESPACE,),
         },
     )
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 # ---
@@ -1094,7 +1094,7 @@ def gen_string_underline_lipsum(context):
     target_list = targets_from_pattern(
         "lipsum|escape|batch(22)|list|first|last", {"22": (INTEGER, 22)}
     )
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -1102,7 +1102,7 @@ def gen_string_underline_tupleselect(context):
     target_list = targets_from_pattern(
         "()|select|string|batch(25)|first|last", {"25": (INTEGER, 25)}
     )
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -1115,7 +1115,7 @@ def gen_string_underline_gget(context):
             "{18}": (INTEGER, 18),
         },
     )
-    return [(EXPRESSION, precedence["filter"], target_list)]
+    return [(EXPRESSION, precedence["plain_filter"], target_list)]
 
 
 @expression_gen
@@ -1156,7 +1156,7 @@ def gen_string_twounderline_format(context):
 @expression_gen
 def gen_string_twounderline_formatfilter(context):
     targets = [
-        (ENCLOSE_UNDER, precedence["filter"], (STRING, "%s%%s")),
+        (ENCLOSE_UNDER, precedence["plain_filter"], (STRING, "%s%%s")),
         (LITERAL, "|format("),
         (WHITESPACE,),
         (STRING_UNDERLINE,),
@@ -1168,7 +1168,7 @@ def gen_string_twounderline_formatfilter(context):
         (WHITESPACE,),
         (LITERAL, ")"),
     ]
-    return [(EXPRESSION, precedence["filter_with_function_call"], targets)]
+    return [(EXPRESSION, precedence["called_filter"], targets)]
 
 
 # ---
@@ -1206,7 +1206,7 @@ def gen_string_many_format_c_complex(context, num):
     return [
         (
             MULTIPLY,
-            (EXPRESSION, precedence["filter"], fomat_c_target_list),
+            (EXPRESSION, precedence["called_filter"], fomat_c_target_list),
             (INTEGER, num),
         )
     ]

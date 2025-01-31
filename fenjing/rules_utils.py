@@ -8,16 +8,28 @@ import re
 from .const import *
 from .rules_types import Target
 
+# precedence of filter:
+# a|xxx()()
+#  2   1 3
+# 1: filter call
+# 2: filter
+# 3: function call
+# `|xxx`: plain_filter
+# `|xxx()`: called_filter
 
 precedence_lst = [
     ["enclose", "literal", "flask_context_var", "jinja_context_var"],
+    ["attribute"],
     [
+        # xxx.a[b], xxx(a)[b] and xxx.a(b) works,
+        # xxx|a(b)(c) works
+        # but xxx|a[b] don't
         "item",
-        "attribute",
         "slide",
         "function_call",
     ],
-    ["filter", "filter_with_function_call"],
+    ["called_filter"],
+    ["plain_filter"],
     [
         "power",
     ],
@@ -235,6 +247,7 @@ def targets_from_pattern(
         result.append((LITERAL, toparse))
     return result
 
+
 def literal_to_target(literal: str) -> Target:
     """将literal转成expression target
     如果literal是`aaa|bbb`的格式，那它就是一个带有filter的expression
@@ -249,7 +262,7 @@ def literal_to_target(literal: str) -> Target:
     # TODO: 我知道这里写得很烂但是暂时就用这种方式判断就好了，好好计算优先级
     # 从而省掉一些括号这种事情之后再说
     return (
-        (EXPRESSION, precedence["filter"], [(LITERAL, literal)])
-        if re.match(r"^[a-z0-9]+$", literal)
-        else (EXPRESSION, precedence["literal"], [(ENCLOSE, (LITERAL, literal))])
+        (EXPRESSION, precedence["plain_filter"], [(LITERAL, literal)])
+        if re.match(r"^[a-z0-9\\|]+$", literal)
+        else (EXPRESSION, precedence["enclose"], [(ENCLOSE, (LITERAL, literal))])
     )
