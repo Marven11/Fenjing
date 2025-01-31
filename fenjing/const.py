@@ -267,7 +267,9 @@ EXTRA_TARGETS = [
     (STRING, "__add__"),
     (STRING, "__globals__"),
     (STRING, "__builtins__"),
+    (STRING, "__getitem__"),
     (STRING, "eval"),
+    (STRING, "bytes"),
 ]
 
 RENDER_ERROR_KEYWORDS = [

@@ -529,7 +529,6 @@ def gen_string_lipsumtobytes4(context: dict, value: str):
     ints: List[Target] = join_target(
         sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]
     )
-    # TODO: rewrite it with GENERATED_EXPR
     bytes_targets = targets_from_pattern(
         "lipsum[GLOBALS][BUILTINS][BYTES]( ( INTS ) MAYBE_COMMA)[DECODE]( )",
         {
@@ -578,6 +577,40 @@ def gen_string_lipsumtobytes5(context: dict, value: str):
         )
     ] + [(REQUIRE_PYTHON3,)]
 
+
+@expression_gen
+def gen_string_undefinedtobytes(context: dict, value: str):
+
+    bytes_targets = targets_from_pattern(
+        "UNDEFINED|attr( ADD )|attr( GLOBALS )|attr( GETITEM )( BUILTINS )"
+        "|attr( GETITEM )( BYTES )( ( INTS ) MAYBE_COMMA)|attr(DECODE)( )",
+        {
+            "UNDEFINED": (ONEOF, [
+                [(LITERAL, "a")],
+                [(LITERAL, "t")],
+                [(LITERAL, "r")],
+                [(LITERAL, "x")],
+            ]),
+            "ADD": (GENERATED_EXPR, (STRING, "__add__")),
+            "GLOBALS": (GENERATED_EXPR, (STRING, "__globals__")),
+            "GETITEM": (GENERATED_EXPR, (STRING, "__getitem__")),
+            "BUILTINS": (GENERATED_EXPR, (STRING, "__builtins__")),
+            "BYTES": (GENERATED_EXPR, (STRING, "bytes")),
+            " ": (WHITESPACE,),
+            "INTS": join_target(
+                sep=(LITERAL, ","), targets=[(INTEGER, ord(c)) for c in value]
+            ),
+            "MAYBE_COMMA": (ONEOF, [[(LITERAL, ",")], [(LITERAL, "")]]),
+            "DECODE": (GENERATED_EXPR, (STRING, "decode")),
+        },
+    )
+    return [
+        (
+            EXPRESSION,
+            precedence["function_call"],
+            bytes_targets,
+        )
+    ] + [(REQUIRE_PYTHON3,)]
 
 @expression_gen
 def gen_string_formatpercent1(context: dict, value: str):
