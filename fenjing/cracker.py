@@ -268,9 +268,12 @@ class Cracker:
         self, tree, outer_pattern, context_vars: ContextVariableManager
     ):
         def is_expr_bad(expr):
-            payload = context_vars.get_payload(
-                context_vars.get_context()
-            ) + outer_pattern.replace("PAYLOAD", expr)
+            payload = "".join(
+                [
+                    *context_vars.get_payload(context_vars.get_context()),
+                    outer_pattern.replace("PAYLOAD", expr),
+                ]
+            )
             result = self.subm.submit(payload)
             assert result is not None
             status_code, _ = result

@@ -2,7 +2,7 @@
 
 """
 
-from typing import Iterable, Dict, Any, Callable, Union
+from typing import Iterable, Dict, Any, Callable, Union, List
 import logging
 import random
 import string
@@ -326,7 +326,7 @@ class ContextVariableManager:
         self.context_payloads[payload] = variables
         return True
 
-    def get_payload(self, used_context: Context) -> str:
+    def get_payload(self, used_context: Context) -> List[str]:
         """根据使用了的变量生成对应的payload
 
         Args:
@@ -340,7 +340,7 @@ class ContextVariableManager:
         """
         if not self.prepared:
             self.do_prepare()
-        answer = ""
+        result = []
         to_add_vars = list(used_context.keys())
         added_vars = set()
         while to_add_vars:
@@ -362,10 +362,9 @@ class ContextVariableManager:
                     to_add_vars += list(self.payload_dependency[payload])
                     to_add_vars.append(to_add)
                     continue
-
-            answer += payload
+            result.append(payload)
             added_vars.add(to_add)
-        return answer
+        return result
 
     def get_context(self) -> Context:
         """输出当前包含的变量

