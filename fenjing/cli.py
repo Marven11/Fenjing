@@ -54,7 +54,7 @@ from .scan_url import yield_form
 from .webui import main as webui_main
 from .interact import interact
 from .options import Options
-from .pbar import pbar_manager
+from .pbar import pbar_manager, console
 
 TITLE = r"""
     ____             _ _
@@ -609,8 +609,8 @@ def add_options(options):
 @click.group()
 def main():
     """click的命令组"""
-    console: Console = Console(stderr=True)
     console.print(f"[yellow bold]{rich_escape(TITLE)}[/]")
+
     logging.basicConfig(
         level=logging.INFO,
         format=LOGGING_FORMAT,

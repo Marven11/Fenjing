@@ -1,11 +1,12 @@
 from contextlib import contextmanager
+from rich.console import Console
 from rich.progress import (
     BarColumn,
     Progress,
     TextColumn,
     TimeRemainingColumn,
 )
-
+console: Console = Console(stderr=True)
 
 class PbarManager:
     def __init__(self):
@@ -15,6 +16,7 @@ class PbarManager:
             "[bold yellow][progress.percentage]{task.percentage:>3.1f}%",
             "•",
             TimeRemainingColumn(),
+            console=console,
         )
 
     @contextmanager
