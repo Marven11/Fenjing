@@ -27,8 +27,8 @@ precedence_lst = [
         "item",
         "slide",
         "function_call",
+        "called_filter",
     ],
-    ["called_filter"],
     ["plain_filter"],
     [
         "power",
