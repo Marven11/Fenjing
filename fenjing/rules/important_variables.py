@@ -44,20 +44,14 @@ def gen_builtins_dict_brainrot(context):
     # the waf sucks and we're joking about it.
     return [
         (
-            EXPRESSION,
-            precedence["attribute"],
-            [
-                (
-                    CHAINED_ATTRIBUTE_ITEM,
-                    (
-                        EXPRESSION,
-                        precedence["attribute"],
-                        [(LITERAL, brainrot_varname + ".__eq__")],
-                    ),
-                    (ATTRIBUTE, "__globals__"),
-                    (ITEM, "__builtins__"),
-                )
-            ],
+            CHAINED_ATTRIBUTE_ITEM,
+            (
+                EXPRESSION,
+                precedence["attribute"],
+                [(LITERAL, brainrot_varname + ".__eq__")],
+            ),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
         )
     ]
 
@@ -66,20 +60,14 @@ def gen_builtins_dict_brainrot(context):
 def gen_builtins_dict_waftoosimple(context):
     return [
         (
-            EXPRESSION,
-            precedence["attribute"],
-            [
-                (
-                    CHAINED_ATTRIBUTE_ITEM,
-                    (
-                        EXPRESSION,
-                        precedence["attribute"],
-                        [(LITERAL, "lipsum")],
-                    ),
-                    (ATTRIBUTE, "__globals__"),
-                    (ITEM, "__builtins__"),
-                )
-            ],
+            CHAINED_ATTRIBUTE_ITEM,
+            (
+                EXPRESSION,
+                precedence["attribute"],
+                [(LITERAL, "lipsum")],
+            ),
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "__builtins__"),
         )
     ]
 
