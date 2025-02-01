@@ -270,6 +270,7 @@ EXTRA_TARGETS = [
     (STRING, "__getitem__"),
     (STRING, "eval"),
     (STRING, "bytes"),
+    (STRING, "big"),
 ]
 
 RENDER_ERROR_KEYWORDS = [

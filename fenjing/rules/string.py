@@ -787,7 +787,7 @@ def gen_string_intbytes1(context: dict, value: str):
                 ONEOF,
                 [
                     [(INTEGER, len(value)), (REQUIRE_PYTHON3_SUBVERSION, 11)],
-                    [(INTEGER, len(value)), (LITERAL, ","), (STRING, "big")],
+                    [(INTEGER, len(value)), (LITERAL, ","), (GENERATED_EXPR, (STRING, "big"))],
                 ],
             ),
         },
@@ -813,7 +813,7 @@ def gen_string_intbytes2(context: dict, value: str):
                         ONEOF,
                         [
                             [(INTEGER, len(value)), (REQUIRE_PYTHON3_SUBVERSION, 11)],
-                            [(INTEGER, len(value)), (LITERAL, ","), (STRING, "big")],
+                            [(INTEGER, len(value)), (LITERAL, ","), (GENERATED_EXPR, (STRING, "big"))],
                         ],
                     ),
                     "'attr'": (GENERATED_EXPR, (STRING, "attr")),
@@ -849,7 +849,7 @@ def gen_string_intbytes3(context: dict, value: str):
                         ONEOF,
                         [
                             [(INTEGER, len(value)), (REQUIRE_PYTHON3_SUBVERSION, 11)],
-                            [(INTEGER, len(value)), (LITERAL, ","), (STRING, "big")],
+                            [(INTEGER, len(value)), (LITERAL, ","), (GENERATED_EXPR, (STRING, "big"))],
                         ],
                     ),
                     "GETTHAT": (ONEOF, [[(LITERAL, "first")], [(LITERAL, "last")]]),
