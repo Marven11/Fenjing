@@ -69,6 +69,7 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
     - 如payload被waf时页面一定会有`WAF`这三个字母，则可以输入`--waf-keyword WAF`手动指定
 - waf关键字检测功能
     - 脚本支持fuzz一部分被waf的关键字，但默认关闭，可以通过`--detect-waf-keywords full`或者`--detect-waf-keywords fast`打开
+- 不打印INFO等：使用`--silent`选项，如`python -m fenjing --silent crack-keywords`
 
 ### Tamper Cmd的使用
 

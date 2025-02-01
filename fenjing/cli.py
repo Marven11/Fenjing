@@ -607,12 +607,13 @@ def add_options(options):
 
 
 @click.group()
-def main():
+@click.option("--silent", "--shutup", is_flag=True, default=False, help="不打印INFO等")
+def main(silent):
     """click的命令组"""
-    console.print(f"[yellow bold]{rich_escape(TITLE)}[/]")
-
+    if not silent:
+        console.print(f"[yellow bold]{rich_escape(TITLE)}[/]")
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.INFO if not silent else logging.ERROR,
         format=LOGGING_FORMAT,
         datefmt="[%X]",
         handlers=[
