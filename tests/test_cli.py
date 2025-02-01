@@ -7,6 +7,7 @@ import sys
 sys.path.append("..")
 import unittest
 import os
+import tempfile
 
 import click
 
@@ -77,10 +78,23 @@ class TestCLI(unittest.TestCase):
         ctx.params.update(params)
         cli.crack_request.invoke(ctx)
 
+
+    def crack_keywords_test(self, params):
+        ctx = click.Context(cli.crack_keywords)
+        ctx.params = {
+            param.name: param.default
+            for param in cli.crack_keywords.get_params(ctx)
+            if param.name != "help"
+        }
+        ctx.params.update(params)
+        cli.crack_keywords.invoke(ctx)
+
     def test_crack_basic(self):
         for uri in [
             "",
             "/static_waf",
+            "/static_waf2",
+            "/static_waf3",
             "/dynamic_waf",
             "/weird_waf",
             "/lengthlimit1_waf",
@@ -275,6 +289,18 @@ class TestCLI(unittest.TestCase):
                 "tamper_cmd": "rev",
             }
         )
+
+    def test_crack_keywords(self):
+        with tempfile.NamedTemporaryFile("w", delete=False) as f:
+            f.write("__\n")
+            f.close()
+            self.crack_keywords_test(
+                {
+                    "keywords_file": f.name,
+                    "command": "ls /",
+                    "suffix": ".txt",
+                }
+            )
 
     def test_crack_request_basic(self):
         protocol, sep, addr = VULUNSERVER_ADDR.partition("://")

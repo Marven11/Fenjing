@@ -243,6 +243,87 @@ def static_waf2():
     return render_template_string("Here: {}".format(name))
 
 
+@app.route("/static_waf3", methods=["GET", "POST"])
+def static_waf3():
+    name = request.args.get("name", "world")
+    if any(
+        word in name
+        for word in [
+            "_",
+            "\\",
+            "'",
+            '"',
+            "request",
+            "+",
+            "class",
+            "init",
+            "arg",
+            "config",
+            "app",
+            "self",
+            "cd",
+            "chr",
+            "request",
+            "url",
+            "builtins",
+            "globals",
+            "base",
+            "pop",
+            "import",
+            "popen",
+            "getitem",
+            "subclasses",
+            "/",
+            "flashed",
+            "os",
+            "open",
+            "read",
+            "count",
+            "*",
+            "43",
+            "45",
+            "38",
+            "124",
+            "47",
+            "59",
+            "99",
+            "100",
+            "cat",
+            "~",
+            ":",
+            "not",
+            "0",
+            "length",
+            "index",
+            "-",
+            "ord",
+            "37",
+            "94",
+            "96",
+            "48",
+            "49",
+            "50",
+            "51",
+            "52",
+            "53",
+            "54",
+            "55",
+            "56",
+            "57",
+            "58",
+            "59",
+            "[",
+            "]",
+            "@",
+            "^",
+            "#",
+        ]
+    ):
+        return "Nope"
+    template = "Hello, {}".format(name)
+    return render_template_string(template)
+
+
 @app.route("/dynamic_waf", methods=["GET", "POST"])
 def dynamic_waf():
     name = request.args.get("name", "world")
