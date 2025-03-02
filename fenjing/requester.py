@@ -141,11 +141,22 @@ class TCPRequester:
 
     def _recv_all(self, sock, bufsize=1024):
         data = b""
+        content_length = None
         while True:
             chunk = sock.recv(bufsize)
+
             if not chunk:
                 break
             data += chunk
+            if b"Content-Length" in data:
+                regexp_result = re.search(rb"Content-Length: (\d+)", data)
+                if regexp_result:
+                    content_length = int(regexp_result.group(1))
+            if (
+                content_length is not None
+                and len(data.rpartition(b"\r\n")[2]) >= content_length
+            ):
+                break
         return data
 
     def _request_once(self, request: bytes):
@@ -291,12 +302,16 @@ class HTTPRequester:
             resp = self.session.request(**kwargs)
         except requests.exceptions.SSLError:
             logger.warning(
-                "SSL Error. Maybe you want to ignore certificate with --no-verify-ssl"
-                , extra={"highlighter": None}
+                "SSL Error. Maybe you want to ignore certificate with --no-verify-ssl",
+                extra={"highlighter": None},
             )
             return None
         except Exception as exception:  # pylint: disable=W0718
-            logger.warning("Request failed with exception: %s", repr(exception), extra={"highlighter": None})
+            logger.warning(
+                "Request failed with exception: %s",
+                repr(exception),
+                extra={"highlighter": None},
+            )
             logger.debug(traceback.format_exc())
             return None
         if resp.status_code in self.retry_status:
@@ -306,7 +321,8 @@ class HTTPRequester:
                 extra={"markup": True, "highlighter": None},
             )
             logger.warning(
-                "You might want to use `--interval` option to set request interval.", extra={"highlighter": None}
+                "You might want to use `--interval` option to set request interval.",
+                extra={"highlighter": None},
             )
             time.sleep(1)
             return None
