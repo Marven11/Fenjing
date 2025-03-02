@@ -18,7 +18,8 @@ from .wordlist import HTTP_PARAMS_LIST
 from .pbar import pbar_manager
 
 logger = logging.getLogger("scan_url")
-PARAM_CHUNK_SIZE = 50
+PARAM_CHUNK_SIZE_GET = 50
+PARAM_CHUNK_SIZE_POST = 500
 PARAM_MAXIMUM_COUNT = 5
 
 
@@ -61,7 +62,7 @@ def burst_respond_params_data(
     )
     words = list(set(words))
     random.shuffle(words)
-    if len(words) > PARAM_CHUNK_SIZE * 100:
+    if len(words) > PARAM_CHUNK_SIZE_GET * 100:
         logger.warning(
             "found %d params, don't burst", len(words), extra={"highlighter": None}
         )
@@ -71,38 +72,53 @@ def burst_respond_params_data(
         len(words),
         extra={"highlighter": None},
     )
-    respond_get_params: Set[str] = set()
     respond_post_params: Set[str] = set()
+    respond_get_params: Set[str] = set()
+
+    is_http_method_supported = True
     with pbar_manager.pbar(
-        range(0, len(words), PARAM_CHUNK_SIZE), "burst_respond_params_data"
+        range(0, len(words), PARAM_CHUNK_SIZE_POST), "burst_respond_params_data POST"
     ) as it:
         for i in it:
-            words_chunk = words[i : i + PARAM_CHUNK_SIZE]
+            words_chunk = words[i : i + PARAM_CHUNK_SIZE_POST]
             for _ in range(3):
-                params = {
-                    k: "".join(
-                        random.choices(string.ascii_lowercase, k=6)
-                    )
-                    for k in words_chunk
-                }
                 data = {
-                    k: "".join(
-                        random.choices(string.ascii_lowercase, k=6)
-                    )
+                    k: "".join(random.choices(string.ascii_lowercase, k=6))
                     for k in words_chunk
                 }
-                resp = requester.request(method="GET", url=url, params=params)
-                if resp:
-                    respond_get_params |= set(
-                        k for k, v in params.items() if v in resp.text
-                    )
                 resp = requester.request(method="POST", url=url, data=data)
-                if resp:
+                if resp is not None:
                     respond_post_params |= set(
                         k for k, v in data.items() if v in resp.text
                     )
+                    is_http_method_supported = resp.status_code != 405
                     break
 
+            if not is_http_method_supported:
+                break
+
+    is_http_method_supported = True
+    with pbar_manager.pbar(
+        range(0, len(words), PARAM_CHUNK_SIZE_GET), "burst_respond_params_data GET"
+    ) as it:
+        for i in it:
+            words_chunk = words[i : i + PARAM_CHUNK_SIZE_GET]
+            for _ in range(3):
+                params = {
+                    k: "".join(random.choices(string.ascii_lowercase, k=6))
+                    for k in words_chunk
+                }
+
+                resp = requester.request(method="GET", url=url, params=params)
+                if resp is not None:
+                    respond_get_params |= set(
+                        k for k, v in params.items() if v in resp.text
+                    )
+                    is_http_method_supported = resp.status_code != 405
+                    break
+
+            if not is_http_method_supported:
+                break
     return list(respond_get_params), list(respond_post_params)
 
 
