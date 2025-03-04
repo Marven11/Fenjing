@@ -647,23 +647,6 @@ def gen_positive_integer_constexpr(context: dict, value: int):
     return [(ONEOF, alternatives)]
 
 
-@expression_gen
-def gen_positive_integer_constexprsumoflength1(context: dict, value: int):
-    if value > 10 or value <= 1:
-        return [(UNSATISFIED,)]
-    target_length1: Target = (ONEOF, [[(INTEGER, x)] for x in range(10)])
-    return [
-        (WRAP, join_target((LITERAL, "~"), [target_length1 for _ in range(value)])),
-        (
-            ONEOF,
-            [
-                [(LITERAL, "|count")],
-                [(LITERAL, "|length")],
-            ],
-        ),
-    ]
-
-
 # ---
 
 
