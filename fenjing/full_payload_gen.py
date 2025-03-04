@@ -58,6 +58,7 @@ def get_outer_pattern(
             ("${WS}{{${WS}PAYLOAD${WS}}}${WS}", True),
             ("${WS}{%${WS}print PAYLOAD${WS}%}${WS}", True),
             ("${WS}{%${WS}print(${WS}PAYLOAD${WS})${WS}%}${WS}", True),
+            ("${WS}{%${WS}print(${WS}x${WS},${WS}PAYLOAD${WS},${WS}x${WS})${WS}%}${WS}", True),
             ("${WS}{%${WS}set s=${WS}PAYLOAD${WS}%}${WS}", False),
             ("${WS}{%${WS}set(${WS}s${WS})=${WS}PAYLOAD${WS}%}${WS}", False),
             ("${WS}{%${WS}if(PAYLOAD)${WS}%}${WS}{%${WS}endif${WS}%}", False),
@@ -66,7 +67,7 @@ def get_outer_pattern(
                 False,
             ),
         ]
-        for whitespace in ["", " ", "\t", "\n"]
+        for whitespace in ["", " ", "\t", "\n", "\r"]
         for payload in [
             "",
             # test multiple brackets
