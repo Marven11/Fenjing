@@ -28,6 +28,7 @@ def get_full_payload_gen(
     detect_mode=fenjing.const.DetectMode.ACCURATE,
     environment=fenjing.const.TemplateEnvironment.FLASK,
     python_version=fenjing.const.PythonVersion.PYTHON3,
+    autofix_500=fenjing.const.AutoFix500Code.DISABLED,
 ):
     return FullPayloadGen(
         lambda x: all(word not in x for word in blacklist),
@@ -36,6 +37,7 @@ def get_full_payload_gen(
             environment=environment,
             python_version=python_version,
             python_subversion=sys.version_info.minor,  # expected 11 or higher
+            autofix_500=autofix_500,
         ),
     )
 

@@ -7,7 +7,7 @@ sys.path.append("..")
 from fenjing.form import get_form
 from fenjing.requester import HTTPRequester
 import unittest
-from fenjing.const import TemplateEnvironment, ReplacedKeywordStrategy
+from fenjing.const import TemplateEnvironment, ReplacedKeywordStrategy, AutoFix500Code
 from fenjing.cracker import Cracker
 from fenjing.options import Options
 from fenjing.submitter import FormSubmitter, PathSubmitter, Submitter, HTTPResponse
@@ -54,13 +54,13 @@ class TestBase(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
-        self.cracker_other_opts = {}
+        self.cracker_options = Options()
+        self.cracker_options.autofix_500 = const.AutoFix500Code.DISABLED
+        self.cracker_options.python_version = const.PythonVersion.PYTHON3
         self.setup_local_waf(["."])
 
     def test_waf(self):
-        cracker = Cracker(self.subm, **self.cracker_other_opts)
-        if cracker.options.python_version == const.PythonVersion.UNKNOWN:
-            cracker.options.python_version = const.PythonVersion.PYTHON3
+        cracker = Cracker(self.subm, options=self.cracker_options)
         full_payload_gen = cracker.crack()
         assert full_payload_gen is not None, self.__class__.__name__
         payload, will_print = full_payload_gen.generate(
@@ -78,7 +78,7 @@ class TestBase(unittest.TestCase):
         resp = self.subm.submit(payload)
         assert resp is not None
         self.assertIn(
-            'cracked! @m WR171NG[]{}|;&&&" S()METHING RANDON', resp.text, resp.text
+            'cracked! @m WR171NG[]{}|;&&&" S()METHING RANDON', resp.text, f"{resp.text=} {payload=}"
         )
 
 
@@ -616,7 +616,7 @@ class TestRandomCharsWaf(TestBase):
     def setUp(self):
         super().setUp()
         self.blacklist = None
-        self.cracker_other_opts["options"] = Options(waf_keywords=["Naidesu"])
+        self.cracker_options.waf_keywords = ["Naidesu"]
         self.setup_remote_waf("/random_chars_waf")
 
 
@@ -642,7 +642,7 @@ class TestLengthLimit1WAF(TestBase):
         self.setup_remote_waf("/lengthlimit1_waf")
 
     def test_waf(self):
-        cracker = Cracker(self.subm, **self.cracker_other_opts)
+        cracker = Cracker(self.subm, options=self.cracker_options)
         full_payload_gen = cracker.crack()
         assert full_payload_gen is not None, self.__class__.__name__
         payload, will_print = full_payload_gen.generate(
@@ -685,44 +685,35 @@ class TestReplacedWAFAvoid(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/replace_waf")
-        self.cracker_other_opts = {
-            "options": Options(replaced_keyword_strategy=ReplacedKeywordStrategy.AVOID)
-        }
+        self.cracker_options.replaced_keyword_strategy = ReplacedKeywordStrategy.AVOID
 
 
 class TestReplacedWAFAvoid2(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/replace_waf2")
-        self.cracker_other_opts = {
-            "options": Options(replaced_keyword_strategy=ReplacedKeywordStrategy.AVOID)
-        }
+        self.cracker_options.replaced_keyword_strategy = ReplacedKeywordStrategy.AVOID
 
 
 class TestReplacedWAFDoubleTapping(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/replace_waf")
-        self.cracker_other_opts = {
-            "options": Options(
-                replaced_keyword_strategy=ReplacedKeywordStrategy.DOUBLETAPPING
-            )
-        }
+        self.cracker_options.replaced_keyword_strategy = (
+            ReplacedKeywordStrategy.DOUBLETAPPING
+        )
 
 
 class TestJinjaEnv(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/jinja_env_waf")
-        self.cracker_other_opts = {
-            "options": Options(environment=TemplateEnvironment.JINJA2)
-        }
+        self.cracker_options.environment = TemplateEnvironment.JINJA2
 
 
 class TestFix500(TestBase):
     def setUp(self):
         super().setUp()
         self.setup_remote_waf("/jinja_env_waf")
-        self.cracker_other_opts = {
-            "options": Options(environment=TemplateEnvironment.FLASK)
-        }
+        self.cracker_options.environment = TemplateEnvironment.FLASK
+        self.cracker_options.autofix_500 = AutoFix500Code.ENABLED
