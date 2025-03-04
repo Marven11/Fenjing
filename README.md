@@ -10,7 +10,7 @@
 [![Downloads](https://github.com/Marven11/Fenjing/raw/images/assets/downloads-monthly.svg)](https://pepy.tech/project/fenjing)
 ![Static Badge](https://github.com/Marven11/Fenjing/raw/images/assets/license.svg)
 
-[English](README_en.md)
+[English](README_en.md) [V我50](https://github.com/Marven11/Marven11/blob/main/buy_me_a_coffee.md)
 
 焚靖是一个针对CTF比赛中Jinja SSTI绕过WAF的全自动脚本，可以自动攻击给定的网站或接口，省去手动测试接口，fuzz题目WAF的时间。
 
@@ -265,6 +265,10 @@ if __name__ == "__main__":
 ```
 
 其他使用例可以看[这里](examples.md)
+
+## 捐赠
+
+这里空空如也
 
 ## Stars
 
