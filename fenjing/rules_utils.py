@@ -19,13 +19,11 @@ from .rules_types import Target
 
 precedence_lst = [
     ["enclose", "literal", "flask_context_var", "jinja_context_var"],
-    ["attribute"],
+    ["attribute","item","slide",],
     [
         # xxx.a[b], xxx(a)[b] and xxx.a(b) works,
         # xxx|a(b)(c) works
-        # but xxx|a[b] don't
-        "item",
-        "slide",
+        # but xxx|a[b] and xxx|a(yyy)[b] don't
         "function_call",
         "called_filter",
     ],
