@@ -180,7 +180,7 @@ def unwrap_whitespace(target_list: List[Target]) -> List[Target]:
     if all(target != (WHITESPACE,) for target in target_list):
         return target_list
     alternatives = []
-    for whitespace in ["", " ", "\t", "\n"]:
+    for whitespace in WHITESPACES_AND_EMPTY:
         alternative = []
         for target in target_list:
             if target == (WHITESPACE,):

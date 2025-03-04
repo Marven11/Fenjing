@@ -22,6 +22,7 @@ from .const import (
     OS_POPEN_READ,
     EVAL,
     EXTRA_TARGETS,
+    WHITESPACES_AND_EMPTY,
     WafFunc,
 )
 from .options import Options
@@ -50,15 +51,26 @@ def get_outer_pattern(
     """
     outer_payloads = [
         (
-            outer_pattern.replace("${WS}", whitespace).replace("PAYLOAD", payload),
-            outer_pattern.replace("${WS}", whitespace),
+            (
+                outer_pattern.replace("${WS}", whitespace)
+                .replace(" ", whitespace if whitespace != "" else " ")
+                .replace("PAYLOAD", payload)
+            ),
+            (
+                outer_pattern.replace("${WS}", whitespace).replace(
+                    " ", whitespace if whitespace != "" else " "
+                )
+            ),
             will_print,
         )
         for outer_pattern, will_print in [
             ("${WS}{{${WS}PAYLOAD${WS}}}${WS}", True),
             ("${WS}{%${WS}print PAYLOAD${WS}%}${WS}", True),
             ("${WS}{%${WS}print(${WS}PAYLOAD${WS})${WS}%}${WS}", True),
-            ("${WS}{%${WS}print(${WS}x${WS},${WS}PAYLOAD${WS},${WS}x${WS})${WS}%}${WS}", True),
+            (
+                "${WS}{%${WS}print(${WS}x${WS},${WS}PAYLOAD${WS},${WS}x${WS})${WS}%}${WS}",
+                True,
+            ),
             ("${WS}{%${WS}set s=${WS}PAYLOAD${WS}%}${WS}", False),
             ("${WS}{%${WS}set(${WS}s${WS})=${WS}PAYLOAD${WS}%}${WS}", False),
             ("${WS}{%${WS}if(PAYLOAD)${WS}%}${WS}{%${WS}endif${WS}%}", False),
@@ -67,7 +79,7 @@ def get_outer_pattern(
                 False,
             ),
         ]
-        for whitespace in ["", " ", "\t", "\n", "\r"]
+        for whitespace in WHITESPACES_AND_EMPTY
         for payload in [
             "",
             # test multiple brackets

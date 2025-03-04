@@ -138,13 +138,25 @@ class DetectWafKeywords(Enum):
 
 WafFunc = Callable[[str], bool]
 
+WHITESPACES = [
+    " ",
+    "\t",
+    "\n",
+    "\r",
+    "\x1c",
+    "\x1d",
+    "\x1e",
+    "\x1f",
+]
+
 SET_STMT_PATTERNS = [
-    ("{%set NAME=EXPR%}", "{%set =%}"),
-    ("{%set\tNAME=EXPR%}", "{%set\t=%}"),
-    ("{%set\nNAME=EXPR%}", "{%set\n=%}"),
-    ("{%set\rNAME=EXPR%}", "{%set\r=%}"),
+    ("{%set NAME=EXPR%}".replace(" ", ws), "{%set =%}".replace(" ", ws))
+    for ws in WHITESPACES
+] + [
     ("{%set(NAME)=EXPR%}", "{%set(a)=%}"),
 ]
+
+WHITESPACES_AND_EMPTY = [""] + WHITESPACES
 
 DANGEROUS_KEYWORDS = [
     '"',
