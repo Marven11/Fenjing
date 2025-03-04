@@ -365,6 +365,7 @@ class FullPayloadGenTestCaseRandom(FullPayloadGenTestCaseSimple):
                     "mro",
                     "base",
                     "lipsum",
+                    "dict",
                     "[",
                     '"',
                     "'",
@@ -375,9 +376,14 @@ class FullPayloadGenTestCaseRandom(FullPayloadGenTestCaseSimple):
                     "*",
                     "/",
                     " ",
+                    "\t",
+                    "\n",
+                    "\r",
+                    "\\",
+                    ":",
+                    "~",
                     "))",
                     "~",
-                    "{{",
                     "0",
                     "1",
                     "2",
@@ -406,12 +412,9 @@ class FullPayloadGenTestCaseRandom(FullPayloadGenTestCaseSimple):
         self.full_payload_gens = [
             get_full_payload_gen(
                 blacklist,
-                detect_mode=random.choice(
-                    [
-                        fenjing.const.DetectMode.ACCURATE,
-                        fenjing.const.DetectMode.FAST,
-                    ]
-                ),
+                # when detect_mode is fast, it don't generate set statement
+                # thus cannot bypass some wafs
+                detect_mode=fenjing.const.DetectMode.ACCURATE,
                 environment=fenjing.const.TemplateEnvironment.JINJA2,
             )
             for blacklist in self.blacklists
@@ -419,12 +422,13 @@ class FullPayloadGenTestCaseRandom(FullPayloadGenTestCaseSimple):
 
     def test_os_popen_read(self):
         for full_payload_gen, blacklist in zip(self.full_payload_gens, self.blacklists):
-            payload, _ = full_payload_gen.generate(
+            payload, will_print = full_payload_gen.generate(
                 const.OS_POPEN_READ, "echo fen  jing;"
             )
-            assert payload is not None, repr(blacklist)
+            assert payload is not None, f"{blacklist=} {payload=}"
+            assert will_print, f"{will_print=} {blacklist=} {payload=}"
             try:
                 result = jinja2.Template(payload).render()
             except Exception as exc:
-                raise RuntimeError(repr(blacklist)) from exc
+                raise RuntimeError(f"{blacklist=} {payload=}") from exc
             assert "fen jing" in result, repr(blacklist)
