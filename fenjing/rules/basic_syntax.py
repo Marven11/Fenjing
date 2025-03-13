@@ -110,11 +110,15 @@ def gen_string_concatmany_noconcat(context: dict, parts):
 
 
 @expression_gen
-def gen_string_concatmany_onebyone(context: dict, parts):
-    answer = parts[0]
-    for part in parts[1:]:
-        answer = (STRING_CONCAT, answer, part)
-    return [answer]
+def gen_string_concatmany_plus(context: dict, parts):
+    targets = join_target(sep=(LITERAL, "+"), targets=parts)
+    return [(EXPRESSION, precedence["plain_filter"], targets)]
+
+
+@expression_gen
+def gen_string_concatmany_tilde(context: dict, parts):
+    targets = join_target(sep=(LITERAL, "~"), targets=parts)
+    return [(EXPRESSION, precedence["plain_filter"], targets)]
 
 
 @expression_gen
@@ -126,6 +130,14 @@ def gen_string_concatmany_join(context: dict, parts):
         },
     )
     return [(EXPRESSION, precedence["plain_filter"], targets)]
+
+
+@expression_gen
+def gen_string_concatmany_onebyone(context: dict, parts):
+    answer = parts[0]
+    for part in parts[1:]:
+        answer = (STRING_CONCAT, answer, part)
+    return [answer]
 
 
 # lipsum.__globals__.concat(("a", "b"))
@@ -292,6 +304,7 @@ def gen_mod_func2(context: dict, a, b):
 
 
 # ---
+
 
 @expression_gen
 def gen_function_call_forattr(context: dict, function_target, args_target_list):

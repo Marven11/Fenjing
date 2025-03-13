@@ -108,11 +108,7 @@ def gen_string_concatdunder2(context: dict, value: str):
 # 如果上面的规则能用那就不要随便用上下文中的变量，否则会增加payload长度
 @expression_gen
 def gen_string_context(context: dict, value: str):
-    if value not in context.values():
-        return [(UNSATISFIED,)]
-    vs = [k for k, v in context.items() if v == value]
-    alternatives = [[(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)] for v in vs]
-    return [(EXPRESSION, precedence["literal"], [(ONEOF, alternatives)])]
+    return [(EXPRESSION, precedence["literal"], [(VARIABLE_OF, value)])]
 
 
 @expression_gen
@@ -787,7 +783,11 @@ def gen_string_intbytes1(context: dict, value: str):
                 ONEOF,
                 [
                     [(INTEGER, len(value)), (REQUIRE_PYTHON3_SUBVERSION, 11)],
-                    [(INTEGER, len(value)), (LITERAL, ","), (GENERATED_EXPR, (STRING, "big"))],
+                    [
+                        (INTEGER, len(value)),
+                        (LITERAL, ","),
+                        (GENERATED_EXPR, (STRING, "big")),
+                    ],
                 ],
             ),
         },
@@ -813,7 +813,11 @@ def gen_string_intbytes2(context: dict, value: str):
                         ONEOF,
                         [
                             [(INTEGER, len(value)), (REQUIRE_PYTHON3_SUBVERSION, 11)],
-                            [(INTEGER, len(value)), (LITERAL, ","), (GENERATED_EXPR, (STRING, "big"))],
+                            [
+                                (INTEGER, len(value)),
+                                (LITERAL, ","),
+                                (GENERATED_EXPR, (STRING, "big")),
+                            ],
                         ],
                     ),
                     "'attr'": (GENERATED_EXPR, (STRING, "attr")),
@@ -849,7 +853,11 @@ def gen_string_intbytes3(context: dict, value: str):
                         ONEOF,
                         [
                             [(INTEGER, len(value)), (REQUIRE_PYTHON3_SUBVERSION, 11)],
-                            [(INTEGER, len(value)), (LITERAL, ","), (GENERATED_EXPR, (STRING, "big"))],
+                            [
+                                (INTEGER, len(value)),
+                                (LITERAL, ","),
+                                (GENERATED_EXPR, (STRING, "big")),
+                            ],
                         ],
                     ),
                     "GETTHAT": (ONEOF, [[(LITERAL, "first")], [(LITERAL, "last")]]),
