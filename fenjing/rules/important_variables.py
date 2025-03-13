@@ -18,30 +18,36 @@ brainrot_varname = random.choice(
         "_114",
         "_1919",
         "QAQ",
+        "QwQ",
         "OvO",
-        "orz",
         "ez",
-        "tql",
-        "ddw",
         "sbwaf",
-        "kksk",
-        "ohio",
-        "otto",
-        "miku",
-        "teto",
-        "noda",
+        "sb",
     ]
 )
-is_brainrot_enabled = random.random() < 0.233
+is_brainrot_enabled = random.random() < 0.5
+
+var_attrs = [
+    (FLASK_CONTEXT_VAR, "g", "pop"),
+    (FLASK_CONTEXT_VAR, "g", "get"),
+    (JINJA_CONTEXT_VAR, "cycler", "next"),
+    (JINJA_CONTEXT_VAR, "cycler", "reset"),
+    (FLASK_CONTEXT_VAR, "session", "get"),
+    (FLASK_CONTEXT_VAR, "request", "close"),
+    (JINJA_CONTEXT_VAR, "cycler", "__init__"),
+    (JINJA_CONTEXT_VAR, "joiner", "__init__"),
+    (JINJA_CONTEXT_VAR, "namespace", "__init__"),
+]
 
 # ---
+
+# the waf sucks and we're joking about it.
 
 
 @expression_gen
 def gen_builtins_dict_brainrot(context):
     if not is_brainrot_enabled:
         return [(UNSATISFIED,)]
-    # the waf sucks and we're joking about it.
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
@@ -57,14 +63,19 @@ def gen_builtins_dict_brainrot(context):
 
 
 @expression_gen
-def gen_builtins_dict_waftoosimple(context):
+def gen_builtins_dict_brainrot2(context):
+    if not is_brainrot_enabled:
+        return [(UNSATISFIED,)]
     return [
         (
             CHAINED_ATTRIBUTE_ITEM,
             (
                 EXPRESSION,
-                precedence["attribute"],
-                [(LITERAL, "lipsum")],
+                precedence["called_filter"],
+                targets_from_pattern(
+                    "NAME|attr(EQ)",
+                    {"NAME": (LITERAL, brainrot_varname), "EQ": (STRING, "__eq__")},
+                ),
             ),
             (ATTRIBUTE, "__globals__"),
             (ITEM, "__builtins__"),
@@ -88,17 +99,6 @@ def gen_builtins_dict_lipsum(context):
 def gen_builtins_dict_varattrs(context):
     # [] cannot used for undefined
     # e['__eq__'] would raise exception
-    var_attrs = [
-        (FLASK_CONTEXT_VAR, "g", "pop"),
-        (FLASK_CONTEXT_VAR, "g", "get"),
-        (JINJA_CONTEXT_VAR, "cycler", "next"),
-        (JINJA_CONTEXT_VAR, "cycler", "reset"),
-        (FLASK_CONTEXT_VAR, "session", "get"),
-        (FLASK_CONTEXT_VAR, "request", "close"),
-        (JINJA_CONTEXT_VAR, "cycler", "__init__"),
-        (JINJA_CONTEXT_VAR, "joiner", "__init__"),
-        (JINJA_CONTEXT_VAR, "namespace", "__init__"),
-    ]
     alternatives = [
         [
             (
@@ -259,6 +259,64 @@ def gen_config_self(context):
 
 
 # ---
+
+
+@expression_gen
+def gen_module_os_brainrotsys(context):
+    # [] cannot used for undefined
+    # e['__eq__'] would raise exception
+    if not is_brainrot_enabled:
+        return [(UNSATISFIED,)]
+    brainrot_var = (
+        ONEOF,
+        [
+            [
+                (
+                    EXPRESSION,
+                    precedence["attribute"],
+                    [(LITERAL, brainrot_varname + ".__eq__")],
+                )
+            ],
+            [
+                (
+                    EXPRESSION,
+                    precedence["called_filter"],
+                    targets_from_pattern(
+                        "NAME|attr(EQ)",
+                        {"NAME": (LITERAL, brainrot_varname), "EQ": (STRING, "__eq__")},
+                    ),
+                )
+            ],
+        ],
+    )
+    return [
+        (
+            CHAINED_ATTRIBUTE_ITEM,
+            brainrot_var,
+            (ATTRIBUTE, "__globals__"),
+            (ITEM, "os"),
+        )
+    ]
+
+
+@expression_gen
+def gen_module_os_sys(context):
+    # [] cannot used for undefined
+    # e['__eq__'] would raise exception
+    alternatives = [
+        [
+            (
+                CHAINED_ATTRIBUTE_ITEM,
+                (target_type, obj_name),
+                (ATTRIBUTE, attr_name),
+                (ATTRIBUTE, "__globals__"),
+                (ITEM, "os"),
+            )
+        ]
+        for target_type, obj_name, attr_name in var_attrs
+        if target_type == JINJA_CONTEXT_VAR
+    ]
+    return [(ONEOF, alternatives)]
 
 
 @expression_gen
