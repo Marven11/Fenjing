@@ -255,7 +255,7 @@ class FullPayloadGen:
             return "failed"
         expression, used_context, _ = ret
 
-        if len(expression) - len(repr(value)) < 3 or "(" not in expression:
+        if len(expression) - len(repr(value)) < 2 or "(" not in expression:
             logger.debug(
                 "Generated expression [blue]%s[/] is too simple, skip it.",
                 rich_escape(expression),
@@ -306,8 +306,8 @@ class FullPayloadGen:
                 "c",
                 "%c",
                 "_",
-                # "__", # payload_gen don't want to use it
-                # since it can just use '_'+'_'
+                "__", # might be '_'+'_' or ('_','_')|join etc...
+                # we don't want too many brackets
                 "class",
                 "globals",
                 "init",
