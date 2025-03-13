@@ -347,6 +347,7 @@ class FullPayloadGen:
                 "__mod__",
                 "__truediv__",
                 "__doc__",
+                "__eq__",
                 "%",
                 "c",
                 "%s%s",
@@ -374,7 +375,7 @@ class FullPayloadGen:
             for target in targets:
                 if target in self.added_extra_context_vars:
                     continue
-                result = self.try_add_context_var(target, clean_cache=False)
+                result = self.try_add_context_var(target, clean_cache=True)
                 if result == "failed":
                     logger.info(
                         "Failed generating [yellow]%s[/]",
