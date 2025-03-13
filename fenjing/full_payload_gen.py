@@ -321,6 +321,8 @@ class FullPayloadGen:
                 "os",
                 "popen",
                 "read",
+                "sys",
+                "modules",
                 "pop",
                 "get",
                 "eval",
