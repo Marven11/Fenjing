@@ -294,6 +294,8 @@ def gen_module_os_brainrotsys(context):
             CHAINED_ATTRIBUTE_ITEM,
             brainrot_var,
             (ATTRIBUTE, "__globals__"),
+            (ITEM, "sys"),
+            (ATTRIBUTE, "modules"),
             (ITEM, "os"),
         )
     ]
