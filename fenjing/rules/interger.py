@@ -289,45 +289,8 @@ def gen_positive_integer_octunderline(context: dict, value: int):
 
 
 @expression_gen
-def gen_positive_integer_sum(context: dict, value: int):
-    if value < 0 or value > 1000:
-        return [(UNSATISFIED,)]
-
-    ints = [
-        {
-            "expression": expression,
-            "value": value,
-            "precedence": precedence,
-        }
-        for expression, (value, precedence) in context.items()
-        if isinstance(value, int) and value > 0
-    ]
-
-    if ints == []:
-        return [(UNSATISFIED,)]
-
-    ints.sort(key=lambda item: item["value"], reverse=True)
-    value_left = value
-    payload_vars = []
-    while value_left != 0:
-        while ints and ints[0]["value"] > value_left:
-            ints = ints[1:]
-        if not ints:
-            return [(UNSATISFIED,)]
-        value_left -= ints[0]["value"]
-        payload_vars.append(ints[0])
-    ints = [
-        (EXPRESSION, item["precedence"], [(LITERAL, item["expression"])])
-        for item in payload_vars
-    ]
-    return [(FORMULAR_SUM, ints)] + [
-        (WITH_CONTEXT_VAR, item["expression"]) for item in payload_vars
-    ]
-
-
-@expression_gen
 def gen_positive_integer_recurmulitiply(context: dict, value: int):
-    if value > 1000:
+    if value <= 20 or value > 1000:
         return [(UNSATISFIED,)]
     xs = [x for x in range(3, value // 2) if value % x == 0]
     xs.sort(key=lambda x: max(x, value // x))
@@ -375,6 +338,44 @@ def gen_positive_integer_recurmultiply2(context: dict, value: int):
         return [(UNSATISFIED,)]
     target_list = [(ONEOF, alternatives)]
     return [(EXPRESSION, precedence["plus"], target_list)]
+
+
+@expression_gen
+def gen_positive_integer_sum(context: dict, value: int):
+    if value < 0 or value > 1000:
+        return [(UNSATISFIED,)]
+
+    ints = [
+        {
+            "expression": expression,
+            "value": value,
+            "precedence": precedence,
+        }
+        for expression, (value, precedence) in context.items()
+        if isinstance(value, int) and value > 0
+    ]
+
+    if ints == []:
+        return [(UNSATISFIED,)]
+
+    ints.sort(key=lambda item: item["value"], reverse=True)
+    value_left = value
+    payload_vars = []
+    while value_left != 0:
+        while ints and ints[0]["value"] > value_left:
+            ints = ints[1:]
+        if not ints:
+            return [(UNSATISFIED,)]
+        value_left -= ints[0]["value"]
+        payload_vars.append(ints[0])
+    ints = [
+        (EXPRESSION, item["precedence"], [(LITERAL, item["expression"])])
+        for item in payload_vars
+    ]
+    return [(FORMULAR_SUM, ints)] + [
+        (WITH_CONTEXT_VAR, item["expression"]) for item in payload_vars
+    ]
+
 
 
 @expression_gen
@@ -541,6 +542,18 @@ def gen_positive_integer_numbersum2(context: dict, value: int):
 def gen_positive_integer_charint(context: dict, value: int):
     if value < 10:
         return [(UNSATISFIED,)]
+
+    targets: List[Target] = [
+        (
+            EXPRESSION,
+            precedence["plain_filter"],
+            [
+                (ENCLOSE_UNDER, precedence["plain_filter"], (INTEGER, int(x))),
+                (LITERAL, "|e"),
+            ],
+        )
+        for x in str(value)
+    ]
     return [
         (
             EXPRESSION,
@@ -548,9 +561,7 @@ def gen_positive_integer_charint(context: dict, value: int):
             [
                 (
                     WRAP,
-                    join_target(
-                        (LITERAL, "~"), [(INTEGER, int(x)) for x in str(value)]
-                    ),
+                    join_target((LITERAL, "~"), targets),
                 ),
                 (LITERAL, "|int"),
             ],
@@ -655,9 +666,10 @@ def gen_positive_integer_constexpr(context: dict, value: int):
         return [(UNSATISFIED,)]
     return [(ONEOF, alternatives)]
 
+
 @expression_gen
 def gen_positive_integer_multiply1000(context: dict, value: int):
-    if value < 1000:
+    if value <= 1000:
         return [(UNSATISFIED,)]
     return [
         (
@@ -666,7 +678,6 @@ def gen_positive_integer_multiply1000(context: dict, value: int):
             (INTEGER, value % 1000),
         )
     ]
-
 
 
 # ---

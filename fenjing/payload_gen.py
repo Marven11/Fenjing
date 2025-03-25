@@ -450,7 +450,13 @@ class PayloadGenerator:
         if not expressions:
             return self.generate_by_list([(UNSATISFIED,)])
         targets_list: List[List[Target]] = [
-            [(EXPRESSION, precedence_index, [(LITERAL, expr), (WITH_CONTEXT_VAR, expr)])]
+            [
+                (
+                    EXPRESSION,
+                    precedence_index,
+                    [(LITERAL, expr), (WITH_CONTEXT_VAR, expr)],
+                )
+            ]
             for expr, precedence_index in expressions
         ]
         return self.generate_by_list([(ONEOF, targets_list)])
@@ -512,9 +518,11 @@ class PayloadGenerator:
                     gen_type in (POSITIVE_INTEGER, STRING) and result != str(args[0])
                 ) or (gen_type == ZERO and result != "0"):
                     logger.info(
-                        "[green bold]Great![/] [yellow bold]{gen_type}[/]"
+                        "[green bold]Great![/] [green bold]{gen_name}[/] says "
+                        "[yellow bold]{gen_type}[/]"
                         "[yellow]({args_repl})[/] can be [blue]{result}[/]".format(
                             gen_type=gen_type,
+                            gen_name=rich_escape(gen.__name__),
                             args_repl=rich_escape(", ".join(repr(arg) for arg in args)),
                             result=rich_escape(result),
                         ),

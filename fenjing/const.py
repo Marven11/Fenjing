@@ -150,10 +150,11 @@ WHITESPACES = [
 ]
 
 SET_STMT_PATTERNS = [
-    ("{%set NAME=EXPR%}".replace(" ", ws), "{%set =%}".replace(" ", ws))
+    ("{%set NAME=EXPR%}".replace(" ", ws), "{%set =%}".replace(" ", ws), "NAME", "literal")
     for ws in WHITESPACES
 ] + [
-    ("{%set(NAME)=EXPR%}", "{%set(a)=%}"),
+    ("{%set(NAME)=EXPR%}", "{%set(a)=%}", "NAME", "literal"),
+    ("{{config.update(NAME=EXPR)}}", "{{config.update(=)}}", "config.NAME", "attribute"),
 ]
 
 WHITESPACES_AND_EMPTY = [""] + WHITESPACES
