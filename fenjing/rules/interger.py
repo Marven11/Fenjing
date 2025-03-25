@@ -377,7 +377,6 @@ def gen_positive_integer_sum(context: dict, value: int):
     ]
 
 
-
 @expression_gen
 def gen_positive_integer_recurmulnoastral(context: dict, value: int):
     if value <= 20 or value > 1000:
@@ -414,9 +413,11 @@ def gen_positive_integer_lengthything(context: dict, value: int):
     lengthy_thing: OneofTarget = (
         ONEOF,
         [
-            [(LITERAL, "dict({}=x)|join".format("x" * value))],
-            [(LITERAL, "({})".format(",".join("x" * value)))],
-            [(LITERAL, "cycler({}).items".format(",".join("x" * value)))],
+            [(LITERAL, "'{}'".format("n" * value))],
+            [(LITERAL, '"{}"'.format("n" * value))],
+            [(LITERAL, "dict({}=x)|join".format("n" * value))],
+            [(LITERAL, "({})".format(",".join("n" * value)))],
+            [(LITERAL, "cycler({}).items".format(",".join("n" * value)))],
         ],
     )
     target_list = [
