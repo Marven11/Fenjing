@@ -655,6 +655,19 @@ def gen_positive_integer_constexpr(context: dict, value: int):
         return [(UNSATISFIED,)]
     return [(ONEOF, alternatives)]
 
+@expression_gen
+def gen_positive_integer_multiply1000(context: dict, value: int):
+    if value < 1000:
+        return [(UNSATISFIED,)]
+    return [
+        (
+            PLUS,
+            (MULTIPLY, (INTEGER, value // 1000), (INTEGER, 1000)),
+            (INTEGER, value % 1000),
+        )
+    ]
+
+
 
 # ---
 
