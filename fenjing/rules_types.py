@@ -2,7 +2,8 @@ import sys
 from typing import (
     Any,
     Callable,
-    Dict,
+    Mapping,
+    Tuple,
     List,
     Tuple,
     TypeVar,
@@ -117,10 +118,10 @@ else:
     RequirePython3Target = Tuple
     Target = Tuple
 
-ContextVariable = Dict[str, Any]
+ContextExpressions = Mapping[str, Tuple[Any, int]]
 
 
 ExpressionGeneratorReturn = TypeVar("ExpressionGeneratorReturn", bound=List[Target])
 ExpressionGenerator = Callable[..., ExpressionGeneratorReturn]
 TargetAndSubTargets = List[Tuple[Target, List[Target]]]
-PayloadGeneratorResult = Tuple[str, ContextVariable, TargetAndSubTargets]
+PayloadGeneratorResult = Tuple[str, ContextExpressions, TargetAndSubTargets]

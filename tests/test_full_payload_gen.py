@@ -67,7 +67,7 @@ class FullPayloadGenTestCaseSimple(unittest.TestCase):
         for string in strings:
             payload, _ = self.full_payload_gen.generate(const.STRING, string)
             # self.assertIsNotNone(payload)
-            assert payload is not None
+            assert payload is not None, f"{string=}"
             # why?
             # cause the stupid type checker thinks the 'payload' below would still be None
             resp = self.subm.submit(payload)

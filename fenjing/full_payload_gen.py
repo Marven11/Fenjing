@@ -1,9 +1,9 @@
-"""完整payload的生成器，生成包括双花括号在内的所有部分
-
-"""
+"""完整payload的生成器，生成包括双花括号在内的所有部分"""
 
 import logging
 import sys
+
+from typing import Mapping, Any
 
 from rich.markup import escape as rich_escape
 
@@ -27,6 +27,8 @@ from .const import (
 )
 from .options import Options
 from .pbar import pbar_manager
+from .rules_utils import tree_precedence
+
 
 if sys.version_info >= (3, 8):
     from typing import Callable, Tuple, Union, Dict, Any, List, Literal
@@ -110,15 +112,15 @@ def get_outer_pattern(
 
 
 def context_payloads_to_context(
-    context_payload: Dict[str, Dict[str, Any]]
-) -> Dict[str, Any]:
+    context_payload: Dict[str, Dict[str, Tuple[Any, int]]],
+) -> Dict[str, Tuple[Any, int]]:
     """将context_payload转换成context字典。
 
     Args:
-        context_payload (Dict[str, Dict[str, Any]]): 一个存储着payload以及对应上下文的字典
+        context_payload (Dict[str, Dict[str, Tuple[Any, int]]]]): 一个存储着payload以及对应上下文的字典
 
     Returns:
-        Dict[str, Any]: 一个字典，键是变量名，值是变量值
+        Dict[str, Tuple[Any, int]]]: 一个字典，键是表达式，值是变量值和优先级
     """
     return {
         var_name: var_value
@@ -230,10 +232,10 @@ class FullPayloadGen:
     def try_add_context_var(
         self, value: str, clean_cache=True
     ) -> Literal["success", "failed", "skip"]:
-        """尝试添加{%set xxx=yyy%}形式的payload，为最终的payload添加变量
+        """尝试添加{%set xxx=yyy%}形式的payload，为最终的payload添加表达式
 
         Args:
-            value (str): 变量的值
+            value (str): 表达式的值
             clean_cache (bool, optional): 是否清除payload_gen的缓存. Defaults to True.
 
         Returns:
@@ -253,7 +255,7 @@ class FullPayloadGen:
         ret = self.payload_gen.generate_detailed(value_type, value)
         if ret is None:
             return "failed"
-        expression, used_context, _ = ret
+        expression, used_context, tree = ret
 
         if len(expression) - len(repr(value)) < 2 or "(" not in expression:
             logger.debug(
@@ -262,6 +264,12 @@ class FullPayloadGen:
                 extra={"markup": True, "highlighter": None},
             )
             return "skip"
+
+        # 计算优先级
+        precedence_index = tree_precedence(tree)
+        if precedence_index is None:
+            logger.warning("Calculate precedence failed")
+            return "failed"
 
         # 变量名需要可以通过waf且不重复
         var_name = self.context_vars.generate_related_variable_name(value)
@@ -273,7 +281,10 @@ class FullPayloadGen:
         # 保存payload、对应的变量以及payload依赖的变量
         payload = pattern.replace("NAME", var_name).replace("EXPR", expression)
         success = self.add_context_variable(
-            payload, {var_name: value}, check_waf=True, depends_on=used_context
+            payload,
+            {var_name: (value, precedence_index)},
+            check_waf=True,
+            depends_on=used_context,
         )
         if not success:
             return "failed"
@@ -306,7 +317,7 @@ class FullPayloadGen:
                 "c",
                 "%c",
                 "_",
-                "__", # might be '_'+'_' or ('_','_')|join etc...
+                "__",  # might be '_'+'_' or ('_','_')|join etc...
                 # we don't want too many brackets
                 "class",
                 "globals",
@@ -391,17 +402,17 @@ class FullPayloadGen:
     def add_context_variable(
         self,
         payload: str,
-        context_vars: Dict[str, Any],
+        context_vars: Mapping[str, Tuple[Any, int]],
         check_waf: bool = True,
-        depends_on: Union[Dict[str, Any], None] = None,
+        depends_on: Union[Mapping[str, Tuple[Any, int]], None] = None,
     ) -> bool:
         """将上下文变量以及其的payload加入到payload_gen和context_vars中
 
         Args:
             payload (str): 上下文变量的payload
-            context_vars (Dict[str, Any]): payload对应的上下文变量
+            context_vars (Mapping[str, Any]): payload对应的上下文变量
             check_waf (bool, optional): 是否检查payload可以通过WAF. Defaults to True.
-            depends_on (Union[Dict[str, Any], None], optional): payload依赖的变量. Defaults to None.
+            depends_on (Union[Mapping[str, Any], None], optional): payload依赖的变量. Defaults to None.
 
         Raises:
             RuntimeError: 没有事先调用.do_prepare()则抛出错误
@@ -414,7 +425,7 @@ class FullPayloadGen:
         assert self.payload_gen is not None and self.context_vars is not None
         success = self.context_vars.add_payload(
             payload=payload,
-            variables=context_vars,
+            expressions=context_vars,
             depends_on=depends_on,
             check_waf=check_waf,
         )

@@ -108,7 +108,7 @@ def gen_string_concatdunder2(context: dict, value: str):
 # 如果上面的规则能用那就不要随便用上下文中的变量，否则会增加payload长度
 @expression_gen
 def gen_string_context(context: dict, value: str):
-    return [(EXPRESSION, precedence["literal"], [(VARIABLE_OF, value)])]
+    return [(VARIABLE_OF, value)]
 
 
 @expression_gen
