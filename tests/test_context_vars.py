@@ -21,7 +21,7 @@ fenjing.payload_gen.logger.setLevel(logging.ERROR)
 class ContextVarsTests(unittest.TestCase):
     def test_const_exprs(self):
         exprs = {**const_exprs, **const_exprs_py3}
-        for k, v in exprs.items():
+        for k, (v, _) in exprs.items():
             payload = "{%if (EXPR)==(VALUE)%}yes{%endif%}".replace("EXPR", k).replace(
                 "VALUE", repr(v)
             )

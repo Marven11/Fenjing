@@ -186,10 +186,10 @@ def gen_zero_emptylength(context: dict):
 
 def gen_zero_const_expr(context):
     alternatives = [
-        [literal_to_target(k)] for k, v in const_exprs.items() if v == 0
+        [literal_to_target(k)] for k, (v, _) in const_exprs.items() if v == 0
     ] + [
         [literal_to_target(k), (REQUIRE_PYTHON3,)]
-        for k, v in const_exprs_py3.items()
+        for k, (v, _) in const_exprs_py3.items()
         if v == 0
     ]
     if not alternatives:
@@ -294,26 +294,35 @@ def gen_positive_integer_sum(context: dict, value: int):
         return [(UNSATISFIED,)]
 
     ints = [
-        (var_name, var_value)
-        for var_name, var_value in context.items()
-        if isinstance(var_value, int) and var_value > 0
+        {
+            "expression": expression,
+            "value": value,
+            "precedence": precedence,
+        }
+        for expression, (value, precedence) in context.items()
+        if isinstance(value, int) and value > 0
     ]
 
     if ints == []:
         return [(UNSATISFIED,)]
 
-    ints.sort(key=lambda pair: pair[1], reverse=True)
+    ints.sort(key=lambda item: item["value"], reverse=True)
     value_left = value
     payload_vars = []
     while value_left != 0:
-        while ints and ints[0][1] > value_left:
+        while ints and ints[0]["value"] > value_left:
             ints = ints[1:]
         if not ints:
             return [(UNSATISFIED,)]
-        value_left -= ints[0][1]
-        payload_vars.append(ints[0][0])
-    ints = [(EXPRESSION, precedence["literal"], [(LITERAL, v)]) for v in payload_vars]
-    return [(FORMULAR_SUM, ints)] + [(WITH_CONTEXT_VAR, v) for v in payload_vars]
+        value_left -= ints[0]["value"]
+        payload_vars.append(ints[0])
+    ints = [
+        (EXPRESSION, item["precedence"], [(LITERAL, item["expression"])])
+        for item in payload_vars
+    ]
+    return [(FORMULAR_SUM, ints)] + [
+        (WITH_CONTEXT_VAR, item["expression"]) for item in payload_vars
+    ]
 
 
 @expression_gen
@@ -636,10 +645,10 @@ def gen_positive_integer_bool(context: dict, value: int):
 def gen_positive_integer_constexpr(context: dict, value: int):
 
     alternatives = [
-        [literal_to_target(k)] for k, v in const_exprs.items() if v == value
+        [literal_to_target(k)] for k, (v, _) in const_exprs.items() if v == value
     ] + [
         [literal_to_target(k), (REQUIRE_PYTHON3,)]
-        for k, v in const_exprs_py3.items()
+        for k, (v, _) in const_exprs_py3.items()
         if v == value
     ]
     if not alternatives:
@@ -657,12 +666,7 @@ def gen_integer_literal(context: dict, value: int):
 
 @expression_gen
 def gen_integer_context(context: dict, value: int):
-    if value not in context.values():
-        return [(UNSATISFIED,)]
-    v = [k for k, v in context.items() if v == value][0]
-    return [
-        (EXPRESSION, precedence["literal"], [(LITERAL, v), (WITH_CONTEXT_VAR, v)]),
-    ]
+    return [(VARIABLE_OF, value)]
 
 
 @expression_gen
@@ -688,54 +692,3 @@ def gen_integer_negative(context: dict, value: int):
         (ENCLOSE_UNDER, precedence["subtract"], (POSITIVE_INTEGER, abs(value))),
     ]
     return [(EXPRESSION, precedence["subtract"], target_list)]
-
-
-@expression_gen
-def gen_integer_subtract(context: dict, value: int):
-    if value > 1000:
-        return [(UNSATISFIED,)]
-    ints = [
-        (var_name, var_value)
-        for var_name, var_value in context.items()
-        if isinstance(var_value, int) and var_value > 0
-    ]
-
-    if ints == []:
-        return [(UNSATISFIED,)]
-
-    ints.sort(key=lambda pair: pair[1], reverse=True)
-    bigger = [pair for pair in ints if pair[1] >= value]
-    if not bigger:
-        return [(UNSATISFIED,)]
-    to_sub_name, to_sub_value = min(bigger, key=lambda pair: pair[1])
-    ints = [pair for pair in ints if pair[1] <= to_sub_value]
-    value_left = to_sub_value - value
-
-    sub_vars = []
-    while value_left != 0:
-        while ints and ints[0][1] > value_left:
-            ints = ints[1:]
-        if not ints:
-            return [(UNSATISFIED,)]
-        value_left -= ints[0][1]
-        sub_vars.append(ints[0][0])
-    targets = [
-        (
-            LITERAL,
-            "({})".format(
-                "-".join(
-                    [
-                        to_sub_name,
-                    ]
-                    + sub_vars
-                )
-            ),
-        )
-    ] + [
-        (WITH_CONTEXT_VAR, v)
-        for v in [
-            to_sub_name,
-        ]
-        + sub_vars
-    ]
-    return [(EXPRESSION, precedence["subtract"], targets)]

@@ -121,7 +121,7 @@ class PayloadGenerator:
     def __init__(
         self,
         waf_func: WafFunc,
-        context: Union[Dict, None] = None,
+        context: Union[Mapping[str, Tuple[Any, int]], None] = None,
         callback: Union[Callable[[str, Dict], None], None] = None,
         options: Union[Options, None] = None,
         waf_expr_func: Union[WafFunc, None] = None,
@@ -442,11 +442,16 @@ class PayloadGenerator:
         Returns:
             _type_: 生成结果
         """
-        variables = [name for name, value in self.context.items() if value == target[1]]
-        if not variables:
+        expressions = [
+            (expr, precedence_index)
+            for expr, (value, precedence_index) in self.context.items()
+            if value == target[1]
+        ]
+        if not expressions:
             return self.generate_by_list([(UNSATISFIED,)])
         targets_list: List[List[Target]] = [
-            [(LITERAL, v), (WITH_CONTEXT_VAR, v)] for v in variables
+            [(EXPRESSION, precedence_index, [(LITERAL, expr), (WITH_CONTEXT_VAR, expr)])]
+            for expr, precedence_index in expressions
         ]
         return self.generate_by_list([(ONEOF, targets_list)])
 

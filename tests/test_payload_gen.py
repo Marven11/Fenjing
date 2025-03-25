@@ -8,6 +8,7 @@ import string
 
 
 from fenjing.payload_gen import PayloadGenerator, expression_gens
+from fenjing.rules_utils import precedence
 from fenjing.wordlist import CHAR_PATTERNS
 from fenjing import const
 import logging
@@ -153,11 +154,11 @@ class PayloadGenTestsTargetRules(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.context = {
-            "l": 1,
-            "e": 3,
-            "lo": 10,
-            "loo": 100,
-            "eoo": 300,
+            "l": (1, precedence["literal"]),
+            "e": (3, precedence["literal"]),
+            "lo": (10, precedence["literal"]),
+            "loo": (100, precedence["literal"]),
+            "eoo": (300, precedence["literal"]),
         }
         self.context_payload = (
             "{%set l=1%}{%set e=3%}{%set lo=10%}{%set loo=100%}{%set eoo=300%}"
@@ -240,11 +241,11 @@ class PayloadGenTestCaseNoNumber(unittest.TestCase):
         self.payload_gen = get_payload_gen(
             ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
             {
-                "l": 1,
-                "e": 3,
-                "lo": 10,
-                "loo": 100,
-                "eoo": 300,
+                "l": (1, precedence["literal"]),
+                "e": (3, precedence["literal"]),
+                "lo": (10, precedence["literal"]),
+                "loo": (100, precedence["literal"]),
+                "eoo": (300, precedence["literal"]),
             },
         )
 
@@ -312,11 +313,11 @@ class PayloadGenTestCaseHard(unittest.TestCase):
                 "９",
             ],
             {
-                "l": 1,
-                "e": 3,
-                "lo": 10,
-                "loo": 100,
-                "eoo": 300,
+                "l": (1, precedence["literal"]),
+                "e": (3, precedence["literal"]),
+                "lo": (10, precedence["literal"]),
+                "loo": (100, precedence["literal"]),
+                "eoo": (300, precedence["literal"]),
             },
         )
 

@@ -34,10 +34,10 @@ def gen_char_literal2(context, c):
 @expression_gen
 def gen_char_contextvars(context, c):
     alternatives = [
-        [literal_to_target(expr)] for expr, value in const_exprs.items() if value == c
+        [literal_to_target(expr)] for expr, (value, _) in const_exprs.items() if value == c
     ] + [
         [literal_to_target(expr), (REQUIRE_PYTHON3,)]
-        for expr, value in const_exprs_py3.items()
+        for expr, (value, _) in const_exprs_py3.items()
         if value == c
     ]
     return [(ONEOF, alternatives)]
@@ -472,10 +472,7 @@ def gen_string_percent_literal2(context):
 
 @expression_gen
 def gen_string_percent_context(context):
-    if "%" not in context.values():
-        return [(UNSATISFIED,)]
-    v = [k for k, v in context.items() if v == "%"][0]
-    return [(EXPRESSION, precedence["literal"], [(LITERAL, v), (WITH_CONTEXT_VAR, v)])]
+    return [(VARIABLE_OF, "%")]
 
 
 @expression_gen
@@ -896,12 +893,7 @@ def gen_string_percent_lower_c_literal5(context):
 
 @expression_gen
 def gen_string_percent_lower_c_context(context):
-    if "%c" not in context.values():
-        return [(UNSATISFIED,)]
-    vs = [k for k, v in context.items() if v == "%c"]
-    alternatives = [[(LITERAL, v)] + [(WITH_CONTEXT_VAR, v)] for v in vs]
-    return [(EXPRESSION, precedence["literal"], [(ONEOF, alternatives)])]
-
+    return [(VARIABLE_OF, "%c")]
 
 @expression_gen
 def gen_string_percent_lower_c_concat(context):
@@ -1069,7 +1061,7 @@ def gen_string_underline_literal2(context):
 
 @expression_gen
 def gen_string_underline_context(context: dict):
-    return [(EXPRESSION, precedence["literal"], [(VARIABLE_OF, "_")])]
+    return [(VARIABLE_OF, "_")]
 
 
 @expression_gen

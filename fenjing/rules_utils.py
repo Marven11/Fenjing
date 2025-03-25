@@ -19,7 +19,11 @@ from .rules_types import Target
 
 precedence_lst = [
     ["enclose", "literal", "flask_context_var", "jinja_context_var"],
-    ["attribute","item","slide",],
+    [
+        "attribute",
+        "item",
+        "slide",
+    ],
     [
         # xxx.a[b], xxx(a)[b] and xxx.a(b) works,
         # xxx|a(b)(c) works
@@ -110,7 +114,7 @@ def join_target(sep: Target, targets: List[Target]) -> List[Target]:
     return ret
 
 
-def tree_precedence(tree):
+def tree_precedence(tree) -> Union[int, None]:
     answer = float("inf")
     for target, sub_target_tree in tree:
         if target[0] in [LITERAL, UNSATISFIED]:
@@ -136,7 +140,7 @@ def tree_precedence(tree):
             sub_target_answer = tree_precedence(sub_target_tree)
             if sub_target_answer:
                 answer = min(answer, sub_target_answer)
-    return answer if answer != float("inf") else None
+    return int(answer) if answer != float("inf") else None
 
 
 def find_bad_exprs(tree, is_expr_bad_func):
