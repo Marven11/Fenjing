@@ -27,7 +27,7 @@ from .const import (
 )
 from .options import Options
 from .pbar import pbar_manager
-from .rules_utils import tree_precedence
+from .rules_utils import tree_precedence, precedence
 
 
 if sys.version_info >= (3, 8):
@@ -230,12 +230,12 @@ class FullPayloadGen:
         return True
 
     def try_add_context_var(
-        self, value: str, clean_cache=True
+        self, value: Union[str, int], clean_cache=True
     ) -> Literal["success", "failed", "skip"]:
         """尝试添加{%set xxx=yyy%}形式的payload，为最终的payload添加表达式
 
         Args:
-            value (str): 表达式的值
+            value (Union[str, int]): 表达式的值
             clean_cache (bool, optional): 是否清除payload_gen的缓存. Defaults to True.
 
         Returns:
@@ -244,12 +244,18 @@ class FullPayloadGen:
         if not self.prepared and not self.do_prepare():
             return "failed"
         assert self.payload_gen and self.context_vars, "We should have these prepared"
-        pattern = None
-        for fill_pattern, test_pattern in SET_STMT_PATTERNS:
+        stmt_pattern, expr_pattern = None, None
+        for (
+            fill_pattern,
+            test_pattern,
+            test_expr_pattern,
+            expr_precedence_name,
+        ) in SET_STMT_PATTERNS:
             if self.waf_func(test_pattern):
-                pattern = fill_pattern
+                stmt_pattern = fill_pattern
+                expr_pattern = (test_expr_pattern, precedence[expr_precedence_name])
                 break
-        if pattern is None:
+        if stmt_pattern is None or expr_pattern is None:
             return "failed"
         value_type = {str: STRING, int: INTEGER}[type(value)]
         ret = self.payload_gen.generate_detailed(value_type, value)
@@ -257,19 +263,15 @@ class FullPayloadGen:
             return "failed"
         expression, used_context, tree = ret
 
-        if len(expression) - len(repr(value)) < 2 or "(" not in expression:
-            logger.debug(
+        if (len(expression) - len(repr(value)) < 2 and self.waf_func(repr(value))) or (
+            "(" not in expression and isinstance(value, str)
+        ):
+            logger.warning(
                 "Generated expression [blue]%s[/] is too simple, skip it.",
                 rich_escape(expression),
                 extra={"markup": True, "highlighter": None},
             )
             return "skip"
-
-        # 计算优先级
-        precedence_index = tree_precedence(tree)
-        if precedence_index is None:
-            logger.warning("Calculate precedence failed")
-            return "failed"
 
         # 变量名需要可以通过waf且不重复
         var_name = self.context_vars.generate_related_variable_name(value)
@@ -279,10 +281,10 @@ class FullPayloadGen:
             return "failed"
 
         # 保存payload、对应的变量以及payload依赖的变量
-        payload = pattern.replace("NAME", var_name).replace("EXPR", expression)
+        payload = stmt_pattern.replace("NAME", var_name).replace("EXPR", expression)
         success = self.add_context_variable(
             payload,
-            {var_name: (value, precedence_index)},
+            {expr_pattern[0].replace("NAME", var_name): (value, expr_pattern[1])},
             check_waf=True,
             depends_on=used_context,
         )
@@ -308,10 +310,16 @@ class FullPayloadGen:
             append_targets (list): 指定更多需要生成的字符串
         """
         targets = (
-            list(range(10))
-            + [
+            [
                 37,  # '%'
                 128,
+                1,
+                5,
+                50,
+                200,
+            ]
+            + list(range(9, -1, -1))
+            + [
                 "urlencode",
                 "%",
                 "c",
@@ -319,6 +327,7 @@ class FullPayloadGen:
                 "_",
                 "__",  # might be '_'+'_' or ('_','_')|join etc...
                 # we don't want too many brackets
+                " ",
                 "class",
                 "globals",
                 "init",
@@ -372,7 +381,7 @@ class FullPayloadGen:
         if not self.prepared and not self.do_prepare():
             return
         if not any(
-            self.waf_func(test_pattern) for _, test_pattern in SET_STMT_PATTERNS
+            self.waf_func(test_pattern) for _, test_pattern, _, _ in SET_STMT_PATTERNS
         ):
             logger.info(
                 "We cannot set any variable through {%set %}, continue...",

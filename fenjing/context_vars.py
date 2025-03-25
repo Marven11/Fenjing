@@ -420,13 +420,20 @@ def prepare_context_vars(waf: WafFunc, options: Options) -> ContextVariableManag
     manager = ContextVariableManager(waf, context_payloads)
     manager.do_prepare()
 
-    set_stmt_pattern = None  # sth like "{%set NAME=EXPR%}"
-    for pattern, test_pattern in SET_STMT_PATTERNS:
-        if waf(test_pattern):
-            set_stmt_pattern = pattern
+    stmt = None  # sth like "{%set NAME=EXPR%}"
+    var_expr_info = None
+    for (
+        pattern,
+        test_pattern_stmt,
+        test_pattern_expr,
+        test_pattern_precedence,
+    ) in SET_STMT_PATTERNS:
+        if waf(test_pattern_stmt):
+            stmt = pattern
+            var_expr_info = (test_pattern_expr, test_pattern_precedence)
             break
 
-    if not set_stmt_pattern:
+    if stmt is None or var_expr_info is None:
         return manager
 
     exprs = dict(const_exprs).copy()
@@ -446,8 +453,16 @@ def prepare_context_vars(waf: WafFunc, options: Options) -> ContextVariableManag
             name = manager.generate_random_variable_name()
             if not name:
                 continue
-            stmt = set_stmt_pattern.replace("NAME", name).replace("EXPR", expr)
-            _ = manager.add_payload(stmt, {name: expr_info})
+            stmt = stmt.replace("NAME", name).replace("EXPR", expr)
+            _ = manager.add_payload(
+                stmt,
+                {
+                    var_expr_info[0].replace("NAME", name): (
+                        expr_info[0],
+                        precedence[var_expr_info[1]],
+                    )
+                },
+            )
             if value_hashable:
                 visited.add(expr_info)
 
