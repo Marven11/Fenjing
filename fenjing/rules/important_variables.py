@@ -12,19 +12,7 @@ def randomcase(s):
     return "".join(c.lower() if random.random() < 0.5 else c.upper() for c in s)
 
 
-brainrot_varname = random.choice(
-    [
-        "_233",
-        "_114",
-        "_1919",
-        "QAQ",
-        "QwQ",
-        "OvO",
-        "ez",
-        "sbwaf",
-        "sb",
-    ]
-)
+brainrot_varname = random.choice(BRAINROT_VARNAMES)
 is_brainrot_enabled = random.random() < 0.5
 
 var_attrs = [

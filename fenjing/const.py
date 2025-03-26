@@ -1,5 +1,4 @@
-"""所有常用常数
-"""
+"""所有常用常数"""
 
 from typing import Callable
 from enum import Enum
@@ -150,11 +149,21 @@ WHITESPACES = [
 ]
 
 SET_STMT_PATTERNS = [
-    ("{%set NAME=EXPR%}".replace(" ", ws), "{%set =%}".replace(" ", ws), "NAME", "literal")
+    (
+        "{%set NAME=EXPR%}".replace(" ", ws),
+        "{%set =%}".replace(" ", ws),
+        "NAME",
+        "literal",
+    )
     for ws in WHITESPACES
 ] + [
     ("{%set(NAME)=EXPR%}", "{%set(a)=%}", "NAME", "literal"),
-    ("{{config.update(NAME=EXPR)}}", "{{config.update(=)}}", "config.NAME", "attribute"),
+    (
+        "{{config.update(NAME=EXPR)}}",
+        "{{config.update(=)}}",
+        "config.NAME",
+        "attribute",
+    ),
 ]
 
 WHITESPACES_AND_EMPTY = [""] + WHITESPACES
@@ -290,6 +299,18 @@ RENDER_ERROR_KEYWORDS = [
     "TemplateSyntaxError",
     "Internal Server Error",
     "Traceback (most recent call last):",
+]
+
+BRAINROT_VARNAMES = [
+    "_233",
+    "_114",
+    "_1919",
+    "QAQ",
+    "QwQ",
+    "OvO",
+    "ez",
+    "sbwaf",
+    "sb",
 ]
 
 # charcodes that not supported by python3.2 are removed.
