@@ -8,7 +8,7 @@ import re
 
 from rich.markup import escape as rich_escape
 
-from .const import WafFunc, PythonVersion, SET_STMT_PATTERNS
+from .const import WafFunc, PythonVersion, SET_STMT_PATTERNS, BRAINROT_VARNAMES
 from .rules_utils import precedence
 from .options import Options
 from .pbar import pbar_manager
@@ -306,6 +306,8 @@ class ContextVariableManager:
             var_length = 2 if i < 10 else 3
             name = "".join(random.choices(string.ascii_lowercase, k=var_length))
             if self.is_expression_exists(name):
+                continue
+            if name in BRAINROT_VARNAMES:
                 continue
             if not self.waf(name):
                 continue
