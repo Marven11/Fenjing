@@ -27,7 +27,7 @@ from .const import (
 )
 from .options import Options
 from .pbar import pbar_manager
-from .rules_utils import tree_precedence, precedence
+from .rules_utils import precedence
 
 
 if sys.version_info >= (3, 8):
@@ -442,6 +442,25 @@ class FullPayloadGen:
             return False
         self.payload_gen.context = self.context_vars.get_context()
         return True
+
+    def add_request_args(self, expression: str, value: str, precedence_index: int):
+        """指示从GET参数中获取字符串
+
+        Args:
+            expression (str): GET参数对应的expression
+            value (str): GET参数的值
+            precedence_index (int): expression的优先级
+
+        Raises:
+            RuntimeError: 没有先调用.do_prepare()则抛出错误
+        """
+        if not self.prepared:
+            raise RuntimeError("Please run .do_prepare() first")
+        assert self.payload_gen is not None and self.context_vars is not None
+        self.context_vars.add_request_args_expression(
+            expression, value, precedence_index
+        )
+        self.payload_gen.context = self.context_vars.get_context()
 
     def prepare_exprs(self):
         if not self.payload_gen:

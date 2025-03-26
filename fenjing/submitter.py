@@ -1,5 +1,4 @@
-"""向某个表格或者路径发出payload的submitter
-"""
+"""向某个表格或者路径发出payload的submitter"""
 
 import logging
 import subprocess
@@ -150,6 +149,17 @@ class BaseSubmitter:
         return HTTPResponse(resp.status_code, html.unescape(resp.text))
 
 
+class ExtraParamAndDataCustomizable:
+    def set_extra_param(self, k: str, v: str):
+        """设置需要提交的额外GET参数
+
+        Args:
+            k (str): 额外参数的键
+            v (str): 额外参数的值
+        """
+        raise NotImplementedError()
+
+
 class TCPSubmitter(BaseSubmitter):
     """根据模板从TCP发送HTTP1.1请求的类"""
 
@@ -239,7 +249,7 @@ class RequestSubmitter(BaseSubmitter):
         )
 
 
-class FormSubmitter(BaseSubmitter):
+class FormSubmitter(BaseSubmitter, ExtraParamAndDataCustomizable):
     """
     向一个表格的某一项提交payload, 其他项随机填充
     """
@@ -266,13 +276,21 @@ class FormSubmitter(BaseSubmitter):
         self.form = form
         self.req = requester
         self.target_field = target_field
+        self.extra_params = {}
         if tamperers:
             for tamperer in tamperers:
                 self.add_tamperer(tamperer)
 
     def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
         inputs = {self.target_field: raw_payload}
-        resp = self.req.request(**fill_form(self.url, self.form, inputs))
+        resp = self.req.request(
+            **fill_form(
+                self.url,
+                self.form,
+                inputs,
+                extra_params=self.extra_params,
+            )
+        )
         self.callback(
             CALLBACK_SUBMIT,
             {
@@ -286,8 +304,11 @@ class FormSubmitter(BaseSubmitter):
             return None
         return HTTPResponse(resp.status_code, resp.text)
 
+    def set_extra_param(self, k: str, v: str):
+        self.extra_params[k] = v
 
-class PathSubmitter(BaseSubmitter):
+
+class PathSubmitter(BaseSubmitter, ExtraParamAndDataCustomizable):
     """将payload进行url编码后拼接在某个url的后面并提交，看见..和/时拒绝提交"""
 
     def __init__(
@@ -312,6 +333,7 @@ class PathSubmitter(BaseSubmitter):
             url += "/"
         self.url = url
         self.req = requester
+        self.extra_params = {}
         if tamperers:
             for tamperer in tamperers:
                 self.add_tamperer(tamperer)
@@ -326,7 +348,9 @@ class PathSubmitter(BaseSubmitter):
                 extra={"markup": True, "highlighter": None},
             )
             return None
-        resp = self.req.request(method="GET", url=self.url + quote(raw_payload))
+        resp = self.req.request(
+            method="GET", url=self.url + quote(raw_payload), params=self.extra_params
+        )
         self.callback(
             CALLBACK_SUBMIT,
             {
@@ -340,8 +364,11 @@ class PathSubmitter(BaseSubmitter):
             return None
         return HTTPResponse(resp.status_code, resp.text)
 
+    def set_extra_param(self, k: str, v: str):
+        self.extra_params[k] = v
 
-class JsonSubmitter(BaseSubmitter):
+
+class JsonSubmitter(BaseSubmitter, ExtraParamAndDataCustomizable):
     """将payload放在如{"name": "xiaoming", "age": 18}这样的JSON中提交"""
 
     def __init__(
@@ -360,16 +387,23 @@ class JsonSubmitter(BaseSubmitter):
         self.json_obj = json_obj
         self.key = key
         self.req = requester
+        self.extra_params = {}
         if tamperers:
             for tamperer in tamperers:
                 self.add_tamperer(tamperer)
 
     def submit_raw(self, raw_payload: str) -> Union[HTTPResponse, None]:
         json_data = {**self.json_obj, self.key: raw_payload}
-        resp = self.req.request(method=self.method, url=self.url, json=json_data)
+        resp = self.req.request(
+            method=self.method, url=self.url, params=self.extra_params, json=json_data
+        )
         if resp is None:
             return None
         return HTTPResponse(resp.status_code, resp.text)
+
+    def set_extra_param(self, k: str, v: str):
+        self.extra_params[k] = v
+
 
 # TODO: remove me
 class IOSubmitter(BaseSubmitter):
