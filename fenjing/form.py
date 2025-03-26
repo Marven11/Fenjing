@@ -1,6 +1,4 @@
-"""与HTML表格相关的函数
-
-"""
+"""与HTML表格相关的函数"""
 
 import sys
 import random
@@ -89,7 +87,14 @@ def random_fill(form: Form) -> Dict[str, str]:
     }
 
 
-def fill_form(url, form, form_inputs=None, randomly_fill_other=True):
+def fill_form(
+    url: str,
+    form: dict,
+    form_inputs: Union[dict, None] = None,
+    randomly_fill_other: bool = True,
+    extra_params: Union[dict, None] = None,
+    extra_data: Union[dict, None] = None,
+):
     """根据输入填充表单，返回给requests库的参数
 
     Args:
@@ -106,9 +111,20 @@ def fill_form(url, form, form_inputs=None, randomly_fill_other=True):
         if form_inputs is not None:
             fill.update(form_inputs)
     else:
+        assert form_inputs is not None
         fill = form_inputs
+    data, params = {}, {}
+    if form["method"] in ["GET", "HEAD"]:
+        params.update(**fill)
+    else:
+        data.update(**fill)
+    if extra_params:
+        params.update(extra_params)
+    if extra_data:
+        data.update(extra_data)
     return {
         "url": urlunparse(urlparse(url)._replace(path=form["action"])),
         "method": form["method"],
-        ("data" if form["method"] == "POST" else "params"): fill,
+        "data": data,
+        "params": params,
     }

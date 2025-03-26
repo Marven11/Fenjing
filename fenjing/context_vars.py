@@ -1,6 +1,6 @@
 """提供上下文的payload, 为最终的payload提供一系列变量"""
 
-from typing import Iterable, Mapping, Any, Callable, Union, List, Tuple
+from typing import Iterable, Mapping, Dict, Any, Callable, Union, List, Tuple
 import logging
 import random
 import string
@@ -246,6 +246,7 @@ class ContextVariableManager:
     def __init__(self, waf: WafFunc, context_payloads: ContextPayloads):
         self.waf = waf
         self.context_payloads = dict(context_payloads).copy()
+        self.request_args_expressions: Dict[str, Tuple[str, int]] = {}
         self.payload_dependency = {}
         self.prepared = False
 
@@ -351,6 +352,11 @@ class ContextVariableManager:
         self.context_payloads[payload] = expressions
         return True
 
+    def add_request_args_expression(
+        self, expression: str, value: str, precedence_index: int
+    ):
+        self.request_args_expressions[expression] = (value, precedence_index)
+
     def get_payload(self, used_expressions: ContextExpression) -> List[str]:
         """根据使用了的表达式生成对应的payload
 
@@ -373,6 +379,10 @@ class ContextVariableManager:
 
             if to_add in added_vars:
                 continue
+
+            if to_add in self.request_args_expressions:
+                continue
+
             if not self.is_expression_exists(to_add):
                 raise RuntimeError(f"Variable {to_add} not found")
 
@@ -397,11 +407,13 @@ class ContextVariableManager:
         Returns:
             Context: 所有包含的payload
         """
-        return {
+        result = {
             expression: expression_info
             for _, d in self.context_payloads.items()
             for expression, expression_info in d.items()
         }
+        result.update(self.request_args_expressions)
+        return result
 
 
 def prepare_context_vars(waf: WafFunc, options: Options) -> ContextVariableManager:

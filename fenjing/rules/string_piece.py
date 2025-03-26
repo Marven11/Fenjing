@@ -1122,6 +1122,9 @@ def gen_string_underline_char(context):
 def gen_string_twounderline_variable(context):
     return [(EXPRESSION, precedence["literal"], [(VARIABLE_OF, "__")])]
 
+@expression_gen
+def gen_string_twounderline_context(context):
+    return [(VARIABLE_OF, "__")]
 
 @expression_gen
 def gen_string_twounderline_concat(context):
