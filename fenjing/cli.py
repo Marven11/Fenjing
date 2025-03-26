@@ -1,6 +1,4 @@
-"""命令行界面的入口
-
-"""
+"""命令行界面的入口"""
 
 import ast
 import dataclasses
@@ -306,10 +304,20 @@ def do_crack_form_pre(
                 ),
             )
             if not cracker.has_respond():
-                return None
+                logger.warning(
+                    "input field [blue]%s[/] has no response",
+                    rich_escape(repr(input_field)),
+                    extra={"markup": True, "highlighter": None},
+                )
+                continue
             full_payload_gen = cracker.crack()
         if full_payload_gen:
             return full_payload_gen, submitter
+    logger.warning(
+        "[red]Didn't see any input that has response. "
+        "Did you forget something like cookies?[/]",
+        extra={"markup": True, "highlighter": None},
+    )
     return None
 
 
@@ -357,11 +365,21 @@ def do_crack_form_eval_args_pre(
                 ),
             )
             if not cracker.has_respond():
-                return None
+                logger.warning(
+                    "input field [blue]%s[/] has no response",
+                    rich_escape(repr(input_field)),
+                    extra={"markup": True, "highlighter": None},
+                )
+                continue
             result = cracker.crack_eval_args()
         if result:
             submitter2, evalargs_payload_gen = result
             return submitter2, evalargs_payload_gen
+    logger.warning(
+        "[red]Didn't see any input that has response. "
+        "Did you forget something like cookies? [/]",
+        extra={"markup": True, "highlighter": None},
+    )
     return None
 
 
