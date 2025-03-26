@@ -68,7 +68,7 @@ def burst_respond_params_data(
         )
         return [], []
     logger.info(
-        "Bursting %d params...",
+        "Fuzzing %d params...",
         len(words),
         extra={"highlighter": None},
     )
