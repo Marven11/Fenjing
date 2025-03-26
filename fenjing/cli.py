@@ -4,6 +4,8 @@ import ast
 import dataclasses
 import json
 import logging
+import random
+import string
 import time
 from urllib.parse import urlparse
 from typing import List, Dict, Tuple, Union, Any
@@ -11,7 +13,7 @@ from enum import Enum
 from functools import partial
 from pathlib import Path
 
-from rich.console import Console
+
 from rich.markup import escape as rich_escape
 from rich.logging import RichHandler
 import click
@@ -251,6 +253,56 @@ def parse_headers_cookies(headers_list: List[str], cookies: str) -> Dict[str, st
     if cookies:
         headers["Cookie"] = cookies
     return headers
+
+
+def is_form_has_response(
+    url: str,
+    form: Form,
+    requester: HTTPRequester,
+    tamper_cmd: Union[str, None],
+) -> bool:
+    """初步判断一个表单是否有可能可以SSTI的参数
+
+    Args:
+        url (str): 目标URL
+        form (Form): 目标表单
+        requester (HTTPRequester): 用于发送请求的requester
+        options (Options): 有关攻击的各个选项
+        tamper_cmd (Union[str, None]): 对payload进行修改的修改命令
+
+    Returns:
+        bool: 是否可能有SSTI的参数
+    """
+    if "127.0.0.1" in url or "localhost" in url:
+        logger.info(
+            "Try out our new feature [cyan bold]crack-keywords[/] with "
+            '[cyan bold]python -m fenjing crack-keywords -k ./app.py -c "ls"[/]!',
+            extra={"markup": True, "highlighter": None},
+        )
+    for input_field in form["inputs"]:
+        submitter = FormSubmitter(
+            url,
+            form,
+            input_field,
+            requester,
+        )
+        if tamper_cmd:
+            tamperer = shell_tamperer(tamper_cmd)
+            submitter.add_tamperer(tamperer)
+
+        marker = "".join(random.choices(string.ascii_lowercase, k=4))
+        result1 = submitter.submit(marker)
+        result2 = submitter.submit("{{" + marker)
+        result3 = submitter.submit("{%" + marker)
+        if (
+            result1 is not None
+            and result2 is not None
+            and marker in result1.text
+            and (marker not in result2.text or marker not in result3.text)
+        ):
+            return True
+
+    return False
 
 
 def do_crack_form_pre(
@@ -898,24 +950,36 @@ def scan(
         proxy=proxy,
         no_verify_ssl=no_verify_ssl,
     )
-    url_forms = (
-        (page_url, form)
-        for (page_url, forms) in yield_form(requester, url)
-        for form in forms
+    options = Options(
+        detect_mode=detect_mode,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+        environment=environment,
+        detect_waf_keywords=detect_waf_keywords,
+        waf_keywords=waf_keyword,
     )
+    url_forms = [
+        (page_url, form)
+        for i, (page_url, forms) in enumerate(yield_form(requester, url))
+        for form in forms
+        if i < 100
+    ]
+
+    url_forms.sort(
+        key=(
+            lambda item: is_form_has_response(
+                url=item[0], form=item[1], requester=requester, tamper_cmd=tamper_cmd
+            )
+        ),
+        reverse=True,
+    )
+
     for page_url, form in url_forms:
         logger.warning("Scan form: %s", repr(form), extra={"highlighter": None})
         result = do_crack_form_pre(
             page_url,
             form,
             requester,
-            Options(
-                detect_mode=detect_mode,
-                replaced_keyword_strategy=replaced_keyword_strategy,
-                environment=environment,
-                detect_waf_keywords=detect_waf_keywords,
-                waf_keywords=waf_keyword,
-            ),
+            options,
             tamper_cmd,
         )
         if not result:
