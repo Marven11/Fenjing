@@ -31,7 +31,12 @@ from .const import (
     DEFAULT_USER_AGENT,
     RENDER_ERROR_KEYWORDS,
 )
-from .cracker import Cracker, EvalArgsModePayloadGen, guess_python_version
+from .cracker import (
+    Cracker,
+    EvalArgsModePayloadGen,
+    guess_python_version,
+    guess_is_flask,
+)
 from .form import Form, get_form
 from .full_payload_gen import FullPayloadGen
 from .requester import (
@@ -351,6 +356,15 @@ def do_crack_form_pre(
             input_field,
             requester,
         )
+        environment = options.environment
+        if options.environment == TemplateEnvironment.JINJA2:
+            # we always doubt lol
+            environment = (
+                TemplateEnvironment.FLASK
+                if guess_is_flask(submitter)
+                else TemplateEnvironment.JINJA2
+            )
+
         if tamper_cmd:
             tamperer = shell_tamperer(tamper_cmd)
             submitter.add_tamperer(tamperer)
@@ -362,6 +376,7 @@ def do_crack_form_pre(
                     options,
                     python_version=python_version,
                     python_subversion=python_subversion,
+                    environment=environment,
                 ),
             )
             if not cracker.has_respond():
@@ -413,6 +428,15 @@ def do_crack_form_eval_args_pre(
             input_field,
             requester,
         )
+        environment = options.environment
+        if options.environment == TemplateEnvironment.JINJA2:
+            # we always doubt lol
+            environment = (
+                TemplateEnvironment.FLASK
+                if guess_is_flask(submitter)
+                else TemplateEnvironment.JINJA2
+            )
+
         if tamper_cmd:
             tamperer = shell_tamperer(tamper_cmd)
             submitter.add_tamperer(tamperer)
@@ -423,6 +447,7 @@ def do_crack_form_eval_args_pre(
                     options,
                     python_version=python_version,
                     python_subversion=python_subversion,
+                    environment=environment,
                 ),
             )
             if not cracker.has_respond():
