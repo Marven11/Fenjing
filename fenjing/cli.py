@@ -292,13 +292,22 @@ def is_form_has_response(
 
         marker = "".join(random.choices(string.ascii_lowercase, k=4))
         result1 = submitter.submit(marker)
-        result2 = submitter.submit("{{" + marker)
-        result3 = submitter.submit("{%" + marker)
+        musterror_result = [
+            submitter.submit(pattern + marker)
+            for pattern in [
+                "{{",
+                "{%",
+                "{#",
+            ]
+        ]
         if (
             result1 is not None
-            and result2 is not None
             and marker in result1.text
-            and (marker not in result2.text or marker not in result3.text)
+            and any(
+                marker not in result.text
+                for result in musterror_result
+                if result is not None
+            )
         ):
             return True
 
