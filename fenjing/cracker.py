@@ -308,7 +308,7 @@ class Cracker:
                 logger.info(
                     "Adding [blue]%s=[/][yellow bold]%s[/]",
                     rich_escape(payload),
-                    rich_escape(value),
+                    rich_escape(repr(value)),
                     extra={"markup": True, "highlighter": None},
                 )
                 self.subm.set_extra_param(name, value)

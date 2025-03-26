@@ -296,9 +296,9 @@ class FullPayloadGen:
         else:
             self.payload_gen.delete_from_cache(STRING, value)
         logger.debug(
-            "Adding [yellow]%s[/] with %s",
-            rich_escape(repr(value)),
+            "Adding [blue]%s[/]=[yellow]%s[/]",
             rich_escape(payload),
+            rich_escape(repr(value)),
             extra={"markup": True, "highlighter": None},
         )
         return "success"
