@@ -265,7 +265,6 @@ def do_submit_cmdexec(
         if isinstance(submitter, ExtraParamAndDataCustomizable):
             submitter.unset_extra_param("eval_this")
         if flag_data:
-            print(f"{flag_data=}")
             return pformat(flag_data).strip()
         return "GETFLAG_FAILED"
     return result.text
