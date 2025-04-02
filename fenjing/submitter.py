@@ -159,6 +159,15 @@ class ExtraParamAndDataCustomizable:
         """
         raise NotImplementedError()
 
+    def unset_extra_param(self, k: str):
+        """删除需要提交的额外GET参数
+
+        Args:
+            k (str): 额外参数的键
+            v (str): 额外参数的值
+        """
+        raise NotImplementedError()
+
 
 class TCPSubmitter(BaseSubmitter):
     """根据模板从TCP发送HTTP1.1请求的类"""
@@ -307,6 +316,9 @@ class FormSubmitter(BaseSubmitter, ExtraParamAndDataCustomizable):
     def set_extra_param(self, k: str, v: str):
         self.extra_params[k] = v
 
+    def unset_extra_param(self, k: str):
+        del self.extra_params[k]
+
 
 class PathSubmitter(BaseSubmitter, ExtraParamAndDataCustomizable):
     """将payload进行url编码后拼接在某个url的后面并提交，看见..和/时拒绝提交"""
@@ -367,6 +379,9 @@ class PathSubmitter(BaseSubmitter, ExtraParamAndDataCustomizable):
     def set_extra_param(self, k: str, v: str):
         self.extra_params[k] = v
 
+    def unset_extra_param(self, k: str):
+        del self.extra_params[k]
+
 
 class JsonSubmitter(BaseSubmitter, ExtraParamAndDataCustomizable):
     """将payload放在如{"name": "xiaoming", "age": 18}这样的JSON中提交"""
@@ -403,6 +418,9 @@ class JsonSubmitter(BaseSubmitter, ExtraParamAndDataCustomizable):
 
     def set_extra_param(self, k: str, v: str):
         self.extra_params[k] = v
+
+    def unset_extra_param(self, k: str):
+        del self.extra_params[k]
 
 
 # TODO: remove me

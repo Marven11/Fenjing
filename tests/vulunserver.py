@@ -125,7 +125,7 @@ def garbasecollect(resp):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    name = request.args.get("name", "world")
+    name = request.values.get("name", "world")
     template = """
     Hello, {}
     <form action="/" method="GET">
