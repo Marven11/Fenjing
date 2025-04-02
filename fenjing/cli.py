@@ -675,13 +675,15 @@ def do_crack(
         )
         getflag_result = cmd_exec_func("@getflaginfo")
         if getflag_result and getflag_result != "GETFLAG_FAILED":
-            logger.info("[cyan]This might be your [bold]flag[/]")
-            print(getflag_result)
-            logger.info("[cyan]No thanks[/]")
+            logger.info("This might be your [cyan bold]flag[/]:")
+            logger.info(getflag_result)
+            logger.info("No thanks.")
             time.sleep(3)
         else:
-            logger.warning("[yellow]I tried to find flag for you but I failed...[/]")
-            logger.warning("[cyan]You can still find it yourself...[/]")
+            logger.info("I cannot find flag for you... but")
+            logger.info(
+                "Bypass WAF [green bold]success[/]"
+            )
 
     if exec_cmd:
         result = cmd_exec_func(exec_cmd)
