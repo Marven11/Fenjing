@@ -266,7 +266,7 @@ class FullPayloadGen:
         if (len(expression) - len(repr(value)) < 2 and self.waf_func(repr(value))) or (
             "(" not in expression and isinstance(value, str)
         ):
-            logger.warning(
+            logger.debug(
                 "Generated expression [blue]%s[/] is too simple, skip it.",
                 rich_escape(expression),
                 extra={"markup": True, "highlighter": None},

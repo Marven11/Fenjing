@@ -155,6 +155,8 @@ def load_keywords_dotpy_safe(content: str) -> List[str]:
 def parse_getflag_info(html: str) -> Union[Dict, None]:
     result_b64 = re.search(r"start([a-zA-Z0-9+/=]+?)stop", html)
     if not result_b64:
+        logger.warning("Getflag failed, we cannot find anything from this HTML...")
+        print(html)
         return None
     data = None
     try:
@@ -681,9 +683,7 @@ def do_crack(
             time.sleep(3)
         else:
             logger.info("I cannot find flag for you... but")
-            logger.info(
-                "Bypass WAF [green bold]success[/]"
-            )
+            logger.info("Bypass WAF [green bold]success[/]")
 
     if exec_cmd:
         result = cmd_exec_func(exec_cmd)
