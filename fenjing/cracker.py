@@ -92,7 +92,6 @@ def guess_is_flask(submitter: Submitter):
         for var, text in [
             ("g", "flask.g"),
             ("request", "Request "),
-            ("self", "TemplateReference "),
             ("session", "Session "),
         ]
         for pattern in [
