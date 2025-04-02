@@ -246,6 +246,8 @@ def do_submit_cmdexec(
         logger.warning(
             "[red]Failed[/] generating payload.",
         )
+        if isinstance(submitter, ExtraParamAndDataCustomizable):
+            submitter.unset_extra_param("eval_this")
         return ""
     logger.info(
         "Submit payload [blue]%s[/]",
@@ -550,10 +552,20 @@ def do_crack_json_pre(
         tamperer = shell_tamperer(tamper_cmd)
         submitter.add_tamperer(tamperer)
     with pbar_manager.progress:
+        if options.environment == TemplateEnvironment.JINJA2:
+            # we always doubt lol
+            environment = (
+                TemplateEnvironment.FLASK
+                if guess_is_flask(submitter)
+                else TemplateEnvironment.JINJA2
+            )
+        else:
+            environment = options.environment
         cracker = Cracker(
             submitter=submitter,
             options=dataclasses.replace(
                 options,
+                environment=environment,
                 python_version=python_version,
                 python_subversion=python_subversion,
             ),
@@ -593,10 +605,20 @@ def do_crack_path_pre(
         tamperer = shell_tamperer(tamper_cmd)
         submitter.add_tamperer(tamperer)
     with pbar_manager.progress:
+        if options.environment == TemplateEnvironment.JINJA2:
+            # we always doubt lol
+            environment = (
+                TemplateEnvironment.FLASK
+                if guess_is_flask(submitter)
+                else TemplateEnvironment.JINJA2
+            )
+        else:
+            environment = options.environment
         cracker = Cracker(
             submitter=submitter,
             options=dataclasses.replace(
                 options,
+                environment=environment,
                 python_version=python_version,
                 python_subversion=python_subversion,
             ),
@@ -658,6 +680,10 @@ def do_crack(
             print(getflag_result)
             logger.info("[cyan]No thanks[/]")
             time.sleep(3)
+        else:
+            logger.warning("[yellow]I tried to find flag for you but I failed...[/]")
+            logger.warning("[cyan]You can still find it yourself...[/]")
+
     if exec_cmd:
         result = cmd_exec_func(exec_cmd)
         print(result)
