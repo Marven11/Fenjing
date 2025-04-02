@@ -506,7 +506,11 @@ class FullPayloadGen:
         ret = self.payload_gen.generate_detailed(gen_type, *args)
 
         if ret is None:
-            logger.info("Bypassing WAF Failed.", extra={"highlighter": None})
+            logger.info(
+                "Bypassing WAF Failed for [blue]%s[/]",
+                rich_escape(repr((gen_type, *args))),
+                extra={"highlighter": None},
+            )
             return None
         inner_payload, used_context, tree = ret
         context_payload = self.context_vars.get_payload(used_context)
