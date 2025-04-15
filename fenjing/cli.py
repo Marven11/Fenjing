@@ -152,19 +152,18 @@ def load_keywords_dotpy_safe(content: str) -> List[str]:
     return result
 
 
-def parse_getflag_info(html: str) -> Union[Dict, None]:
+def parse_getflag_info(html: str) -> Union[List[str], None]:
+    flag_re = re.compile(rb"[a-zA-Z0-9-_]{1,10}\{\S{2,100}\}")
     result_b64 = re.search(r"start([a-zA-Z0-9+/=]+?)stop", html)
     if not result_b64:
         logger.warning("Getflag failed, we cannot find anything from this HTML...")
         print(html)
         return None
-    data = None
     try:
         result = base64.b64decode(result_b64.group(1))
-        data = json.loads(result)
+        return [b.decode() for b in flag_re.findall(result)]
     except Exception:
         return None
-    return {k: v for k, v in data.items() if v}
 
 
 def do_submit_cmdexec(
