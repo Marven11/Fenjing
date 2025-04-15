@@ -676,12 +676,10 @@ def do_crack(
     is_find_flag_enabled = find_flag == FindFlag.ENABLED
     if find_flag == FindFlag.AUTO:
         test_string = repr('"generate_me": os.popen("cat /f* ./f*").read(),')
-        payload, will_print = full_payload_gen.generate(EVAL, (STRING, test_string))
+        payload, will_print = full_payload_gen.generate(STRING, test_string)
         if payload is None or not will_print:
             is_find_flag_enabled = False
-        elif len(payload) >= len(test_string) * 1.5 + len(
-            "lipsum.__globals__.__builtins__.eval"
-        ):
+        elif len(payload) >= len(test_string) * 5:
             logger.info(
                 "[yellow]Payload for finding flag "
                 "is too long, we decide not to submit it[/]",
