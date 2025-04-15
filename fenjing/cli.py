@@ -189,16 +189,16 @@ def do_submit_cmdexec(
         str: 回显
     """
     payload, will_print = None, None
-    is_getflag_requested = False  # 用户是否用@getflaginfo一键梭flag
+    is_getflag_requested = False  # 用户是否用@findflag一键梭flag
     # 解析命令
     if cmd[0] == "@":
         cmd = cmd[1:]
         if cmd.startswith("get-config"):
             payload, will_print = full_payload_gen_like.generate(CONFIG)
-        elif cmd.startswith("getflaginfo"):
+        elif cmd.startswith("findflag"):
             if not isinstance(submitter, ExtraParamAndDataCustomizable):
                 logger.warning(
-                    "@getflaginfo is [red bold]not supported[/] for this",
+                    "@findflag is [red bold]not supported[/] for this",
                 )
                 return ""
             is_getflag_requested = True
@@ -694,7 +694,7 @@ def do_crack(
         logger.info(
             "[yellow]Searching flags...[/]",
         )
-        getflag_result = cmd_exec_func("@getflaginfo")
+        getflag_result = cmd_exec_func("@findflag")
         if getflag_result and getflag_result != "GETFLAG_FAILED":
             logger.info("This might be your [cyan bold]flag[/]:")
             logger.info(getflag_result)
@@ -732,7 +732,7 @@ def do_crack_eval_args(
         full_payload_gen_like=eval_args_payloadgen,
     )
     if find_flag != FindFlag.DISABLED:
-        print(cmd_exec_func("@getflaginfo"))
+        print(cmd_exec_func("@findflag"))
     if exec_cmd:
         print(cmd_exec_func(exec_cmd))
     else:

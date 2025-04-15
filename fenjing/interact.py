@@ -19,7 +19,7 @@ completer = NestedCompleter.from_nested_dict(
         "@get-config": None,
         "@ls": None,
         "@cat": None,
-        "@getflaginfo": None,
+        "@findflag": None,
         "@help": {"eval", "get-config", "ls", "cat", "exec"},
     }
 )
