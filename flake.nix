@@ -17,7 +17,7 @@
       pkgs = import nixpkgs {inherit system;};
       pkgs_old = import nixpkgs_old {inherit system;};
       pythonPackages = pkgs.python3Packages;
-      python37Packages = pkgs_old.python37Packages;
+      python38Packages = pkgs_old.python38Packages;
     in {
       devShells.default = pkgs.mkShell {
         name = "python-venv";
@@ -37,17 +37,17 @@
           unset SOURCE_DATE_EPOCH
         '';
       };
-      # python3.7 is supported because some people are still using it.
-      devShells.python37 = pkgs_old.mkShell {
+
+      devShells.python38 = pkgs_old.mkShell {
         name = "python-venv";
-        venvDir = "./.venv";
+        venvDir = "/tmp/venv-fenjing-python3.8";
         buildInputs = [
-          python37Packages.python
-          python37Packages.venvShellHook
+          python38Packages.python
+          python38Packages.venvShellHook
         ];
         postVenvCreation = ''
           unset SOURCE_DATE_EPOCH
-          pip install -r requirements-devel-python37.lock
+          # pip install -r requirements-devel.txt
         '';
         postShellHook = ''
           # allow pip to install wheels
