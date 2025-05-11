@@ -156,7 +156,12 @@ def str_escape(value: str, quote="'"):
     转义字符串中的引号和反斜杠，但不会在两旁加上引号。
     用法："'{}'".format(str_escape("asdf", "'"))
     """
-    return value.replace("\\", "\\\\").replace(quote, "\\" + quote)
+    return (
+        value.replace("\\", "\\\\")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+        .replace(quote, "\\" + quote)
+    )
 
 
 def transform_int_chars_charcodes(int_chars, charcodes, keepfirst=False):
