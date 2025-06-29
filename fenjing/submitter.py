@@ -412,6 +412,15 @@ class JsonSubmitter(BaseSubmitter, ExtraParamAndDataCustomizable):
         resp = self.req.request(
             method=self.method, url=self.url, params=self.extra_params, json=json_data
         )
+        self.callback(
+            CALLBACK_SUBMIT,
+            {
+                "type": "json",
+                "url": self.url,
+                "json": json_data,
+                "response": resp,
+            },
+        )
         if resp is None:
             return None
         return HTTPResponse(resp.status_code, resp.text)

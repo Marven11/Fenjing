@@ -110,3 +110,15 @@ class TestWebui(unittest.TestCase):
                 "interval": "0.02",
             }
         )
+
+    def test_crack_json(self):
+        self.general_task_test(
+            {
+                "type": "crack-json",
+                "url": VULUNSERVER_URL + "/crackjson",
+                "json_data": '{"name": "admin", "age": 24, "msg": "test"}',
+                "key": "msg",
+                "method": "POST",
+                "interval": "0.02",
+            }
+        )

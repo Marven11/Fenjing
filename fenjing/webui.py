@@ -34,7 +34,8 @@ from .form import get_form, Form
 from .full_payload_gen import FullPayloadGen
 from .requester import HTTPRequester
 from .scan_url import yield_form
-from .submitter import Submitter, FormSubmitter, PathSubmitter
+from .submitter import Submitter, FormSubmitter, PathSubmitter, JsonSubmitter
+import json
 
 
 logger = logging.getLogger("webui")
@@ -92,11 +93,19 @@ class CallBackLogger:
                 self.flash_messages.append(
                     f"提交payload失败！链接为{data['url']}，payload为{data['payload']}"
                 )
+            elif data.get("type", None) == "json":
+                self.flash_messages.append(
+                    f"提交payload失败！链接为{data['url']}，payload为{data['json']}"
+                )
             else:
                 self.flash_messages.append("提交payload失败！")
         elif data.get("type", None) == "form":
             self.flash_messages.append(
                 f"提交表单完成，返回值为{data['response'].status_code}，输入为{data['inputs']}，表单为{data['form']}"
+            )
+        elif data.get("type", None) == "json":
+            self.flash_messages.append(
+                f"提交表单完成，返回值为{data['response'].status_code}，输入为{data['json']}"
             )
         else:
             self.flash_messages.append(
@@ -115,7 +124,9 @@ class CallBackLogger:
 
     def __call__(self, callback_type, data):
         def default_handler(_):
-            return logger.warning("callback_type=%s not found", callback_type, extra={"highlighter": None})
+            return logger.warning(
+                "callback_type=%s not found", callback_type, extra={"highlighter": None}
+            )
 
         return {
             CALLBACK_PREPARE_FULLPAYLOADGEN: self.callback_prepare_fullpayloadgen,
@@ -125,6 +136,7 @@ class CallBackLogger:
             CALLBACK_TEST_FORM_INPUT: self.callback_test_form_input,
         }.get(callback_type, default_handler)(data)
 
+
 class BaseCrackTaskThread(threading.Thread):
     def __init__(self):
         super().__init__()
@@ -132,6 +144,10 @@ class BaseCrackTaskThread(threading.Thread):
         self.messages = []
         self.callback = CallBackLogger(self.flash_messages, self.messages)
         self.success = False
+        self.submitter: Union[Submitter, None] = None
+        self.full_payload_gen: Union[FullPayloadGen, None] = None
+        self.cracker: Union[Cracker, None] = None
+
 
 class CrackTaskThread(BaseCrackTaskThread):
     """crack任务的线程，由webui调用并实际承载攻击任务"""
@@ -195,6 +211,50 @@ class CrackPathTaskThread(BaseCrackTaskThread):
             self.messages.append("WAF已绕过，现在可以执行Shell指令了")
             self.success = True
 
+
+class CrackJsonTaskThread(BaseCrackTaskThread):
+    """crack-json任务的线程，由webui调用并实际承载攻击任务"""
+
+    def __init__(
+        self,
+        url,
+        method: str,
+        json_data: str,
+        key: str,
+        interval: float,
+        options: Options,
+    ):
+        super().__init__()
+        self.url = url
+        self.method = method
+        self.json_data = json_data
+        self.key = key
+        self.options = options
+        self.submitter: Union[Submitter, None] = None
+        self.full_payload_gen: Union[FullPayloadGen, None] = None
+        self.cracker: Union[Cracker, None]
+        self.requester = HTTPRequester(interval=interval, user_agent=DEFAULT_USER_AGENT)
+
+    def run(self):
+        json_obj = json.loads(self.json_data)
+        self.submitter = JsonSubmitter(
+            self.url,
+            self.method,
+            json_obj,
+            self.key,
+            self.requester,
+            self.callback,
+        )
+        self.cracker = Cracker(self.submitter, self.callback, options=self.options)
+        if not self.cracker.has_respond():
+            self.messages.append("WAF绕过失败")
+            return
+        self.full_payload_gen = self.cracker.crack()
+        if self.full_payload_gen:
+            self.messages.append("WAF已绕过，现在可以执行Shell指令了")
+            self.success = True
+
+
 class ScanTaskThread(BaseCrackTaskThread):
     """scan任务的线程，由webui调用并实际承载攻击任务"""
 
@@ -204,7 +264,7 @@ class ScanTaskThread(BaseCrackTaskThread):
         self.options = options
         self.submitter: Union[Submitter, None] = None
         self.full_payload_gen: Union[FullPayloadGen, None] = None
-        self.cracker: Union[Cracker, None]
+        self.cracker: Union[Cracker, None] = None
         self.requester = HTTPRequester(interval=interval, user_agent=DEFAULT_USER_AGENT)
 
     def run(self):
@@ -237,7 +297,6 @@ class ScanTaskThread(BaseCrackTaskThread):
                     return
         if not self.success:
             self.messages.append("WAF绕过失败")
-
 
 
 class InteractiveTaskThread(threading.Thread):
@@ -320,6 +379,13 @@ def crack_path():
     """渲染攻击路径的页面"""
     return render_template("crack-path.jinja2")
 
+
+@app.route("/crack-json")
+def crack_json():
+    """渲染攻击路径的页面"""
+    return render_template("crack-json.jinja2")
+
+
 @app.route("/scan")
 def scan():
     """渲染攻击路径的页面"""
@@ -376,6 +442,35 @@ def create_task():
         taskid = manage_task_thread(
             ScanTaskThread(
                 url=request.form["url"],
+                interval=float(request.form["interval"]),
+                options=parse_options(request.form),
+            )
+        )
+        return jsonify({"code": APICODE_OK, "taskid": taskid})
+    if task_type == "crack-json":
+        if (
+            request.form["url"] == ""
+            or request.form["json_data"] == ""
+            or request.form["key"] == ""
+        ):
+            return jsonify(
+                {
+                    "code": APICODE_WRONG_INPUT,
+                    "message": "URL, JSON data and key should not be empty",
+                }
+            )
+        try:
+            json.loads(request.form["json_data"])
+        except json.JSONDecodeError:
+            return jsonify(
+                {"code": APICODE_WRONG_INPUT, "message": "Invalid JSON data provided"}
+            )
+        taskid = manage_task_thread(
+            CrackJsonTaskThread(
+                url=request.form["url"],
+                method=request.form.get("method", "POST"),
+                json_data=request.form["json_data"],
+                key=request.form["key"],
                 interval=float(request.form["interval"]),
                 options=parse_options(request.form),
             )
@@ -441,9 +536,9 @@ def watch_task():
             }
         )
     taskid = request.form["taskid"]
-    task: Union[CrackTaskThread, CrackPathTaskThread, InteractiveTaskThread] = tasks[
-        taskid
-    ]
+    task: Union[
+        CrackTaskThread, CrackPathTaskThread, CrackJsonTaskThread, InteractiveTaskThread
+    ] = tasks[taskid]
     if isinstance(task, BaseCrackTaskThread):
         return jsonify(
             {

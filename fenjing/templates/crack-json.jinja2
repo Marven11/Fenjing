@@ -1,0 +1,121 @@
+{% extends "base.jinja2" %}
+{%block main%}
+
+<main>
+  <div class="main-left scrollbar">
+    <form action="" onsubmit="onSubmitCrackJsonTask(event)">
+      <div class="form-row">
+        <label for="url">目标链接</label>
+        <div class="hint-question-mark" title="存在可攻击JSON API的URL">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11.967 12.75C12.967 11.75 13.967 11.3546 13.967 10.25C13.967 9.14543 13.0716 8.25 11.967 8.25C11.0351 8.25 10.252 8.88739 10.03 9.75M11.967 15.75H11.977M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <input type="text" name="url" id="form-url" placeholder="http://example.com/api" />
+      </div>
+      <div class="form-row">
+        <label for="method">请求方式</label>
+        <div class="hint-question-mark" title="JSON API的请求方式，大写">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11.967 12.75C12.967 11.75 13.967 11.3546 13.967 10.25C13.967 9.14543 13.0716 8.25 11.967 8.25C11.0351 8.25 10.252 8.88739 10.03 9.75M11.967 15.75H11.977M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <input type="text" name="method" id="form-method" value="POST" />
+      </div>
+      <div class="form-row">
+        <label for="json_data">JSON数据</label>
+        <div class="hint-question-mark" title="要攻击的JSON数据">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11.967 12.75C12.967 11.75 13.967 11.3546 13.967 10.25C13.967 9.14543 13.0716 8.25 11.967 8.25C11.0351 8.25 10.252 8.88739 10.03 9.75M11.967 15.75H11.977M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <input type="text" name="json_data" id="form-json-data" placeholder='{"key": "value"}'/>
+      </div>
+      <div class="form-row">
+        <label for="key">攻击键名</label>
+        <div class="hint-question-mark" title="JSON中要攻击的键名">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11.967 12.75C12.967 11.75 13.967 11.3546 13.967 10.25C13.967 9.14543 13.0716 8.25 11.967 8.25C11.0351 8.25 10.252 8.88739 10.03 9.75M11.967 15.75H11.977M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <input type="text" name="key" id="form-key" placeholder="key" />
+      </div>
+      <div class="form-row">
+        <label for="interval">请求间隔</label>
+        <div class="hint-question-mark" title="发送请求的间隔，单位为秒">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11.967 12.75C12.967 11.75 13.967 11.3546 13.967 10.25C13.967 9.14543 13.0716 8.25 11.967 8.25C11.0351 8.25 10.252 8.88739 10.03 9.75M11.967 15.75H11.977M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <input type="text" name="interval" id="form-interval" value="0.03" />
+      </div>
+      <div class="form-row">
+        <label for="detect-mode">分析模式</label>
+        <div class="hint-question-mark" title="影响payload的长度和生成速度">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11.967 12.75C12.967 11.75 13.967 11.3546 13.967 10.25C13.967 9.14543 13.0716 8.25 11.967 8.25C11.0351 8.25 10.252 8.88739 10.03 9.75M11.967 15.75H11.977M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <select name="detect-mode" id="form-detect-mode">
+          <option value="accurate">精确</option>
+          <option value="fast">快速</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="environment">模板环境</label>
+        <div class="hint-question-mark" title="模板渲染的环境，决定最终payload可以使用什么全局变量">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11.967 12.75C12.967 11.75 13.967 11.3546 13.967 10.25C13.967 9.14543 13.0716 8.25 11.967 8.25C11.0351 8.25 10.252 8.88739 10.03 9.75M11.967 15.75H11.977M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <select name="environment" id="form-environment">
+          <option value="jinja2">jinja内部</option>
+          <option value="flask">flask内部</option>
+        </select>
+      </div>
+      <input type="hidden" name="type" value="crack-json" />
+      <div class="form-row">
+        <input type="submit" value="开始分析" />
+      </div>
+    </form>
+  </div>
+  {%include 'interactive-panel.jinja2'%}
+</main>
+{%endblock%}
+
+{%block script%}
+<script>
+  function alertWrongJsonInput(formData) {
+    for (let key of ["url", "json_data", "key"]) {
+      if (!formData.get(key)) {
+        alert(`你的${key}没有填写！`);
+        return false;
+      }
+    }
+    try {
+      JSON.parse(formData.get("json_data"));
+    } catch (e) {
+      alert("JSON数据格式不正确！");
+      return false;
+    }
+    return true;
+  }
+  function onSubmitCrackJsonTask(event) {
+    return onSubmitGeneralCrackPathTask(event, alertWrongJsonInput)
+  }
+</script>
+{%endblock%}
