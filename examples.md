@@ -73,6 +73,8 @@ webui不支持自定义Headers和Cookie等特性，如果需要更灵活的使�
 
 ### Tamper Cmd的使用
 
+> 注意：这个功能是围绕Unix Shell设计的，不建议在Windows下使用这个选项
+
 如果指定了`--tamper-cmd`参数，焚靖在每次提交payload时会使用指定的命令打开一个子进程，向这个子进程的标准输入传入payload, 并将子进程的输出作为编码后的结果进行提交。
 
 例如：Linux中有一个命令行程序`base64`，它会从输入中读取内容，进行base64编码并输出
