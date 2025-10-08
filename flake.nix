@@ -58,6 +58,7 @@
         pname = "fenjing";
         # it takes minutes
         doCheck = false;
+        pyproject = true;
 
         nativeBuildInputs = [ pkgs.installShellFiles ];
 
