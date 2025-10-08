@@ -1,4 +1,4 @@
-export VULUNSERVER_ADDR="http://127.0.0.1:5000"
+export VULUNSERVER_ADDR="http://127.0.0.1:5001"
 export SLEEP_INTERVAL=0.01
 targets="*.py"
 if [ "$1" != "" ]; then
