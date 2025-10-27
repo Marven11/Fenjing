@@ -16,39 +16,65 @@
       systems = [
         "x86_64-linux"
         "aarch64-linux"
+        "x86_64-darwin"
+        "aarch64-darwin"
       ];
+
+      # 为每个系统创建pkgs
+      forEachSystem = nixpkgs.lib.genAttrs systems;
+
+      # 旧版nixpkgs可能不支持所有系统，需要处理
+      getPkgsOld =
+        system:
+        if nixpkgs_old.legacyPackages ? ${system} then
+          nixpkgs_old.legacyPackages.${system}
+        else
+          import nixpkgs_old { inherit system; };
+
     in
-    nixpkgs.lib.genAttrs systems (
-      system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-        pkgs_old = import nixpkgs_old { inherit system; };
-        pythonPackages = pkgs.python3Packages;
-        python38Packages = pkgs_old.python38Packages;
-      in
-      {
-        devShells = {
+    {
+      devShells = forEachSystem (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          pkgs_old = getPkgsOld system;
+          pythonPackages = pkgs.python3Packages;
+
+          python38Packages = pkgs_old.python38Packages;
+
+        in
+        {
           default = pkgs.mkShell {
             name = "python-venv";
             venvDir = "./.venv-nixos";
-            buildInputs = [
-              pythonPackages.python
-              pythonPackages.venvShellHook
-              pythonPackages.notebook
-              pythonPackages.ipython
+            buildInputs = with pythonPackages; [
+              python
+              venvShellHook
+              notebook
+              ipython
+              requests
+              beautifulsoup4
+              click
+              flask
+              jinja2
+              prompt_toolkit
+              pygments
+              pysocks
+              build
+              black
+              rich
             ];
             postVenvCreation = ''
               unset SOURCE_DATE_EPOCH
-              pip install -r requirements-devel.lock
+              # pip install -r requirements-devel.lock
             '';
             postShellHook = ''
-              # allow pip to install wheels
               unset SOURCE_DATE_EPOCH
             '';
           };
 
           python38 = pkgs_old.mkShell {
-            name = "python-venv";
+            name = "python38-venv";
             venvDir = "/tmp/venv-fenjing-python3.8";
             buildInputs = [
               python38Packages.python
@@ -59,49 +85,55 @@
               # pip install -r requirements-devel.txt
             '';
             postShellHook = ''
-              # allow pip to install wheels
               unset SOURCE_DATE_EPOCH
             '';
           };
-        };
+        }
+      );
 
-        packages.default =
-          with pkgs.python3Packages;
-          buildPythonPackage rec {
-            pname = "fenjing";
-            # it takes minutes
-            doCheck = false;
-            pyproject = true;
+      packages = forEachSystem (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          pythonPackages = pkgs.python3Packages;
+        in
+        {
+          default =
+            with pythonPackages;
+            buildPythonPackage rec {
+              pname = "fenjing";
+              doCheck = false;
+              pyproject = true;
 
-            nativeBuildInputs = [ pkgs.installShellFiles ];
+              nativeBuildInputs = [
+                pkgs.installShellFiles
+                setuptools
+                setuptools-scm
+              ];
 
-            build-system = [
-              setuptools
-              setuptools-scm
-            ];
+              propagatedBuildInputs = [
+                requests
+                beautifulsoup4
+                click
+                flask
+                jinja2
+                prompt-toolkit
+                pygments
+                pysocks
+                rich
+              ];
 
-            dependencies = [
-              requests
-              beautifulsoup4
-              click
-              flask
-              jinja2
-              prompt-toolkit
-              pygments
-              pysocks
-              rich
-            ];
+              postInstall = ''
+                installShellCompletion --cmd fenjing \
+                  --bash <(_FENJING_COMPLETE=bash_source $out/bin/fenjing) \
+                  --fish <(_FENJING_COMPLETE=fish_source $out/bin/fenjing) \
+                  --zsh <(_FENJING_COMPLETE=zsh_source $out/bin/fenjing)
+              '';
 
-            postInstall = ''
-              installShellCompletion --cmd fenjing \
-                --bash <(_FENJING_COMPLETE=bash_source $out/bin/fenjing) \
-                --fish <(_FENJING_COMPLETE=fish_source $out/bin/fenjing) \
-                --zsh <(_FENJING_COMPLETE=zsh_source $out/bin/fenjing) \
-            '';
-
-            src = ./.;
-            version = (lib.strings.removeSuffix "\n" (builtins.readFile "${src}/VERSION"));
-          };
-      }
-    );
+              src = ./.;
+              version = builtins.readFile "${src}/VERSION";
+            };
+        }
+      );
+    };
 }
