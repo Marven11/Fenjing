@@ -63,6 +63,8 @@
               build
               black
               rich
+              mcp
+              pip
             ];
             postVenvCreation = ''
               unset SOURCE_DATE_EPOCH
@@ -121,6 +123,7 @@
                 pygments
                 pysocks
                 rich
+                mcp
               ];
 
               postInstall = ''

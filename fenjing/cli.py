@@ -820,7 +820,7 @@ def add_options(options):
 
 @click.group()
 @click.option("--silent", "--shutup", is_flag=True, default=False, help="不打印INFO等")
-def main(silent):
+def main(silent=False):
     """click的命令组"""
     if not silent:
         console.print(f"[yellow bold]{rich_escape(TITLE)}[/]")
@@ -1391,6 +1391,27 @@ def webui(host, port, open_browser):
     启动webui
     """
     webui_main(host, port, open_browser)
+
+
+@main.command()
+def mcp():
+    """
+    启动fenjing MCP服务器，为AI工具提供SSTI攻击功能
+    
+    通过Model Context Protocol (MCP)提供以下工具：
+    - crack: 执行SSTI攻击
+    - crack_path: 执行路径型SSTI攻击
+    - session_execute_command: 在攻击会话中执行命令
+    - session_generate_payload: 生成shell命令对应的payload
+    
+    示例用法:
+      fenjing mcp
+    """
+    try:
+        from .mcp_server import main as mcp_main
+    except ImportError as e:
+        raise ImportError("未找到mcp依赖，请通过pip install fenjing[mcp]安装") from e
+    mcp_main()
 
 
 if __name__ == "__main__":

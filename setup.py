@@ -28,6 +28,9 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=requirements,
+    extras_require={
+        "mcp": ["mcp"],
+    },
     package_data={
         "fenjing": ["templates/*", "static/*"],
     },
