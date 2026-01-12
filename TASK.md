@@ -6,7 +6,7 @@
 
 - [ ] 测试前几个commit添加的fenjing mcp功能
   - 将tests/vulunserver.py部署到secret中的dell nixos并访问
-  - 使用MCP inspector CLI调试mcp
+  - 调试mcp
     - 测试crack并执行ls /
     - 测试crack-path并执行ls /
 
@@ -22,8 +22,8 @@
 
 - 调试MCP
   - 必须在这台机器上进行调试
-  - 必须使用[MCP Inspector CLI](https://github.com/modelcontextprotocol/inspector)调试MCP
-  - 必须完整下载并阅读MCP Inspector CLI的README再行动
+  - 必须使用revert_mcp.py脚本正确配置环境启动MCP: `nix develop --command python /路径/revert_mcp.py 'nix develop --command python -m fenjing mcp'`
+  - 必须完整阅读revert_mcp.py脚本的代码再行动
   - 必须使用`python -m fenjing mcp`而不是直接启动子模块启动服务器！
   - 禁止使用web端测试MCP
     - 你看不到web端的界面
