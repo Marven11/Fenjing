@@ -4,7 +4,11 @@
 
 # 任务
 
-- [ ] 测试前几个commit添加的fenjing mcp功能
+- [ ] 修改mcp server使用的json dumps，使用ensure_ascii=False
+- [ ] 为mcp server删除crack*两个工具的默认参数
+- [ ] 为mcp server添加scan工具，注意不要有默认参数
+- [ ] 将tests/vulunserver.py部署到secret中的dell nixos并用于测试crack, crack-path, scan三个功能
+- [ ] 测试前几个任务添加的fenjing mcp功能
   - 将tests/vulunserver.py部署到secret中的dell nixos并访问
   - 调试mcp
     - 测试crack并执行ls /
@@ -19,11 +23,6 @@
 文风简洁有力，就像在做学术报告一样
 
 # 暂时搁置
-
-- [ ] 修改mcp server使用的json dumps，使用ensure_ascii=False
-- [ ] 为mcp server删除crack*两个工具的默认参数
-- [ ] 为mcp server添加scan工具，注意不要有默认参数
-- [ ] 将tests/vulunserver.py部署到secret中的dell nixos并用于测试crack, crack-path, scan三个功能
 
 # 注意
 
