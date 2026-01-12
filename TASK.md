@@ -18,6 +18,13 @@
 
 文风简洁有力，就像在做学术报告一样
 
+# 暂时搁置
+
+- [ ] 修改mcp server使用的json dumps，使用ensure_ascii=False
+- [ ] 为mcp server删除crack*两个工具的默认参数
+- [ ] 为mcp server添加scan工具，注意不要有默认参数
+- [ ] 将tests/vulunserver.py部署到secret中的dell nixos并用于测试crack, crack-path, scan三个功能
+
 # 注意
 
 - 调试MCP
@@ -25,6 +32,7 @@
   - 必须使用revert_mcp.py脚本正确配置环境启动MCP: `nix develop --command python /路径/revert_mcp.py 'nix develop --command python -m fenjing mcp'`
   - 必须完整阅读revert_mcp.py脚本的代码再行动
   - 必须使用`python -m fenjing mcp`而不是直接启动子模块启动服务器！
+  - 启动后：攻击需要大约1-10分钟，耐心等待攻击完成，每次等待约30秒
   - 禁止使用web端测试MCP
     - 你看不到web端的界面
     - 你没有图像识别能力
