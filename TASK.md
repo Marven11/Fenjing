@@ -4,8 +4,18 @@
 
 # 任务
 
-- [x] 清理mcp_server.py中在文件中写日志的实现。这类玩具实现不应该出现在正常的项目中
-- [x] 为mcp server添加crack-keywords功能，输入参数仅有黑名单列表list[str]和目标命令str
+- [ ] 当前cli.py启动攻击任务的流程较为混乱，需要重构
+  - 设计: job.py
+    - Job
+      - context: 由任务指定类型的context
+      - payload_geneartor: 攻击成功后获得的FullPayloadGen/EvalArgsModePayloadGen
+      - submitter: 攻击成功后获得的submitter
+    - (CrackForm/CrackFormEvalArgs/CrackPath/Scan/...)JobContext - 保存攻击所需要的静态的信息
+      - url, form, requester, options, tamper_cmd, method, json_data, requests
+    - 函数
+      - do crack pre: 根据context的类型发动攻击，获得payload gen
+      - do crack: 根据context和传入的exec_cmd等决定，开启交互模式或仅仅生成命令payload并上传
+  - mcp禁止使用tamper_cmd
 - [ ] 测试前几个任务维护的fenjing mcp功能
   - 将tests/vulunserver.py部署到secret中的dell nixos并访问
   - 调试mcp
