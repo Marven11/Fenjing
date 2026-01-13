@@ -4,11 +4,9 @@
 
 # 任务
 
-- [ ] 修改mcp server使用的json dumps，使用ensure_ascii=False
-- [ ] 为mcp server删除crack*两个工具的默认参数
-- [ ] 为mcp server添加scan工具，注意不要有默认参数
-- [ ] 将tests/vulunserver.py部署到secret中的dell nixos并用于测试crack, crack-path, scan三个功能
-- [ ] 测试前几个任务添加的fenjing mcp功能
+- [ ] 清理mcp_server.py中在文件中写日志的实现。这类玩具实现不应该出现在正常的项目中
+- [ ] 为mcp server添加crack-keywords功能，输入参数仅有黑名单列表list[str]和目标命令str
+- [ ] 测试前几个任务维护的fenjing mcp功能
   - 将tests/vulunserver.py部署到secret中的dell nixos并访问
   - 调试mcp
     - 测试crack并执行ls /
