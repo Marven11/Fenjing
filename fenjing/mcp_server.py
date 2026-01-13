@@ -15,6 +15,7 @@ from .submitter import PathSubmitter, FormSubmitter, Submitter
 from .options import Options
 from .form import get_form
 from .full_payload_gen import FullPayloadGen
+from .scan_url import yield_form
 from urllib.parse import urlparse
 
 # MCP服务器实例
@@ -43,9 +44,9 @@ def get_session(session_id: str) -> Optional[Dict[str, Any]]:
 @mcp.tool()
 async def crack(
     url: str,
-    method: str = "GET",
-    inputs: str = "",
-    interval: float = 0.0
+    method: str,
+    inputs: str,
+    interval: float
 ) -> str:
     """
     执行SSTI攻击
@@ -106,17 +107,17 @@ async def crack(
                 "target": url,
                 "method": method,
                 "inputs": inputs
-            })
+            }, ensure_ascii=False)
     
     return json.dumps({
         "error": "攻击失败，未找到可用的输入字段"
-    })
+    }, ensure_ascii=False)
 
 
 @mcp.tool()
 async def crack_path(
     url: str,
-    interval: float = 0.0
+    interval: float
 ) -> str:
     """
     执行路径型SSTI攻击
@@ -152,7 +153,7 @@ async def crack_path(
     if not cracker.has_respond():
         return json.dumps({
             "error": "目标无响应"
-        })
+        }, ensure_ascii=False)
     
     full_payload_gen = cracker.crack()
     if full_payload_gen:
@@ -161,11 +162,11 @@ async def crack_path(
             "session_id": session_id,
             "message": "路径攻击成功，已创建会话",
             "target": url
-        })
+        }, ensure_ascii=False)
     
     return json.dumps({
         "error": "路径攻击失败"
-    })
+    }, ensure_ascii=False)
 
 
 @mcp.tool()
@@ -187,7 +188,7 @@ async def session_execute_command(
     if not session:
         return json.dumps({
             "error": "会话不存在或已过期"
-        })
+        }, ensure_ascii=False)
     
     full_payload_gen = session["full_payload_gen"]
     submitter = session["submitter"]
@@ -203,21 +204,21 @@ async def session_execute_command(
                     "success": True,
                     "result": result,
                     "session_id": session_id
-                })
+                }, ensure_ascii=False)
             else:
                 return json.dumps({
                     "success": True,
                     "message": "命令已提交，但无返回内容（可能为后台执行）",
                     "session_id": session_id
-                })
+                }, ensure_ascii=False)
         else:
             return json.dumps({
                 "error": "生成payload失败"
-            })
+            }, ensure_ascii=False)
     else:
         return json.dumps({
             "error": "不支持的payload生成器类型"
-        })
+        }, ensure_ascii=False)
 
 
 @mcp.tool()
@@ -239,7 +240,7 @@ async def session_generate_payload(
     if not session:
         return json.dumps({
             "error": "会话不存在或已过期"
-        })
+        }, ensure_ascii=False)
     
     full_payload_gen = session["full_payload_gen"]
     
@@ -249,14 +250,61 @@ async def session_generate_payload(
     if payload is None:
         return json.dumps({
             "error": "生成payload失败"
-        })
+        }, ensure_ascii=False)
     
     return json.dumps({
         "payload": payload,
         "will_print": will_print,
         "session_id": session_id
-    })
+    }, ensure_ascii=False)
 
+
+@mcp.tool()
+async def scan(
+    url: str,
+    interval: float
+) -> str:
+    """
+    扫描目标URL并返回所有发现的表单
+    
+    Args:
+        url: 目标URL
+        interval: 请求间隔时间（秒）
+    
+    Returns:
+        扫描结果，包含所有发现的URL和表单
+    """
+    # 创建请求器
+    requester = HTTPRequester(
+        interval=interval,
+        user_agent="fenjing-mcp/1.0",
+        headers={},
+        extra_params_querystr=None,
+        extra_data_querystr=None,
+        proxy="",
+        no_verify_ssl=False
+    )
+
+    # 扫描表单
+    results = []
+    for target_url, forms in yield_form(requester, url):
+        form_list = []
+        for form in forms:
+            form_list.append({
+                "action": form.get("action"),
+                "method": form.get("method"),
+                "inputs": form.get("inputs")
+            })
+        results.append({
+            "url": target_url,
+            "forms": form_list
+        })
+
+    return json.dumps({
+        "success": True,
+        "results": results,
+        "target": url
+    }, ensure_ascii=False)
 
 def main():
     """启动MCP服务器"""

@@ -324,12 +324,6 @@ def is_form_has_response(
     Returns:
         bool: 是否可能有SSTI的参数
     """
-    if "127.0.0.1" in url or "localhost" in url:
-        logger.info(
-            "Try out our new feature [cyan bold]crack-keywords[/] with "
-            '[cyan bold]python -m fenjing crack-keywords -k ./app.py -c "ls"[/]!',
-            extra={"markup": True, "highlighter": None},
-        )
     for input_field in form["inputs"]:
         submitter = FormSubmitter(
             url,
