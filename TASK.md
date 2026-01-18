@@ -4,19 +4,8 @@
 
 # 任务
 
-- [x] 当前cli.py启动攻击任务的流程较为混乱，需要重构
-  - 设计: job.py
-    - Job
-      - context: 由任务指定类型的context
-      - payload_geneartor: 攻击成功后获得的FullPayloadGen/EvalArgsModePayloadGen
-      - submitter: 攻击成功后获得的submitter
-    - (CrackForm/CrackFormEvalArgs/CrackPath/Scan/...)JobContext - 保存攻击所需要的静态的信息
-      - 必须规划每个context包含什么信息，避免使用继承
-      - url, form, requester, options, tamper_cmd, method, json_data, requests
-    - 函数
-      - do crack pre: 根据context的类型发动攻击，获得payload gen
-      - do crack: 根据context和传入的exec_cmd等决定，开启交互模式或仅仅生成命令payload并上传
-  - mcp禁止使用tamper_cmd
+- [ ] commit 20efa43完成了job.py的重构，现在需要将mcp server的实现也重构，让其使用job.py
+  - 需要清理mcp server中的代码
 - [ ] 通过终端测试fenjing
   - 将tests/vulunserver.py部署到secret中的dell nixos并访问
   - 分别测试crack, crack-path, scan并验证是否成功
