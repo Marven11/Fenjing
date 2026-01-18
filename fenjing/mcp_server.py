@@ -115,7 +115,7 @@ async def crack_path(url: str, interval: float) -> str:
     执行路径型SSTI攻击
 
     Args:
-        url: 目标URL
+        url: 目标URL, 例如`http://.../path/{{7*7}}`存在漏洞则传入`http://.../path/`
         interval: 请求间隔时间（秒）
 
     Returns:
