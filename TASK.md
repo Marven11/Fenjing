@@ -4,9 +4,9 @@
 
 # 任务
 
-- [ ] commit 20efa43完成了job.py的重构，现在需要将mcp server的实现也重构，让其使用job.py中的Job类而不是手动管理所有状态
-  - 需要将获得的所有信息放进对应的context中并直接传给Job，不要手动处理任何信息
-  - 需要清理mcp server中的代码
+- [ ] 当前mcp_server.py将字典序列化成字符串再返回，这不合理
+  - 查看mcp server的文档和源码，分析其是否支持返回字典
+  - 重构mcp_server.py使用合适的返回格式
 - [ ] 通过终端测试fenjing
   - 将tests/vulunserver.py部署到secret中的dell nixos并访问
   - 分别测试crack, crack-path, scan并验证是否成功
