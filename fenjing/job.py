@@ -515,6 +515,15 @@ class Job:
         else:
             interact(cmd_exec_func)
 
+    def execute_command(self, command: str) -> str:
+        if self.payload_generator is None or self.submitter is None:
+            raise ValueError("Job not initialized, call do_crack_pre() first")
+        return do_submit_cmdexec(
+            command,
+            self.submitter,
+            self.payload_generator,
+        )
+
 
 def do_crack_form_pre(
     url: str,
