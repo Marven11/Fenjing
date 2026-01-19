@@ -20,7 +20,7 @@ sessions: Dict[str, Job] = {}
 
 
 @mcp.tool()
-async def crack(url: str, method: str, inputs: str, interval: float) -> str:
+async def crack(url: str, method: str, inputs: str, interval: float) -> dict:
     """
     执行SSTI攻击
 
@@ -64,22 +64,19 @@ async def crack(url: str, method: str, inputs: str, interval: float) -> str:
     if job.do_crack_pre():
         session_id = str(uuid.uuid4())
         sessions[session_id] = job
-        return json.dumps(
-            {
-                "session_id": session_id,
-                "message": "攻击成功，已创建会话",
-                "target": url,
-                "method": method,
-                "inputs": inputs,
-            },
-            ensure_ascii=False,
-        )
+        return {
+            "session_id": session_id,
+            "message": "攻击成功，已创建会话",
+            "target": url,
+            "method": method,
+            "inputs": inputs,
+        }
     else:
-        return json.dumps({"error": "攻击失败，未找到可用的输入字段"}, ensure_ascii=False)
+        return {"error": "攻击失败，未找到可用的输入字段"}
 
 
 @mcp.tool()
-async def crack_path(url: str, interval: float) -> str:
+async def crack_path(url: str, interval: float) -> dict:
     """
     执行路径型SSTI攻击
 
@@ -113,20 +110,17 @@ async def crack_path(url: str, interval: float) -> str:
     if job.do_crack_pre():
         session_id = str(uuid.uuid4())
         sessions[session_id] = job
-        return json.dumps(
-            {
-                "session_id": session_id,
-                "message": "路径攻击成功，已创建会话",
-                "target": url,
-            },
-            ensure_ascii=False,
-        )
+        return {
+            "session_id": session_id,
+            "message": "路径攻击成功，已创建会话",
+            "target": url,
+        }
     else:
-        return json.dumps({"error": "路径攻击失败"}, ensure_ascii=False)
+        return {"error": "路径攻击失败"}
 
 
 @mcp.tool()
-async def session_execute_command(session_id: str, command: str) -> str:
+async def session_execute_command(session_id: str, command: str) -> dict:
     """
     在攻击会话中执行命令
 
@@ -139,14 +133,14 @@ async def session_execute_command(session_id: str, command: str) -> str:
     """
     job = sessions.get(session_id)
     if not job:
-        return json.dumps({"error": "会话不存在或已过期"}, ensure_ascii=False)
+        return {"error": "会话不存在或已过期"}
 
     result = job.execute_command(command)
-    return json.dumps({"success": True, "result": result, "session_id": session_id}, ensure_ascii=False)
+    return {"success": True, "result": result, "session_id": session_id}
 
 
 @mcp.tool()
-async def session_generate_payload(session_id: str, command: str) -> str:
+async def session_generate_payload(session_id: str, command: str) -> dict:
     """
     为shell命令生成payload
 
@@ -159,24 +153,25 @@ async def session_generate_payload(session_id: str, command: str) -> str:
     """
     job = sessions.get(session_id)
     if not job:
-        return json.dumps({"error": "会话不存在或已过期"}, ensure_ascii=False)
+        return {"error": "会话不存在或已过期"}
 
     if job.payload_generator is None:
-        return json.dumps({"error": "Job未初始化，无法生成payload"}, ensure_ascii=False)
+        return {"error": "Job未初始化，无法生成payload"}
 
     payload, will_print = job.payload_generator.generate("os_popen_read", command)
 
     if payload is None:
-        return json.dumps({"error": "生成payload失败"}, ensure_ascii=False)
+        return {"error": "生成payload失败"}
 
-    return json.dumps(
-        {"payload": payload, "will_print": will_print, "session_id": session_id},
-        ensure_ascii=False,
-    )
+    return {
+        "payload": payload,
+        "will_print": will_print,
+        "session_id": session_id,
+    }
 
 
 @mcp.tool()
-async def scan(url: str, interval: float) -> str:
+async def scan(url: str, interval: float) -> dict:
     """
     扫描目标URL并返回所有发现的表单
 
@@ -209,13 +204,11 @@ async def scan(url: str, interval: float) -> str:
             )
         results.append({"url": target_url, "forms": form_list})
 
-    return json.dumps(
-        {"success": True, "results": results, "target": url}, ensure_ascii=False
-    )
+    return {"success": True, "results": results, "target": url}
 
 
 @mcp.tool()
-async def crack_keywords(keywords: list[str], command: str) -> str:
+async def crack_keywords(keywords: list[str], command: str) -> dict:
     """
     根据关键字列表生成绕过WAF的payload
 
@@ -240,17 +233,14 @@ async def crack_keywords(keywords: list[str], command: str) -> str:
     payload, will_print = full_payload_gen.generate("os_popen_read", command)
 
     if payload is None:
-        return json.dumps({"error": "生成payload失败"}, ensure_ascii=False)
+        return {"error": "生成payload失败"}
 
-    return json.dumps(
-        {
-            "success": True,
-            "payload": payload,
-            "will_print": will_print,
-            "command": command,
-        },
-        ensure_ascii=False,
-    )
+    return {
+        "success": True,
+        "payload": payload,
+        "will_print": will_print,
+        "command": command,
+    }
 
 
 def main():
