@@ -4,7 +4,7 @@
 
 import json
 import uuid
-from typing import Dict
+from typing import Dict, Optional
 from mcp.server.fastmcp import FastMCP
 
 from .requester import HTTPRequester
@@ -14,13 +14,30 @@ from .scan_url import yield_form
 from urllib.parse import urlparse
 from .job import Job, FormCrackContext, PathCrackContext
 from .full_payload_gen import FullPayloadGen
+from .const import DEFAULT_USER_AGENT, DetectMode, ReplacedKeywordStrategy, TemplateEnvironment, DetectWafKeywords
 
 mcp = FastMCP("fenjing")
 sessions: Dict[str, Job] = {}
 
 
 @mcp.tool()
-async def crack(url: str, method: str, inputs: str, interval: float) -> dict:
+async def crack(
+    url: str,
+    method: str,
+    inputs: str,
+    interval: float,
+    detect_mode: DetectMode = DetectMode.ACCURATE,
+    replaced_keyword_strategy: ReplacedKeywordStrategy = ReplacedKeywordStrategy.AVOID,
+    environment: TemplateEnvironment = TemplateEnvironment.JINJA2,
+    detect_waf_keywords: DetectWafKeywords = DetectWafKeywords.NONE,
+    user_agent: str = DEFAULT_USER_AGENT,
+    header: Optional[Dict[str, str]] = None,
+    cookies: str = "",
+    extra_params: Optional[str] = None,
+    extra_data: Optional[str] = None,
+    proxy: str = "",
+    no_verify_ssl: bool = False,
+) -> dict:
     """
     执行SSTI攻击
 
@@ -39,16 +56,26 @@ async def crack(url: str, method: str, inputs: str, interval: float) -> dict:
         inputs=inputs.split(",") if inputs else [],
     )
 
+    headers = header if header is not None else {}
+    if cookies:
+        headers["Cookie"] = cookies
+
     requester = HTTPRequester(
         interval=interval,
-        user_agent="fenjing-mcp/1.0",
-        headers={},
-        extra_params_querystr=None,
-        extra_data_querystr=None,
-        no_verify_ssl=False,
+        user_agent=user_agent,
+        headers=headers,
+        extra_params_querystr=extra_params,
+        extra_data_querystr=extra_data,
+        proxy=proxy,
+        no_verify_ssl=no_verify_ssl,
     )
 
-    options = Options()
+    options = Options(
+        detect_mode=detect_mode,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+        environment=environment,
+        detect_waf_keywords=detect_waf_keywords,
+    )
 
     context = FormCrackContext(
         url=url,
@@ -76,7 +103,21 @@ async def crack(url: str, method: str, inputs: str, interval: float) -> dict:
 
 
 @mcp.tool()
-async def crack_path(url: str, interval: float) -> dict:
+async def crack_path(
+    url: str,
+    interval: float,
+    detect_mode: DetectMode = DetectMode.ACCURATE,
+    replaced_keyword_strategy: ReplacedKeywordStrategy = ReplacedKeywordStrategy.AVOID,
+    environment: TemplateEnvironment = TemplateEnvironment.JINJA2,
+    detect_waf_keywords: DetectWafKeywords = DetectWafKeywords.NONE,
+    user_agent: str = DEFAULT_USER_AGENT,
+    header: Optional[Dict[str, str]] = None,
+    cookies: str = "",
+    extra_params: Optional[str] = None,
+    extra_data: Optional[str] = None,
+    proxy: str = "",
+    no_verify_ssl: bool = False,
+) -> dict:
     """
     执行路径型SSTI攻击
 
@@ -87,16 +128,26 @@ async def crack_path(url: str, interval: float) -> dict:
     Returns:
         session_id: 攻击成功后的会话ID
     """
+    headers = header if header is not None else {}
+    if cookies:
+        headers["Cookie"] = cookies
+
     requester = HTTPRequester(
         interval=interval,
-        user_agent="fenjing-mcp/1.0",
-        headers={},
-        extra_params_querystr=None,
-        extra_data_querystr=None,
-        no_verify_ssl=False,
+        user_agent=user_agent,
+        headers=headers,
+        extra_params_querystr=extra_params,
+        extra_data_querystr=extra_data,
+        proxy=proxy,
+        no_verify_ssl=no_verify_ssl,
     )
 
-    options = Options()
+    options = Options(
+        detect_mode=detect_mode,
+        replaced_keyword_strategy=replaced_keyword_strategy,
+        environment=environment,
+        detect_waf_keywords=detect_waf_keywords,
+    )
 
     # 创建上下文
     context = PathCrackContext(
@@ -171,7 +222,21 @@ async def session_generate_payload(session_id: str, command: str) -> dict:
 
 
 @mcp.tool()
-async def scan(url: str, interval: float) -> dict:
+async def scan(
+    url: str,
+    interval: float,
+    detect_mode: DetectMode = DetectMode.ACCURATE,
+    replaced_keyword_strategy: ReplacedKeywordStrategy = ReplacedKeywordStrategy.AVOID,
+    environment: TemplateEnvironment = TemplateEnvironment.JINJA2,
+    detect_waf_keywords: DetectWafKeywords = DetectWafKeywords.NONE,
+    user_agent: str = DEFAULT_USER_AGENT,
+    header: Optional[Dict[str, str]] = None,
+    cookies: str = "",
+    extra_params: Optional[str] = None,
+    extra_data: Optional[str] = None,
+    proxy: str = "",
+    no_verify_ssl: bool = False,
+) -> dict:
     """
     扫描目标URL并返回所有发现的表单
 
@@ -182,13 +247,18 @@ async def scan(url: str, interval: float) -> dict:
     Returns:
         扫描结果，包含所有发现的URL和表单
     """
+    headers = header if header is not None else {}
+    if cookies:
+        headers["Cookie"] = cookies
+
     requester = HTTPRequester(
         interval=interval,
-        user_agent="fenjing-mcp/1.0",
-        headers={},
-        extra_params_querystr=None,
-        extra_data_querystr=None,
-        no_verify_ssl=False,
+        user_agent=user_agent,
+        headers=headers,
+        extra_params_querystr=extra_params,
+        extra_data_querystr=extra_data,
+        proxy=proxy,
+        no_verify_ssl=no_verify_ssl,
     )
 
     results = []
