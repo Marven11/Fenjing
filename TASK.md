@@ -4,10 +4,12 @@
 
 # 任务
 
-- [ ] 当前mcp_server.py将字典序列化成字符串再返回，这不合理
-  - 查看mcp server的文档和源码，分析其是否支持返回字典
-  - 重构mcp_server.py使用合适的返回格式
-- [ ] 通过终端测试fenjing
+- [ ] mcp_server.py使用的user agent和cli.py使用的DEFAULT_USER_AGENT不同，让mcp_server.py使用DEFAULT_USER_AGENT
+- [ ] 当前mcp_server.py不支持cli.py支持的参数
+  - 添加这些有默认值的参数，默认值和cli.py保持一致
+    - detect_mode, replaced_keyword_strategy, environment, detect_waf_keywords, user_agent, header, cookies, extra_params, extra_data, proxy, no_verify_ssl
+  - 不要添加tamper_cmd!
+- [x] 通过终端测试fenjing
   - 将tests/vulunserver.py部署到secret中的dell nixos并访问
   - 分别测试crack, crack-path, scan并验证是否成功
 - [ ] 测试前几个任务维护的fenjing mcp功能
