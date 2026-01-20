@@ -236,6 +236,27 @@ payload生成原理见[howitworks.md](./howitworks.md)
     - `--tamper-cmd 'base64 | rev'`：将payload进行base64编码并反转后再发出
 - 详细解释见[examples.md](examples.md)
 
+### MCP服务器支持
+
+焚靖支持通过Model Context Protocol（MCP）作为外部服务提供给AI助手使用。
+
+#### 配置方法
+
+在MCP客户端配置文件中添加以下配置（例如OpenCode的opencode.jsonc）：
+
+```json
+{
+  "mcp": {
+    "fenjing": {
+      "type": "local",
+      "command": ["pipx", "fenjing", "mcp"],
+      "enabled": true
+    }
+  }
+}
+```
+
+配置完成后，AI助手即可通过焚靖进行SSTI漏洞检测和攻击。
 
 ### 作为python库使用
 
