@@ -31,7 +31,7 @@ jobs:
         pip install -r requirements.txt
     - name: Run tests
       env: 
-        VULUNSERVER_ADDR: "http://127.0.0.1:5000"
+        VULUNSERVER_ADDR: "http://127.0.0.1:5001"
       run: | 
         cd tests
         export SLEEP_INTERVAL=0.01
