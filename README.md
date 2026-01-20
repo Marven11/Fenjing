@@ -249,7 +249,7 @@ payload生成原理见[howitworks.md](./howitworks.md)
   "mcp": {
     "fenjing": {
       "type": "local",
-      "command": ["pipx", "fenjing", "mcp"],
+      "command": ["fenjing", "mcp"],
       "enabled": true
     }
   }
