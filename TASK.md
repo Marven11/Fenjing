@@ -4,14 +4,15 @@
 
 # 任务
 
-- [ ] mcp_server.py使用的user agent和cli.py使用的DEFAULT_USER_AGENT不同，让mcp_server.py使用DEFAULT_USER_AGENT
-- [ ] 当前mcp_server.py不支持cli.py支持的参数
-  - 添加这些有默认值的参数，默认值和cli.py保持一致
-    - detect_mode, replaced_keyword_strategy, environment, detect_waf_keywords, user_agent, header, cookies, extra_params, extra_data, proxy, no_verify_ssl
-  - 不要添加tamper_cmd!
-- [x] 通过终端测试fenjing
-  - 将tests/vulunserver.py部署到secret中的dell nixos并访问
-  - 分别测试crack, crack-path, scan并验证是否成功
+- [ ] 使用`tailscale ping <dell nixos ip>`测试网络连通性
+- [ ] 在dell nixos上搭建tests/vulunserver.py并在master host上使用curl访问，确认可用
+- [ ] 将crack功能由单纯的攻击功能改为启动攻击任务线程并返回thread uuid
+  - 现状：当前crack*等mcp tool仅简单地运行任务并退出
+  - 问题：当前fenjing mcp的crack功能需要运行十分钟，导致opencode认为超时并退出
+  - 规划
+    - 阅读mcp文档
+    - 将crack*等mcp tool改为启动新线程并返回线程对应的uuid
+    - 添加工具允许agent通过uuid查看线程运行结果
 - [ ] 测试前几个任务维护的fenjing mcp功能
   - 将tests/vulunserver.py部署到secret中的dell nixos并访问
   - 调试mcp
