@@ -4,7 +4,10 @@
 
 import json
 import uuid
+import threading
 from typing import Dict, Optional
+from enum import Enum
+from datetime import datetime
 from mcp.server.fastmcp import FastMCP
 
 from .requester import HTTPRequester
@@ -14,10 +17,58 @@ from .scan_url import yield_form
 from urllib.parse import urlparse
 from .job import Job, FormCrackContext, PathCrackContext
 from .full_payload_gen import FullPayloadGen
-from .const import DEFAULT_USER_AGENT, DetectMode, ReplacedKeywordStrategy, TemplateEnvironment, DetectWafKeywords
+from .const import (
+    DEFAULT_USER_AGENT,
+    DetectMode,
+    ReplacedKeywordStrategy,
+    TemplateEnvironment,
+    DetectWafKeywords,
+)
 
 mcp = FastMCP("fenjing")
 sessions: Dict[str, Job] = {}
+
+
+# 异步任务管理
+class TaskStatus(Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+task_registry: Dict[str, dict] = {}
+task_lock = threading.Lock()
+
+
+def _run_crack_task(task_id: str, context, crack_type: str):
+    """后台执行crack任务"""
+    with task_lock:
+        task_registry[task_id]["status"] = TaskStatus.RUNNING
+
+    try:
+        job = Job(context)
+        if job.do_crack_pre():
+            session_id = task_id  # 使用task_id作为session_id
+            with task_lock:
+                sessions[session_id] = job
+                task_registry[task_id]["status"] = TaskStatus.COMPLETED
+                task_registry[task_id]["result"] = {
+                    "session_id": session_id,
+                    "message": "攻击成功，已创建会话",
+                    "target": context.url if hasattr(context, "url") else "",
+                }
+                if crack_type == "form":
+                    task_registry[task_id]["result"]["method"] = context.method
+                    task_registry[task_id]["result"]["inputs"] = context.inputs
+        else:
+            with task_lock:
+                task_registry[task_id]["status"] = TaskStatus.FAILED
+                task_registry[task_id]["error"] = "攻击失败，未找到可用的输入字段"
+    except Exception as e:
+        with task_lock:
+            task_registry[task_id]["status"] = TaskStatus.FAILED
+            task_registry[task_id]["error"] = str(e)
 
 
 @mcp.tool()
@@ -39,7 +90,7 @@ async def crack(
     no_verify_ssl: bool = False,
 ) -> dict:
     """
-    执行SSTI攻击
+    执行SSTI攻击（异步版本）
 
     Args:
         url: 目标URL
@@ -48,7 +99,7 @@ async def crack(
         interval: 请求间隔时间（秒）建议传入0.1以下的值
 
     Returns:
-        session_id: 攻击成功后的会话ID
+        task_id: 任务ID，用于查询状态
     """
     form = get_form(
         action=urlparse(url).path,
@@ -87,19 +138,27 @@ async def crack(
         inputs=inputs.split(",") if inputs else [],
     )
 
-    job = Job(context)
-    if job.do_crack_pre():
-        session_id = str(uuid.uuid4())
-        sessions[session_id] = job
-        return {
-            "session_id": session_id,
-            "message": "攻击成功，已创建会话",
-            "target": url,
-            "method": method,
-            "inputs": inputs,
+    task_id = str(uuid.uuid4())
+    with task_lock:
+        task_registry[task_id] = {
+            "status": TaskStatus.PENDING,
+            "created_at": datetime.now(),
+            "crack_type": "form",
+            "context": context,
+            "result": None,
+            "error": None,
         }
-    else:
-        return {"error": "攻击失败，未找到可用的输入字段"}
+
+    # 启动后台线程
+    thread = threading.Thread(target=_run_crack_task, args=(task_id, context, "form"))
+    thread.daemon = True
+    thread.start()
+
+    return {
+        "task_id": task_id,
+        "status": "started",
+        "message": "任务已启动，请使用task_inspect查询进度",
+    }
 
 
 @mcp.tool()
@@ -119,14 +178,14 @@ async def crack_path(
     no_verify_ssl: bool = False,
 ) -> dict:
     """
-    执行路径型SSTI攻击
+    执行路径型SSTI攻击（异步版本）
 
     Args:
         url: 目标URL, 例如`http://.../path/{{7*7}}`存在漏洞则传入`http://.../path/`
         interval: 请求间隔时间（秒）建议传入0.1以下的值
 
     Returns:
-        session_id: 攻击成功后的会话ID
+        task_id: 任务ID，用于查询状态
     """
     headers = header if header is not None else {}
     if cookies:
@@ -149,7 +208,6 @@ async def crack_path(
         detect_waf_keywords=detect_waf_keywords,
     )
 
-    # 创建上下文
     context = PathCrackContext(
         url=url,
         requester=requester,
@@ -157,17 +215,69 @@ async def crack_path(
         tamper_cmd=None,
     )
 
-    job = Job(context)
-    if job.do_crack_pre():
-        session_id = str(uuid.uuid4())
-        sessions[session_id] = job
-        return {
-            "session_id": session_id,
-            "message": "路径攻击成功，已创建会话",
-            "target": url,
+    task_id = str(uuid.uuid4())
+    with task_lock:
+        task_registry[task_id] = {
+            "status": TaskStatus.PENDING,
+            "created_at": datetime.now(),
+            "crack_type": "path",
+            "context": context,
+            "result": None,
+            "error": None,
         }
-    else:
-        return {"error": "路径攻击失败"}
+
+    thread = threading.Thread(target=_run_crack_task, args=(task_id, context, "path"))
+    thread.daemon = True
+    thread.start()
+
+    return {
+        "task_id": task_id,
+        "status": "started",
+        "message": "任务已启动，请使用task_inspect查询进度",
+    }
+
+
+@mcp.tool()
+async def task_inspect(task_id: str) -> dict:
+    """
+    查询任务状态和结果（合并版）
+
+    Args:
+        task_id: 任务ID
+
+    Returns:
+        包含任务状态、创建时间、类型等完整信息
+        如果任务完成则包含result
+        如果任务失败则包含error
+    """
+    with task_lock:
+        task = task_registry.get(task_id)
+
+    if not task:
+        return {"error": "任务不存在"}
+
+    status = task["status"]
+    result = {
+        "task_id": task_id,
+        "status": status.value if isinstance(status, TaskStatus) else status,
+        "created_at": (
+            task["created_at"].isoformat()
+            if isinstance(task["created_at"], datetime)
+            else str(task["created_at"])
+        ),
+        "crack_type": task.get("crack_type", "unknown"),
+    }
+
+    if status == TaskStatus.COMPLETED:
+        result["result"] = task["result"]
+    elif status == TaskStatus.FAILED:
+        result["error"] = task["error"]
+    elif status == TaskStatus.RUNNING:
+        result["message"] = "任务正在执行中"
+    elif status == TaskStatus.PENDING:
+        result["message"] = "任务等待执行"
+
+    return result
 
 
 @mcp.tool()
@@ -176,7 +286,7 @@ async def session_execute_command(session_id: str, command: str) -> dict:
     在攻击会话中执行命令
 
     Args:
-        session_id: 会话ID
+        session_id: 会话ID（即任务ID）
         command: 要执行的shell命令
 
     Returns:
@@ -196,7 +306,7 @@ async def session_generate_payload(session_id: str, command: str) -> dict:
     为shell命令生成payload
 
     Args:
-        session_id: 会话ID
+        session_id: 会话ID（即任务ID）
         command: 要执行的shell命令
 
     Returns:
