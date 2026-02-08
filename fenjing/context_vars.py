@@ -131,7 +131,8 @@ const_exprs: ContextExpression = {
         precedence["plain_filter"],
     ),
     "lipsum.__doc__|length": (43, precedence["plain_filter"]),
-    "namespace.__doc__|length": (126, precedence["plain_filter"]),
+    # failed on some version
+    # "namespace.__doc__|length": (126, precedence["plain_filter"]),
     "joiner|urlencode|wordcount": (7, precedence["plain_filter"]),
     "namespace|escape|count": (46, precedence["plain_filter"]),
     "cycler|escape|urlencode|count": (65, precedence["plain_filter"]),
