@@ -41,6 +41,8 @@ import json
 logger = logging.getLogger("webui")
 app = Flask(__name__)
 tasks = {}
+create_time_lock = threading.Lock()
+last_create_task_time = 0
 
 
 class CallBackLogger:
@@ -398,6 +400,12 @@ def scan():
 )
 def create_task():
     """创建攻击任务"""
+    global last_create_task_time
+    with create_time_lock:
+        duration = time.perf_counter() - last_create_task_time
+        if duration < 0.1:
+            time.sleep(0.1 - duration)
+        last_create_task_time = time.perf_counter()
     task_type = request.form.get("type", None)
     if task_type == "crack":
         if request.form["url"] == "" or request.form["inputs"] == "":
