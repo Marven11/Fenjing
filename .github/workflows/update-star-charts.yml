@@ -37,6 +37,12 @@ jobs:
       - name: Install pnpm
         run: npm install -g pnpm@9
 
+      - name: Fetch gen-fenjing-svg.ts from main branch
+        run: |
+          # images 分支可能没有这个脚本,从 main 分支捞
+          git fetch origin main --depth=1
+          git checkout origin/main -- .github/scripts/gen-fenjing-svg.ts
+
       - name: Generate stars.svg via star-history open-source renderer
         env:
           # stargazers 端点只需 "Metadata: read" 权限 + 仓库 collaborator 身份。
