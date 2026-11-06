@@ -49,6 +49,28 @@
         <input type="text" name="key" id="form-key" placeholder="key" />
       </div>
       <div class="form-row">
+        <label for="extra_params">额外GET参数</label>
+        <div class="hint-question-mark" title="请求时附带的额外GET参数，如 a=1&amp;b=2">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11.967 12.75C12.967 11.75 13.967 11.3546 13.967 10.25C13.967 9.14543 13.0716 8.25 11.967 8.25C11.0351 8.25 10.252 8.88739 10.03 9.75M11.967 15.75H11.977M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <input type="text" name="extra_params" id="form-extra-params" placeholder="a=1&amp;b=2" />
+      </div>
+      <div class="form-row">
+        <label for="extra_data">额外POST参数</label>
+        <div class="hint-question-mark" title="请求时附带的额外POST参数，如 a=1&amp;b=2">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11.967 12.75C12.967 11.75 13.967 11.3546 13.967 10.25C13.967 9.14543 13.0716 8.25 11.967 8.25C11.0351 8.25 10.252 8.88739 10.03 9.75M11.967 15.75H11.977M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <input type="text" name="extra_data" id="form-extra-data" placeholder="a=1&amp;b=2" />
+      </div>
+      <div class="form-row">
         <label for="interval">请求间隔</label>
         <div class="hint-question-mark" title="发送请求的间隔，单位为秒">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -68,7 +90,7 @@
               stroke-width="2" stroke-linecap="round" />
           </svg>
         </div>
-        <select name="detect-mode" id="form-detect-mode">
+        <select name="detect_mode" id="form-detect-mode">
           <option value="accurate">精确</option>
           <option value="fast">快速</option>
         </select>
@@ -86,6 +108,32 @@
           <option value="jinja2">jinja内部</option>
           <option value="flask">flask内部</option>
         </select>
+      </div>
+      <div class="form-row">
+        <label for="detect_waf_keywords">枚举waf关键字</label>
+        <div class="hint-question-mark" title="是否枚举被waf的关键字，需要额外时间">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11.967 12.75C12.967 11.75 13.967 11.3546 13.967 10.25C13.967 9.14543 13.0716 8.25 11.967 8.25C11.0351 8.25 10.252 8.88739 10.03 9.75M11.967 15.75H11.977M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <select name="detect_waf_keywords" id="form-detect_waf_keywords">
+          <option value="none">不枚举waf关键字</option>
+          <option value="fast">快速枚举waf关键字</option>
+          <option value="full">精细枚举waf关键字</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label for="waf_keywords">WAF关键字</label>
+        <div class="hint-question-mark" title="已知的WAF拦截关键字，多个用逗号或换行分隔；填写后会跳过自动检测">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M11.967 12.75C12.967 11.75 13.967 11.3546 13.967 10.25C13.967 9.14543 13.0716 8.25 11.967 8.25C11.0351 8.25 10.252 8.88739 10.03 9.75M11.967 15.75H11.977M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+              stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <input type="text" name="waf_keywords" id="form-waf-keywords" placeholder="hacker!!!!, flag" />
       </div>
       <input type="hidden" name="type" value="crack-json" />
       <div class="form-row">

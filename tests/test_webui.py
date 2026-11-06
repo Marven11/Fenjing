@@ -3,7 +3,7 @@
 
 import sys
 
-sys.path.append("..")
+sys.path.insert(0, "..")
 
 import time
 import threading
@@ -29,6 +29,48 @@ class TestWebui(unittest.TestCase):
         resp = requests.get(WEBUI_URL)
         self.assertEqual(resp.status_code, 200)
         self.assertIn("<!DOCTYPE html>", resp.text)
+
+    def test_detect_mode_field_name(self):
+        resp = requests.get(WEBUI_URL)
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('name="detect_mode"', resp.text)
+        self.assertNotIn('name="detect-mode"', resp.text)
+        self.assertIn('name="waf_keywords"', resp.text)
+        self.assertIn('name="extra_params"', resp.text)
+        self.assertIn('name="extra_data"', resp.text)
+
+    def test_parse_options(self):
+        options = webui.parse_options(
+            {
+                "detect_mode": "fast",
+                "environment": "jinja2",
+                "replaced_keyword_strategy": "doubletapping",
+                "detect_waf_keywords": "fast",
+                "waf_keywords": "hacker!!!!, flag\nanother",
+            }
+        )
+        self.assertEqual(options.detect_mode, const.DetectMode.FAST)
+        self.assertEqual(options.environment, const.TemplateEnvironment.JINJA2)
+        self.assertEqual(
+            options.replaced_keyword_strategy,
+            const.ReplacedKeywordStrategy.DOUBLETAPPING,
+        )
+        self.assertEqual(options.detect_waf_keywords, const.DetectWafKeywords.FAST)
+        self.assertEqual(options.waf_keywords, ("hacker!!!!", "flag", "another"))
+
+    def test_crack_task_extra_params(self):
+        task = webui.CrackTaskThread(
+            url=VULUNSERVER_URL,
+            form={"action": "/", "method": "GET", "inputs": {"name"}},
+            interval=0.0,
+            options=webui.Options(),
+            extra_params_querystr="submit=submit&a=1",
+            extra_data_querystr="b=2",
+        )
+        self.assertEqual(
+            task.requester.extra_params, {"submit": ["submit"], "a": ["1"]}
+        )
+        self.assertEqual(task.requester.extra_data, {"b": ["2"]})
 
     def wait_for_task(self, task_id, task_type, max_time=60):
         start_time = time.perf_counter()

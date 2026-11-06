@@ -154,7 +154,15 @@ class BaseCrackTaskThread(threading.Thread):
 class CrackTaskThread(BaseCrackTaskThread):
     """crack任务的线程，由webui调用并实际承载攻击任务"""
 
-    def __init__(self, url, form: Form, interval: float, options: Options):
+    def __init__(
+        self,
+        url,
+        form: Form,
+        interval: float,
+        options: Options,
+        extra_params_querystr: Union[str, None] = None,
+        extra_data_querystr: Union[str, None] = None,
+    ):
         super().__init__()
         self.form = form
         self.url = url
@@ -162,7 +170,12 @@ class CrackTaskThread(BaseCrackTaskThread):
         self.submitter: Union[Submitter, None] = None
         self.full_payload_gen: Union[FullPayloadGen, None] = None
         self.cracker: Union[Cracker, None] = None
-        self.requester = HTTPRequester(interval=interval, user_agent=DEFAULT_USER_AGENT)
+        self.requester = HTTPRequester(
+            interval=interval,
+            user_agent=DEFAULT_USER_AGENT,
+            extra_params_querystr=extra_params_querystr,
+            extra_data_querystr=extra_data_querystr,
+        )
 
     def run(self):
         for input_field in self.form["inputs"]:
@@ -193,14 +206,26 @@ class CrackTaskThread(BaseCrackTaskThread):
 class CrackPathTaskThread(BaseCrackTaskThread):
     """crack-path任务的线程，由webui调用并实际承载攻击任务"""
 
-    def __init__(self, url, interval: float, options: Options):
+    def __init__(
+        self,
+        url,
+        interval: float,
+        options: Options,
+        extra_params_querystr: Union[str, None] = None,
+        extra_data_querystr: Union[str, None] = None,
+    ):
         super().__init__()
         self.url = url
         self.options = options
         self.submitter: Union[Submitter, None] = None
         self.full_payload_gen: Union[FullPayloadGen, None] = None
         self.cracker: Union[Cracker, None]
-        self.requester = HTTPRequester(interval=interval, user_agent=DEFAULT_USER_AGENT)
+        self.requester = HTTPRequester(
+            interval=interval,
+            user_agent=DEFAULT_USER_AGENT,
+            extra_params_querystr=extra_params_querystr,
+            extra_data_querystr=extra_data_querystr,
+        )
 
     def run(self):
         self.submitter = PathSubmitter(self.url, self.requester, self.callback)
@@ -225,6 +250,8 @@ class CrackJsonTaskThread(BaseCrackTaskThread):
         key: str,
         interval: float,
         options: Options,
+        extra_params_querystr: Union[str, None] = None,
+        extra_data_querystr: Union[str, None] = None,
     ):
         super().__init__()
         self.url = url
@@ -235,7 +262,12 @@ class CrackJsonTaskThread(BaseCrackTaskThread):
         self.submitter: Union[Submitter, None] = None
         self.full_payload_gen: Union[FullPayloadGen, None] = None
         self.cracker: Union[Cracker, None]
-        self.requester = HTTPRequester(interval=interval, user_agent=DEFAULT_USER_AGENT)
+        self.requester = HTTPRequester(
+            interval=interval,
+            user_agent=DEFAULT_USER_AGENT,
+            extra_params_querystr=extra_params_querystr,
+            extra_data_querystr=extra_data_querystr,
+        )
 
     def run(self):
         json_obj = json.loads(self.json_data)
@@ -260,14 +292,26 @@ class CrackJsonTaskThread(BaseCrackTaskThread):
 class ScanTaskThread(BaseCrackTaskThread):
     """scan任务的线程，由webui调用并实际承载攻击任务"""
 
-    def __init__(self, url, interval: float, options: Options):
+    def __init__(
+        self,
+        url,
+        interval: float,
+        options: Options,
+        extra_params_querystr: Union[str, None] = None,
+        extra_data_querystr: Union[str, None] = None,
+    ):
         super().__init__()
         self.url = url
         self.options = options
         self.submitter: Union[Submitter, None] = None
         self.full_payload_gen: Union[FullPayloadGen, None] = None
         self.cracker: Union[Cracker, None] = None
-        self.requester = HTTPRequester(interval=interval, user_agent=DEFAULT_USER_AGENT)
+        self.requester = HTTPRequester(
+            interval=interval,
+            user_agent=DEFAULT_USER_AGENT,
+            extra_params_querystr=extra_params_querystr,
+            extra_data_querystr=extra_data_querystr,
+        )
 
     def run(self):
         url_forms = (
@@ -367,7 +411,29 @@ def parse_options(request_form) -> Options:
         options.detect_waf_keywords = DetectWafKeywords(
             request_form.get("detect_waf_keywords", None)
         )
+    waf_keywords = request_form.get("waf_keywords", "")
+    if waf_keywords:
+        options.waf_keywords = tuple(
+            keyword.strip()
+            for keyword in waf_keywords.replace("\n", ",").split(",")
+            if keyword.strip()
+        )
     return options
+
+
+def parse_extra_request_kwargs(request_form) -> dict:
+    """解析额外的GET/POST参数，传给HTTPRequester
+
+    Args:
+        request_form (dict): 给定的字典
+
+    Returns:
+        dict: HTTPRequester的额外参数
+    """
+    return {
+        "extra_params_querystr": request_form.get("extra_params") or None,
+        "extra_data_querystr": request_form.get("extra_data") or None,
+    }
 
 
 @app.route("/")
@@ -426,6 +492,7 @@ def create_task():
                 ),
                 interval=float(request.form["interval"]),
                 options=parse_options(request.form),
+                **parse_extra_request_kwargs(request.form),
             )
         )
         return jsonify({"code": APICODE_OK, "taskid": taskid})
@@ -439,6 +506,7 @@ def create_task():
                 url=request.form["url"],
                 interval=float(request.form["interval"]),
                 options=parse_options(request.form),
+                **parse_extra_request_kwargs(request.form),
             )
         )
         return jsonify({"code": APICODE_OK, "taskid": taskid})
@@ -452,6 +520,7 @@ def create_task():
                 url=request.form["url"],
                 interval=float(request.form["interval"]),
                 options=parse_options(request.form),
+                **parse_extra_request_kwargs(request.form),
             )
         )
         return jsonify({"code": APICODE_OK, "taskid": taskid})
@@ -481,6 +550,7 @@ def create_task():
                 key=request.form["key"],
                 interval=float(request.form["interval"]),
                 options=parse_options(request.form),
+                **parse_extra_request_kwargs(request.form),
             )
         )
         return jsonify({"code": APICODE_OK, "taskid": taskid})
